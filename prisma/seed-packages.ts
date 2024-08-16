@@ -23,7 +23,8 @@ const data = [
         legendary_rarity: 0.05,
         full_legendary_rarity: 0.01,
         image_url: "https://via.placeholder.com/150",
-        cards_quantity: 8
+        cards_quantity: 8,
+        id: 1
      },
      {
         name: "Pacote raro",
@@ -34,12 +35,14 @@ const data = [
         legendary_rarity: 0.08,
         full_legendary_rarity: 0.02,
         image_url: "https://via.placeholder.com/150",
-        cards_quantity: 8
+        cards_quantity: 8,
+        id: 2
      },
      {
         name: "Grande pacote",
         price: 400,
         cards_quantity: 16,
+        id: 3,
         common_rarity: 0.4,
         rare_rarity: 0.4,
         epic_rarity: 0.1,
@@ -51,6 +54,7 @@ const data = [
         name: "Pacote épicos",
         price: 2000,
         cards_quantity: 3,
+        id: 4,
         common_rarity: 0.1,
         rare_rarity: 0.2,
         epic_rarity: 0.4,
@@ -62,6 +66,7 @@ const data = [
         name: "Pacote lendário",
         price: 5000,
         cards_quantity: 1,
+        id: 5,
         common_rarity: 0.05,
         rare_rarity: 0.1,
         epic_rarity: 0.2,
@@ -73,6 +78,7 @@ const data = [
         name: "Pacote tudo ou nada",
         price: 10000,
         cards_quantity: 1,
+        id: 6,
         common_rarity: 0.01,
         rare_rarity: 0.02,
         epic_rarity: 0.05,
@@ -84,6 +90,7 @@ const data = [
         name: "Grande pacote épico",
         price: 10000,
         cards_quantity: 24,
+        id: 7,
         common_rarity: 0.1,
         rare_rarity: 0.1,
         epic_rarity: 0.5,
