@@ -14,4 +14,15 @@ export async function receiveUser(token: string, jwt: jwtDecorator): Promise<Use
     if (!user) throw new Error("User not found");
     return user;
 }
-export { jwt };
+//@ts-ignore
+export const getUserInterceptor = async ({ headers, set, jwt }) => {
+    const auth = headers["authorization"];
+    if (!auth || !auth.includes("Bearer")) {
+      set.status = 401;
+      return { user: null };
+    }
+    const user = await receiveUser(auth.replace("Bearer ", ""), jwt);
+    return {
+      user,
+    };
+  }

@@ -19,8 +19,6 @@ model Card {
   card_id    String       @unique
   image_url  String
   rarity     Int // 1: common, 2: rare, 3: epic, 4: legendary, 5: full legendary
-  User       User?        @relation(fields: [userId], references: [id])
-  userId     Int?
   Cards_user Cards_user[]
   Trade_Card Trade_Card[]
 }
@@ -73,13 +71,14 @@ model User {
   username      String
   password      String
   email         String
-  cards         Card[]
   Packages_User Packages_User[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @default(now()) @updatedAt
   money         Int             @default(500)
   Cards_user    Cards_user[]
   Trade_User    User_Trade[]
+  friendships   Friend_User[]   @relation("UserFriends")
+  friendOf      Friend_User[]   @relation("UserIsFriendOf")
 
   @@map("users")
 }
@@ -89,7 +88,7 @@ model Trade {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @default(now()) @updatedAt
   cards      Trade_Card[]
-  userTrades User_Trade[]
+  userTrades User_Trade[] // max 2 - 1 sender, 2? receiver
 
   @@map("trades")
 }
@@ -114,4 +113,18 @@ model Trade_Card {
   Card      Card     @relation(fields: [card_id], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Friend_User {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  accepted  Boolean  @default(false)
+  friend_id Int
+  User      User     @relation("UserFriends", fields: [user_id], references: [id])
+  Friend    User     @relation("UserIsFriendOf", fields: [friend_id], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  userId    Int?
+
+  @@unique([user_id, friend_id])
 }

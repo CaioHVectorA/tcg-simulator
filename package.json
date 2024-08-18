@@ -12,6 +12,7 @@
   "dependencies": {
     "@elysiajs/html": "^1.1.0",
     "@elysiajs/jwt": "^1.1.0",
+    "@elysiajs/swagger": "^1.1.1",
     "@faker-js/faker": "^8.4.1",
     "@prisma/client": "^5.18.0",
     "@tcgdex/sdk": "^2.5.1",

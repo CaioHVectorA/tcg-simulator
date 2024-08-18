@@ -3,8 +3,9 @@ import { compare, hash } from "bcrypt";
 import { Elysia, t } from "elysia";
 import { prisma } from "../helpers/prisma.client";
 import { jwt } from "../middlewares/jwt/jwt";
+import { getUserInterceptor } from "../middlewares/jwt";
 
-export const userController = new Elysia({})
+export const userController = new Elysia({  })
   .use(jwt)
   .post(
     "/login",
@@ -42,5 +43,9 @@ export const userController = new Elysia({})
       }),
     }
   )
+  .derive(getUserInterceptor)
+  .get("/me", async ({ user }) => {
+    return user;
+  })
 
 // export class UserController =

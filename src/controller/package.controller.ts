@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
-import { receiveUser } from "../middlewares/jwt";
+import { getUserInterceptor, receiveUser } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 import { OpenPackage } from "../lib/open-package";
 import type { Card, Package } from "@prisma/client";
@@ -8,18 +8,7 @@ import type { Card, Package } from "@prisma/client";
 export const packageController = new Elysia({ prefix: "/packages" })
   .use(jwt)
   .decorate("prisma", prisma)
-  .derive(async ({ headers, set, jwt }) => {
-    const auth = headers["authorization"];
-    console.log(auth);
-    if (!auth || !auth.includes("Bearer")) {
-      set.status = 401;
-      return { user: null };
-    }
-    const user = await receiveUser(auth.replace("Bearer ", ""), jwt);
-    return {
-      user,
-    };
-  })
+  .derive(getUserInterceptor)
   .get("/", async ({ jwt, headers, user, prisma }) => {
     if (!user) return { body: { error: "Unauthorized" } };
     // const packages = await prisma.package.findMany({ where: { Packages_User: { none: { userId: user.id,  } } }, select: { name: true, image_url: true, id: true } })
@@ -49,6 +38,10 @@ export const packageController = new Elysia({ prefix: "/packages" })
     async ({ body, user, prisma, set }) => {
       if (!user) return { body: { error: "Unauthorized" } };
       const { packageId } = body;
+      if (packageId > 7 || packageId < 1) {
+        set.status = 400;
+        return { message: { error: "Invalid package id" } };
+      }
       const package_ = await prisma.package.findFirst({
         where: { id: packageId },
       });
@@ -78,6 +71,10 @@ export const packageController = new Elysia({ prefix: "/packages" })
     async ({ user, prisma, body, set }) => {
       if (!user) return { body: { error: "Unauthorized" } };
       const { packagesId } = body;
+      if (packagesId.some((id) => id > 7 || id < 1)) {
+        set.status = 400;
+        return { message: { error: "Invalid package id" } };
+      }
       const quantities = {} as Record<number, number>;
       packagesId.forEach((id) => {
         quantities[id] = (quantities[id] || 0) + 1;
@@ -151,7 +148,7 @@ export const packageController = new Elysia({ prefix: "/packages" })
             data: { userId: user.id, cardId: card.id }
         })
       }
-      return allCards.sort((a, b) => a.rarity - b.rarity);
+      return allCards.sort((a, b) => b.rarity - a.rarity);
     },
     { body: t.Object({ packagesId: t.Array(t.Number()) }) }
   );
