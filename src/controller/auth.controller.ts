@@ -9,21 +9,32 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .decorate("prisma", prisma)
     .post(
       "/login",
-      async ({ body, jwt }) => {
+      async ({ body, jwt, set }) => {
         const { email, password } = body;
         const user = await prisma.user.findFirst({ where: { email } });
-        if (!user) return { status: 404, body: { error: "User not found" } };
+        if (!user) {
+          set.status = 400;
+          return { error: "User not found" } ;
+        } 
         const isValid = await compare(password, user.password);
-        if (!isValid)
-          return { status: 400, body: { error: "Invalid password" } };
+        if (!isValid) {
+          set.status = 400;
+          return { error: "Invalid password" };
+        }
         const token = await jwt.sign({ id: user.id });
         console.log({ token, verify: await jwt.verify(token) });
-        return { body: { token } };
+        return { token };
       },
       {
         body: t.Object({ email: t.String(), password: t.String() }),
-        detail: { tags: ["Auth"] },
-      }
+        detail: { tags: ["Auth"],  },
+        response: {
+          200: t.Object({ token: t.String() }),
+          400: t.Object({ error: t.String() }),
+        }
+        // response: t.Array(t.String(), {  }),
+        // response: t.Object({ token: t.String() })
+      },
     )
     .post(
       "/register",

@@ -16,5 +16,23 @@ export const swagger = sw({
                 url: "caihe.vercel.app"
              }
         },
+        tags: [
+            {
+                name: "Auth",
+                description: "Endpoints relacionados a autenticação de usuários"
+            },
+            {
+                name: "Trade",
+                description: "Endpoints relacionados a troca de cartas"
+            },
+            {
+                name: "Card",
+                description: "Endpoints relacionados a cartas"
+            },
+            {
+                name: "Package",
+                description: "Endpoints relacionados a pacotes de cartas"
+            }
+        ]
     }
 }) 
