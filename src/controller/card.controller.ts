@@ -3,7 +3,9 @@ import { jwt } from "../middlewares/jwt/jwt";
 import { getUserInterceptor } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 
-export const cardController = new Elysia({ prefix: '/cards' })
+export const cardController = new Elysia({})
+    .group("/cards", (app) => {
+    return app
     .use(jwt)
     .decorate("prisma", prisma)
     .derive(getUserInterceptor)
@@ -15,7 +17,7 @@ export const cardController = new Elysia({ prefix: '/cards' })
         const where = search ? { name: { startsWith: search } } : {};
         const cards = await prisma.card.findMany({ where: { ...where, Cards_user: { some: { userId: user.id } } }, skip, take: search ? undefined : limit, orderBy: { rarity: 'desc' } });
         return { cards };
-    }, { query: t.Object({ page: t.Optional(t.String()), search: t.Optional(t.String()) }) })
+    }, { query: t.Object({ page: t.Optional(t.String()), search: t.Optional(t.String()) }), detail: { tags: ["Card"] } })
     .get("/", async ({ prisma, query }) => {
         const limit = 32;
         const { page, search } = query
@@ -23,7 +25,7 @@ export const cardController = new Elysia({ prefix: '/cards' })
         const where = search ? { name: { startsWith: search } } : {};
         const cards = await prisma.card.findMany({ where, skip, take: search ? undefined : limit, orderBy: { rarity: 'desc' } });
         return { cards };
-    }, { query: t.Object({ page: t.Optional(t.String()), search: t.Optional(t.String()) }) })
+    }, { query: t.Object({ page: t.Optional(t.String()), search: t.Optional(t.String()) }), detail: { tags: ["Card"] } })
     .get("/:id", async ({ prisma, params, set }) => {
         const { id } = params;
         const card = await prisma.card.findFirst({ where: { id: parseInt(id) } });
@@ -32,4 +34,5 @@ export const cardController = new Elysia({ prefix: '/cards' })
             return { error: "Card not found" };
         };
         return { card };
-    }, { params: t.Object({ id: t.String() }) })
+    }, { params: t.Object({ id: t.String() }), detail: { tags: ["Card"] } })
+})

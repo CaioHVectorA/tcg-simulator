@@ -1,51 +1,101 @@
-import { html } from "@elysiajs/html";
-import { compare, hash } from "bcrypt";
 import { Elysia, t } from "elysia";
 import { prisma } from "../helpers/prisma.client";
 import { jwt } from "../middlewares/jwt/jwt";
 import { getUserInterceptor } from "../middlewares/jwt";
 
-export const userController = new Elysia({  })
-  .use(jwt)
-  .post(
-    "/login",
-    async ({ body, jwt }) => {
-      const { email, password } = body;
-      const user = await prisma.user.findFirst({ where: { email } });
-      if (!user) return { status: 404, body: { error: "User not found" } };
-      const isValid = await compare(password, user.password);
-      if (!isValid) return { status: 400, body: { error: "Invalid password" } };
-      const token = await jwt.sign({ id: user.id });
-      console.log({ token, verify: await jwt.verify(token) });
-      return { body: { token } };
-    },
-    { body: t.Object({ email: t.String(), password: t.String() }) }
-  )
-  .post(
-    "/register",
-    async ({ body, jwt }) => {
-      const { email, password, username } = body;
-      const alreadyExists = await prisma.user.findFirst({ where: { email } });
-      const hashed = await hash(password, 10);
-      if (alreadyExists)
-        return { status: 400, body: { error: "User already exists" } };
-      const user = await prisma.user.create({
-        data: { email, password: hashed, username },
+export const userController = new Elysia({}).group("/user", (app) => {
+  return app
+    .use(jwt)
+    .derive(getUserInterceptor)
+    .decorate("prisma", prisma)
+    .get("/me", async ({ user }) => {
+      return user;
+    }, { detail: { tags: ["User"] } })
+    .get(
+      "/friends",
+      async ({ user, prisma, query }) => {
+        const { search } = query;
+        if (!user) return { body: { error: "Unauthorized" } };
+        const friends = await prisma.user.findMany({
+          where: {
+            friendships: { some: { user_id: user.id } },
+            username: { contains: search || "" },
+          },
+        });
+        return friends;
+      },
+      { query: t.Object({ search: t.Optional(t.String()) }), detail: { tags: ["User"] } }
+    )
+    .get("/requests", async ({ user, prisma }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const requests = await prisma.friend_User.findMany({
+        where: { user_id: user.id, accepted: false },
       });
-      const token = await jwt.sign({ id: user.id });
-      return { body: { token } };
-    },
-    {
-      body: t.Object({
-        email: t.String(),
-        password: t.String(),
-        username: t.String(),
-      }),
-    }
-  )
-  .derive(getUserInterceptor)
-  .get("/me", async ({ user }) => {
-    return user;
-  })
-
-// export class UserController =
+      return requests;
+    }, { detail: { tags: ["User"] } })
+    .get("/requests/sent", async ({ user, prisma }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const requests = await prisma.friend_User.findMany({
+        where: { friend_id: user.id, accepted: false },
+      });
+      return requests;
+    }, { detail: { tags: ["User"] } })
+    .post("send/:id", async ({ user, prisma, params }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const { id } = params;
+      if (isNaN(Number(id))) return { body: { error: "Invalid id" } };
+      const friend = await prisma.user.findFirst({ where: { id: Number(id) } });
+      if (!friend) return { body: { error: "User not found" } };
+      await prisma.friend_User.create({
+        data: { user_id: user.id, friend_id: friend.id },
+      });
+      return { message: "Friend request sent" };
+    }, { detail: { tags: ["User"] } })
+    .post("accept/:id", async ({ user, prisma, params }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const { id } = params;
+      if (isNaN(Number(id))) return { body: { error: "Invalid id" } };
+      const request = await prisma.friend_User.findFirst({
+        where: { user_id: Number(id), friend_id: user.id },
+      });
+      if (!request) return { body: { error: "Request not found" } };
+      await prisma.friend_User.update({
+        where: { id: request.id },
+        data: { accepted: true },
+      });
+      return { message: "Friend request accepted" };
+    }, { detail: { tags: ["User"] } })
+    .post("reject/:id", async ({ user, prisma, params }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const { id } = params;
+      if (isNaN(Number(id))) return { body: { error: "Invalid id" } };
+      const request = await prisma.friend_User.findFirst({
+        where: { user_id: Number(id), friend_id: user.id },
+      });
+      if (!request) return { body: { error: "Request not found" } };
+      await prisma.friend_User.delete({ where: { id: request.id } });
+      return { message: "Friend request rejected" };
+    }, { detail: { tags: ["User"] } })
+    .delete("/remove-sent/:id", async ({ user, prisma, params }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const { id } = params;
+      if (isNaN(Number(id))) return { body: { error: "Invalid id" } };
+      const request = await prisma.friend_User.findFirst({
+        where: { friend_id: Number(id), user_id: user.id },
+      });
+      if (!request) return { body: { error: "Request not found" } };
+      await prisma.friend_User.delete({ where: { id: request.id } });
+      return { message: "Friend request removed" };
+    }, { detail: { tags: ["User"] } })
+    .delete("/remove/:id", async ({ user, prisma, params }) => {
+      if (!user) return { body: { error: "Unauthorized" } };
+      const { id } = params;
+      if (isNaN(Number(id))) return { body: { error: "Invalid id" } };
+      const request = await prisma.friend_User.findFirst({
+        where: { user_id: Number(id), friend_id: user.id },
+      });
+      if (!request) return { body: { error: "Request not found" } };
+      await prisma.friend_User.delete({ where: { id: request.id } });
+      return { message: "Friend removed" };
+    });
+});

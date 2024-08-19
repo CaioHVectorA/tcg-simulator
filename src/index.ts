@@ -6,8 +6,10 @@ import { packageController } from "./controller/package.controller";
 import { tradeController } from "./controller/trade.controller";
 import { cardController } from "./controller/card.controller";
 import swagger from "@elysiajs/swagger";
+import { authController } from "./controller/auth.controller";
 export const server = new Elysia({})
-  .use(swagger())
+  .use(swagger({ path: "/docs" }))
+  .use(authController)
   .use(userController)  
   .use(packageController)
   .use(tradeController)
