@@ -10,35 +10,58 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
     .use(jwt)
     .decorate("prisma", prisma)
     .derive(getUserInterceptor)
-    .get("/", async ({ jwt, headers, user, prisma }) => {
-      if (!user) return { body: { error: "Unauthorized" } };
-      // const packages = await prisma.package.findMany({ where: { Packages_User: { none: { userId: user.id,  } } }, select: { name: true, image_url: true, id: true } })
-      const ids = await prisma.packages_User.findMany({
-        where: { userId: user.id },
-        select: { packageId: true },
-      });
-      // i want duplicates packages
-      const packages = [] as {
-        name: string;
-        image_url: string;
-        id: number;
-        quantity: number;
-      }[];
-      for (const id of ids) {
-        const package_ = await prisma.package.findFirst({
-          where: { id: id.packageId },
-          select: { name: true, image_url: true, id: true },
-        });
-        if (!package_) continue;
-        if (packages.some((p) => p.id === package_.id)) {
-          const index = packages.findIndex((p) => p.id === package_.id);
-          packages[index].quantity++;
-          continue;
+    .get(
+      "/",
+      async ({ jwt, headers, user, prisma, set }) => {
+        if (!user) {
+          set.status = 401;
+          return { error: "Sem token de autorização!  " };
         }
-        packages.push({ ...package_, quantity: 1 });
-      }
-      return packages;
-    }, { detail: { tags: ["Package"] } })
+        const ids = await prisma.packages_User.findMany({
+          where: { userId: user.id },
+          select: { packageId: true },
+        });
+        // i want duplicates packages
+        const packages = [] as {
+          name: string;
+          image_url: string;
+          id: number;
+          quantity: number;
+        }[];
+        for (const id of ids) {
+          const package_ = await prisma.package.findFirst({
+            where: { id: id.packageId },
+            select: { name: true, image_url: true, id: true },
+          });
+          if (!package_) continue;
+          if (packages.some((p) => p.id === package_.id)) {
+            const index = packages.findIndex((p) => p.id === package_.id);
+            packages[index].quantity++;
+            continue;
+          }
+          packages.push({ ...package_, quantity: 1 });
+        }
+        return packages;
+      },
+      {
+        detail: {
+          tags: ["Package"],
+          description:
+            "Endpoint relacionado a coleta de pacotes a partir da token de usuário",
+        },
+        response: {
+          200: t.Array(
+            t.Object({
+              name: t.String(),
+              image_url: t.String(),
+              id: t.Number(),
+              quantity: t.Number(),
+            })
+          , { description: "Pacotes do usuário" }),
+          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
+        }, 
+        }
+    )
     .post(
       "/buy",
       async ({ body, user, prisma, set }) => {
@@ -70,16 +93,22 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         });
         return { message: "Comprado com sucesso!" };
       },
-      { body: t.Object({ packageId: t.Number() }), detail: { tags: ["Package"] } }
+      {
+        body: t.Object({ packageId: t.Number() }),
+        detail: { tags: ["Package"], deprecated: true, description: "Use /buy-many instead" },
+      }
     )
     .post(
       "/buy-many",
       async ({ user, prisma, body, set }) => {
-        if (!user) return { body: { error: "Unauthorized" } };
+        if (!user) {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        }
         const { packagesId } = body;
         if (packagesId.some((id) => id > 7 || id < 1)) {
           set.status = 400;
-          return { message: { error: "Invalid package id" } };
+          return { error: "ID de pacote inválido!" };
         }
         const quantities = {} as Record<number, number>;
         packagesId.forEach((id) => {
@@ -91,7 +120,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const total = packages.reduce((acc, curr) => acc + curr.price, 0);
         if (user.money < total) {
           set.status = 400;
-          return { message: { error: "Not enough money" } };
+          return { error: "Dinheiro insuficiente!" };
         }
         const userPackages = [];
         for (const [id, quantity] of Object.entries(quantities)) {
@@ -102,7 +131,6 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             });
           }
         }
-        console.log(userPackages);
         await prisma.packages_User.createMany({ data: userPackages });
         await prisma.user.update({
           where: { id: user.id },
@@ -112,12 +140,23 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         });
         return { message: "Comprado com sucesso!" };
       },
-      { body: t.Object({ packagesId: t.Array(t.Number()) }), detail: { tags: ["Package"] } }
+      {
+        body: t.Object({ packagesId: t.Array(t.Number()) }),
+        detail: { tags: ["Package"], description: "Compre vários pacotes de uma vez, usando seus ID's como referência" },
+        response: {
+          200: t.Object({ message: t.String() }, { description: "Mensagem de sucesso" }),
+          400: t.Object({ error: t.String() }, { description: "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte" }),
+          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
+        }
+      }
     )
     .post(
       "/open-packages",
-      async ({ user, prisma, body }) => {
-        if (!user) return { body: { error: "Unauthorized" } };
+      async ({ user, prisma, body, set }) => {
+        if (!user) {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        };
         const { packagesId } = body;
         const quantities = {} as Record<number, number>;
         packagesId.forEach((id) => {
@@ -138,7 +177,8 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           packagesId: packagesId.length,
         });
         if (packagesUser.length < packagesId.length) {
-          return { body: { error: "You don't have all packages" } };
+          set.status = 400;
+          return { error: "Pacote não encontrado!" };
         }
         const allCards = [] as Card[];
         for await (const package_ of packages) {
@@ -168,6 +208,21 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         }
         return allCards.sort((a, b) => b.rarity - a.rarity);
       },
-      { body: t.Object({ packagesId: t.Array(t.Number()) }), detail: { tags: ["Package"] } }
+      {
+        body: t.Object({ packagesId: t.Array(t.Number()) }),
+        detail: { tags: ["Package"], description: "Abra pacotes de cartas, usando seus ID's como referência" },
+        response: {
+          200: t.Array(
+            t.Object({
+              id: t.Number(),
+              name: t.String(),
+              image_url: t.String(),
+              rarity: t.Number(),
+            })
+          , { description: "Cartas abertas" }),
+          400: t.Object({ error: t.String() }, { description: "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte" }),
+          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
+        }
+      }
     );
 });

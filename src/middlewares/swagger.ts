@@ -35,7 +35,7 @@ export const swagger = sw({
             },
             {
                 name: "Package",
-                description: "Endpoints relacionados a pacotes de cartas"
+                description: "Endpoints relacionados a pacotes de cartas. TODOS USAM AUTENTICAÇÃO!!!!"
             }
         ]
     }
