@@ -13,7 +13,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         const { email, password } = body;
         const user = await prisma.user.findFirst({ where: { email } });
         if (!user) {
-          set.status = 400;
+          set.status = 404;
           return { error: "User not found" } ;
         } 
         const isValid = await compare(password, user.password);
@@ -27,10 +27,11 @@ export const authController = new Elysia({}).group("/auth", (app) => {
       },
       {
         body: t.Object({ email: t.String(), password: t.String() }),
-        detail: { tags: ["Auth"],  },
+        detail: { tags: ["Auth"], description: "Login to the system" },
         response: {
-          200: t.Object({ token: t.String() }),
-          400: t.Object({ error: t.String() }),
+          200: t.Object({ token: t.String()}, { description: "Token do usuário" }),
+          400: t.Object({ error: t.String()}, { description: "Erro de senha incorreta" } ),
+          404: t.Object({ error: t.String()}, { description: "Erro de usuário não encontrado" } ),
         }
         // response: t.Array(t.String(), {  }),
         // response: t.Object({ token: t.String() })
@@ -38,17 +39,19 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     )
     .post(
       "/register",
-      async ({ body, jwt }) => {
+      async ({ body, jwt, set }) => {
         const { email, password, username } = body;
         const alreadyExists = await prisma.user.findFirst({ where: { email } });
         const hashed = await hash(password, 10);
-        if (alreadyExists)
-          return { status: 400, body: { error: "User already exists" } };
+        if (alreadyExists) {
+          set.status = 400;
+          return { error: "User already exists" };
+        }
         const user = await prisma.user.create({
           data: { email, password: hashed, username },
         });
         const token = await jwt.sign({ id: user.id });
-        return { body: { token } };
+        return { token };
       },
       {
         body: t.Object({
@@ -57,6 +60,10 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           username: t.String(),
         }),
         detail: { tags: ["Auth"] },
+        response: {
+          200: t.Object({ token: t.String() }, { description: "Token do usuário" }),
+          400: t.Object({ error: t.String() }, { description: "Erro de usuário já existente" }),
+        },
       }
     );
 });

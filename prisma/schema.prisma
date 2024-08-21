@@ -67,18 +67,20 @@ model Cards_user {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  username      String
-  password      String
-  email         String
-  Packages_User Packages_User[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @default(now()) @updatedAt
-  money         Int             @default(500)
-  Cards_user    Cards_user[]
-  Trade_User    User_Trade[]
-  friendships   Friend_User[]   @relation("UserFriends")
-  friendOf      Friend_User[]   @relation("UserIsFriendOf")
+  id                Int             @id @default(autoincrement())
+  username          String
+  password          String
+  email             String
+  Packages_User     Packages_User[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+  money             Int             @default(500)
+  Cards_user        Cards_user[]
+  Trade_User        User_Trade[]
+  friendships       Friend_User[]   @relation("UserFriends")
+  friendOf          Friend_User[]   @relation("UserIsFriendOf")
+  last_daily_bounty DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past
+  last_entry        DateTime        @default(now())
 
   @@map("users")
 }
@@ -98,8 +100,8 @@ model User_Trade {
   user_id   Int
   trade_id  Int
   is_sender Boolean
-  User      User     @relation(fields: [user_id], references: [id])
-  Trade     Trade    @relation(fields: [trade_id], references: [id])
+  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
@@ -109,8 +111,8 @@ model Trade_Card {
   card_id   Int
   is_sender Boolean
   trade_id  Int
-  Trade     Trade    @relation(fields: [trade_id], references: [id])
-  Card      Card     @relation(fields: [card_id], references: [id])
+  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  Card      Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
@@ -120,10 +122,8 @@ model Friend_User {
   user_id   Int
   accepted  Boolean  @default(false)
   friend_id Int
-  User      User     @relation("UserFriends", fields: [user_id], references: [id])
-  Friend    User     @relation("UserIsFriendOf", fields: [friend_id], references: [id])
+  User      User     @relation("UserFriends", fields: [user_id], references: [id], onDelete: Cascade)
+  Friend    User     @relation("UserIsFriendOf", fields: [friend_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-
-  @@unique([user_id, friend_id])
 }

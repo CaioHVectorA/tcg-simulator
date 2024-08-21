@@ -128,5 +128,5 @@ export const tradeController = new Elysia({})
       },
     });
     return trades;
-  }, { detail: { tags: ["Trade"] } })
+  }, { detail: { tags: ["Trade"] } }) 
 })

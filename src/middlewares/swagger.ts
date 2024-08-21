@@ -22,6 +22,10 @@ export const swagger = sw({
                 description: "Endpoints relacionados a autenticação de usuários"
             },
             {
+                name: "User",
+                description: "Endpoints relacionados a usuários, incluindo amizades e o resgate da recompensa diária."
+            },
+            {
                 name: "Trade",
                 description: "Endpoints relacionados a troca de cartas"
             },
