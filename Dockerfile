@@ -1,48 +1,33 @@
-# syntax = docker/dockerfile:1
+# Use a imagem oficial do Bun como base
+FROM jarredsumner/bun:latest as build
 
-# Adjust NODE_VERSION as desired
-ARG BUN_VERSION=1.1.0
-FROM oven/bun:${BUN_VERSION}-slim as base
-
-LABEL fly_launch_runtime="Bun/Prisma"
-
-# NodeJS/Prisma app lives here
+# Set the working directory inside the container
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+# Copy the package files and install dependencies
+COPY package.json bun.lockb ./
+RUN bun install
 
+# Copy the rest of the application code
+COPY . .
 
-# Throw-away build stage to reduce size of final image
-FROM base as build
+# Generate Prisma client
+RUN npx prisma generate
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install -y python-is-python3 pkg-config build-essential openssl 
+# Set the entrypoint for the application
+CMD ["bun", "run", "start:dev"]
 
-# Install node modules
-COPY --link bun.lockb package.json ./
-RUN bun install --ci
+# Use a smaller base image for the final stage
+FROM jarredsumner/bun:latest
 
-# Generate Prisma Client
-COPY --link prisma ./prisma
-RUN bun add @prisma/client
-RUN bun add -g prisma
-RUN bunx prisma generate  
-# Copy application code
-COPY --link . .
+# Set the working directory inside the container
+WORKDIR /app
 
-# Final stage for app image
-FROM base
-
-# Copy built application
+# Copy the built application files
 COPY --from=build /app /app
-COPY --from=build /app/node_modules/.prisma /app/node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma/client /app/node_modules/@prisma/client
 
+# Expose the port that your application runs on
+EXPOSE 3000
 
-# Entrypoint prepares the database.
-ENTRYPOINT ["/app/docker-entrypoint"]
-
-# Start the server by default, this can be overwritten at runtime
-CMD bunx prisma db pull && bunx prisma generate && bun src/index.ts
+# Start the server
+CMD ["bun", "run", "start:dev"]
