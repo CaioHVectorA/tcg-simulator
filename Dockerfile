@@ -1,33 +1,47 @@
-# Use a imagem oficial do Bun como base
-FROM jarredsumner/bun:latest as build
+# use the official Bun image
+# see all versions at https://hub.docker.com/r/oven/bun/tags
+FROM oven/bun:1 AS base
+WORKDIR /usr/src/app
 
-# Set the working directory inside the container
-WORKDIR /app
+# install dependencies into temp directory
+# this will cache them and speed up future builds
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lockb /temp/dev/
+# Install dependencies and build the project
+RUN cd /temp/dev && bun install --frozen-lockfile
 
-# Copy the package files and install dependencies
-COPY package.json bun.lockb ./
-RUN bun install
+# install with --production (exclude devDependencies)
+RUN mkdir -p /temp/prod
+COPY package.json bun.lockb /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
 
-# Copy the rest of the application code
+# Install Prisma CLI
+RUN bun add prisma
+
+# Copy Prisma schema and generate Prisma client
+COPY prisma /temp/dev/prisma
+RUN cd /temp/dev && npx prisma generate
+
+# copy node_modules from temp directory
+# then copy all (non-ignored) project files into the image
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# [optional] tests & build
+ENV NODE_ENV=production
+RUN bun test
+RUN bun run build
 
-# Set the entrypoint for the application
-CMD ["bun", "run", "start:dev"]
+# copy production dependencies and source code into final image
+FROM base AS release
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/index.ts .
+COPY --from=prerelease /usr/src/app/package.json .
+COPY --from=prerelease /usr/src/app/prisma ./prisma
 
-# Use a smaller base image for the final stage
-FROM jarredsumner/bun:latest
-
-# Set the working directory inside the container
-WORKDIR /app
-
-# Copy the built application files
-COPY --from=build /app /app
-
-# Expose the port that your application runs on
-EXPOSE 3000
-
-# Start the server
-CMD ["bun", "run", "start:dev"]
+# run the app
+USER bun
+EXPOSE 3000/tcp
+ENTRYPOINT [ "bun", "run", "src/index.ts" ]
