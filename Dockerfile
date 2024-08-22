@@ -21,7 +21,7 @@ RUN bun add prisma
 
 # Copy Prisma schema and generate Prisma client
 COPY prisma /temp/dev/prisma
-RUN cd /temp/dev && npx prisma generate
+RUN cd /temp/dev && bunx prisma generate
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
