@@ -3,11 +3,13 @@
   "module": "index.ts",
   "devDependencies": {
     "@types/bun": "latest",
+    "@faker-js/faker": "^8.4.1",
     "prisma": "^5.18.0"
   },
   "scripts": {
     "start:prod": "bun dist/index.js",
-    "start:dev": "bun src/index.ts"
+    "start:dev": "bun src/index.ts",
+    "build": "tsc src/index.ts --outDir ./dist"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -16,8 +18,8 @@
   "dependencies": {
     "@elysiajs/html": "^1.1.0",
     "@elysiajs/jwt": "^1.1.0",
+    "@elysiajs/node": "^0.0.0-alpha.0",
     "@elysiajs/swagger": "^1.1.1",
-    "@faker-js/faker": "^8.4.1",
     "@prisma/client": "^5.18.0",
     "@tcgdex/sdk": "^2.5.1",
     "@types/bcrypt": "^5.0.2",
