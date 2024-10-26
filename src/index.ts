@@ -14,5 +14,5 @@ export const server = new Elysia({})
   .use(packageController)
   .use(tradeController)
   .use(cardController)
-  .listen(3000);
-console.log("Server running on http://localhost:3000");
+  .listen(8080);
+console.log("Server running");

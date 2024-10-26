@@ -1,44 +1,44 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
+# Use a imagem oficial do Bun
 FROM oven/bun:1 AS base
-WORKDIR /usr/src/app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
-# Install dependencies and build the project
-RUN cd /temp/dev && bun install --frozen-lockfile
+# Instalar dependências adicionais
+RUN apt-get update && apt-get install -y fuse3 openssl sqlite3 ca-certificates curl
 
-# install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+# Instalar Node.js 20.8
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs
 
-# Install Prisma CLI
-RUN bun add prisma
+FROM base AS deps
 
-# Copy Prisma schema and generate Prisma client
-COPY prisma /temp/dev/prisma
-RUN cd /temp/dev && bunx prisma generate
+WORKDIR /myapp
 
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
-COPY . .
+# Adicionar arquivos de dependências e instalar pacotes
+ADD package.json package-lock.json bun.lockb ./
+RUN bun install
 
-# [optional] tests & build
-ENV NODE_ENV=production
+FROM base AS production-deps
 
-# copy production dependencies and source code into final image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/ .
-COPY --from=prerelease /usr/src/app/prisma ./prisma
+WORKDIR /myapp
 
-# run the app
+# Copiar as dependências instaladas na camada de deps
+COPY --from=deps /myapp/node_modules /myapp/node_modules
+
+# Adicionar arquivos de dependências para produção
+ADD package.json bun.lockb ./
+
+# Instalar o Prisma CLI
+ADD prisma .
+
+
+# Gerar os arquivos do Prisma
+RUN npx prisma generate
+
+# Adicionar o restante do código-fonte
+ADD . .
+
+# Configurar o usuário e expor a porta da aplicação
 USER bun
 EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "src/index.ts" ]
+
+# Executar a aplicação
+CMD ["bun", "run", "src/index.ts"]

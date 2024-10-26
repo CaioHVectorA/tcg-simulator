@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
-echo "Inicializando o prisma com a PORRA do node"
-npx prisma generate
+echo "Inicializando o prisma"
+bunx prisma generate
 exec "$@"
