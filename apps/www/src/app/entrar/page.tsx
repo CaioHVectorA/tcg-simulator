@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Typewriter } from '@/modules/auth/typewriter'
 
 const loginSchema = z.object({
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
@@ -169,8 +170,8 @@ export default function LoginRegisterPage() {
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
                 <div className="flex flex-col justify-center items-center bg-primary text-primary-foreground p-8 rounded-lg">
                     <img src="/placeholder.svg?height=100&width=100" alt="TCG Logo" className="w-24 h-24 mb-4" />
-                    <h1 className="text-3xl font-bold mb-2">Pokémon TCG Simulator</h1>
-                    <p className="text-center">Colecione, troque e batalhe com seus cards Pokémon favoritos!</p>
+                    <h1 className="text-7xl font-bold mb-2 text-white">SimTCG</h1>
+                    <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
