@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = "file:./testing.db"
 }
 
 model Card {
@@ -77,6 +77,7 @@ model User {
   money             Int             @default(500)
   Cards_user        Cards_user[]
   Trade_User        User_Trade[]
+  picture           String          @default("/wallpaper.jpg")
   friendships       Friend_User[]   @relation("UserFriends")
   friendOf          Friend_User[]   @relation("UserIsFriendOf")
   last_daily_bounty DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past

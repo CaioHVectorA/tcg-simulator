@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start:prod": "bun dist/index.js",
-    "dev": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
     "build": "tsc src/index.ts --outDir ./dist"
   },
   "peerDependencies": {
@@ -21,6 +21,7 @@
     "@elysiajs/jwt": "^1.1.0",
     "@elysiajs/node": "^0.0.0-alpha.0",
     "@elysiajs/swagger": "^1.1.1",
+    "@grotto/logysia": "^0.1.4",
     "@prisma/client": "^5.18.0",
     "@tcgdex/sdk": "^2.5.1",
     "@types/bcrypt": "^5.0.2",
