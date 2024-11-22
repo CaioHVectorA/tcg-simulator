@@ -1,14 +1,29 @@
-### Priority
-- [X] Implement diary money bag!
-- [ ] Add tests
-- [X] Add fictional trades seed data (thinking about equity trades)
-- [X] Add fictional user friendship
-- [ ] Think in friendship chat
-- [ ] Think about trades URLs mode - Trade code!
-- [ ] Implement handling for duplicated trades and selling
-- [ ] Implement selling cards to players too!
-- [ ] Implement player profile endpoints
-- [ ] Refactor docs in the others controllers, adding description and study how to insert the examples
-### Others
-- [ ] Add a better README.md
-- [ ] Think about flexible trades(like a trade that the sender can send offers and the receiver can accept one of them)
+### Prioridade
+
+- [x] Implementar bolsa de dinheiro diário!
+- [ ] Adicionar testes
+- [x] Adicionar dados fictícios de negociações (pensando em negociações de ações)
+- [x] Adicionar amizade fictícia de usuário
+- [ ] Pensar em chat de amizade
+- [ ] Pensar no modo de URLs de negociações - Código de negociação!
+- [ ] Implementar tratamento para negociações duplicadas e vendas
+- [ ] Implementar venda de cartas para jogadores também!
+- [ ] Implementar endpoints de perfil do jogador
+- [ ] Refatorar docs nos outros controladores, adicionando descrição e estudar como inserir os exemplos
+
+### Outros
+
+- [ ] Adicionar um README.md melhor
+- [ ] Pensar em negociações flexíveis (como uma negociação em que o remetente pode enviar ofertas e o destinatário pode aceitar uma delas)
+
+### Aplicação Web
+
+- [ ] Adicionar identidade visual
+- [ ] Adicionar um sistema de notificações
+- [ ] Adicionar um sistema de chat
+- [ ] Adicionar sistema de ranking, com base em pontuação de cartas obtidas (mais métricas, dinheiro e missões?)
+- [ ] Adicionar página para cada carta
+- [ ] Adicionar sistema de missões
+- [ ] Adicionar sistema de coleções
+
+#### Funcionalidades do Backend
