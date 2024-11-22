@@ -13,6 +13,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Typewriter } from '@/modules/auth/typewriter'
+import { useApi } from '@/hooks/use-api'
+import { useToast } from '@/hooks/use-toast'
+import { setCookie } from '@/lib/cookies'
+import { useRouter } from 'next/navigation'
 
 const loginSchema = z.object({
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
@@ -154,28 +158,37 @@ const GuestLoginDialog = ({ isOpen, onClose }: {
 export default function LoginRegisterPage() {
     const [activeTab, setActiveTab] = useState('login')
     const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
-
-    function onLoginSubmit(values: z.infer<typeof loginSchema>) {
-        console.log(values)
-        // Handle login logic here
+    const { post } = useApi()
+    const { toast } = useToast()
+    const { push } = useRouter()
+    async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
+        const response = await post('/auth/login', values)
+        if (response.data.ok) {
+            const token = response.data.data.token
+            setCookie('token', token, 7)
+            push('/home')
+        }
     }
 
-    function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-        console.log(values)
-        // Handle registration logic here
+    async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
+        const response = await post('/auth/register', values)
+        if (response.data.ok) {
+            const token = response.data.data.token
+            setCookie('token', token, 7)
+            push('/home')
+        }
     }
 
     return (
-        <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken p-4 bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
+        <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
                 <div className="flex flex-col justify-center items-center bg-primary text-primary-foreground p-8 rounded-lg">
-                    <img src="/placeholder.svg?height=100&width=100" alt="TCG Logo" className="w-24 h-24 mb-4" />
+                    <img src="/logo.png" alt="TCG Logo" className="w-64 h-64 mb-4" />
                     <h1 className="text-7xl font-bold mb-2 text-white">SimTCG</h1>
                     <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-center">Bem-vindo</CardTitle>
                         <CardDescription className="text-center">
                             {activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
                         </CardDescription>
