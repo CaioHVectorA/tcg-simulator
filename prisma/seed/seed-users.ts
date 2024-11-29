@@ -12,13 +12,29 @@ function generateUser() {
 async function seedUsers() {
     console.time('seed')
     console.log('Seeding users and other models, this can take five minutes or more...')
+    
+    // ITERATIONS control:
+    const USERS = 100
+    const CARDS_PER_USER = 240
+    const TRADES_PER_USER = 50
+    const PACKAGES_PER_USER = 10
+    const FRIENDS_PER_USER = 10
+    // CLEAN DATABASE
     await prisma.user.deleteMany({})
     await prisma.packages_User.deleteMany({})
     await prisma.friend_User.deleteMany({})
     await prisma.cards_user.deleteMany({})
     await prisma.trade_Card.deleteMany({})
     await prisma.trade.deleteMany({})
-    const users = Array.from({ length: 10 }, generateUser)
+    // 
+
+
+
+
+
+
+
+    const users = Array.from({ length: USERS }, generateUser)
     let promises = [] as Promise<User>[]
     for (const user of users) {
         // await prisma.user.create({ data: user })
@@ -27,7 +43,7 @@ async function seedUsers() {
     const new_users = await Promise.all(promises)
     for (const user of new_users) {
         // console.log(user)
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < PACKAGES_PER_USER; i++) {
             const _user = await prisma.packages_User.create({
                 data: {
                     userId: user.id,
@@ -40,7 +56,7 @@ async function seedUsers() {
     const prisma_users = await prisma.user.findMany()
     // make an algorithm to make friends between existent users
     for (const user of prisma_users) {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < FRIENDS_PER_USER; i++) {
             const friend = prisma_users[Math.floor(Math.random() * prisma_users.length)]
             if (friend.id !== user.id) {
                 const _friend = await prisma.friend_User.create({
@@ -57,7 +73,7 @@ async function seedUsers() {
     // give cards to users
     const card_count = await prisma.card.count()
     for (const user of prisma_users) {
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < CARDS_PER_USER; i++) {
             const card = await prisma.cards_user.create({
                 data: {
                     userId: user.id,
@@ -69,7 +85,7 @@ async function seedUsers() {
     console.log('Cards given to users!')
     // make an algorith to make trades between existent users
     for (const user of prisma_users) {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < TRADES_PER_USER; i++) {
             console.log('Trade iteration', i)
             const _user = prisma_users[Math.floor(Math.random() * prisma_users.length)]
             const _trade = await prisma.trade.create({})

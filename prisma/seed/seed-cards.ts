@@ -45,8 +45,8 @@ async function main() {
             console.error('Error creating card', e)
             continue;
         }
-    console.log('Seed done!')
     }
+    console.log('Seed done!')
 }
 
 main()
