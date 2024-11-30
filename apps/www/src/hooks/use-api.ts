@@ -141,7 +141,7 @@ export function useApi({ cache }: { cache?: boolean } = { cache: false }) {
         const response = await promise
         if (response.status == 401) push('/login')
         setResponse(response)
-        setData(response.data)
+        setData(response.data.data || response.data)
         setLoading(false)
         if (response.data.toast) toast({ title: response.data.toast })
         return response

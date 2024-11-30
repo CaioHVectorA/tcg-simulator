@@ -1,14 +1,15 @@
 import { api } from "@/lib/api"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
-export function withAsyncFetchedData<T>(
-    Component: React.ComponentType<{ data: T }>,
+export function withAsyncFetchedData(
+    Component: React.ComponentType<{ data: any }>,
     url: string,
 ) {
     return async function WithAsyncFetchedData() {
         const token = (await cookies()).get('token')?.value
         if (!token) {
-            return null
+            redirect('/entrar')
         }
         // handle invalid token
         const options = {
@@ -16,8 +17,14 @@ export function withAsyncFetchedData<T>(
                 Authorization: `Bearer ${token}`
             }
         }
-        const { data } = await api.get<T>(url, options)
-        // handle error, invalid data, etc
-        return <Component data={data} />
+        try {
+            const { data } = await api.get(url, options)
+            // handle error, invalid data, etc
+            return <Component data={data.data ?? data} />
+        } catch (err) {
+            console.log('E')
+            redirect('/entrar')
+            return null
+        }
     }
 }
