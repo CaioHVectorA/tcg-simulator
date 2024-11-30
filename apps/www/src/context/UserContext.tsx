@@ -21,11 +21,14 @@ const UserContext = createContext<{ user: User | null; setUser: React.Dispatch<R
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const { get } = useApi()
+    const { get, error } = useApi()
+    console.log({ error })
     // Exemplo de carregamento inicial
     useEffect(() => {
         get("/user/me").then((response) => {
             setUser(response.data.data);
+        }).catch(err => {
+            console.log({ err })
         });
     }, []);
     if (!user) return
