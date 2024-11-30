@@ -2,12 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --radius: 0.5rem;
+    --background: #ffffff;
+    --foreground: #000000;
   }
+
+  /* @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0a0a0a;
+      --foreground: #ededed;
+    }
+  } */
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
 }
