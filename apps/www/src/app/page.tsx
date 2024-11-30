@@ -2,8 +2,16 @@ import * as React from 'react'
 import { ArrowRight, Coffee, Gift, Package, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
-export default function LandingPage() {
+export default async function LandingPage(data: any) {
+  const cook = await cookies()
+  const token = cook.get('token')
+  console.log({ token })
+  if (token?.value) {
+    redirect('/home')
+  }
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-primary text-primary-foreground py-6">
