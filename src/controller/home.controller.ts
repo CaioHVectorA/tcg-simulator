@@ -19,36 +19,23 @@ export const homeController = new Elysia({}).group("/home", (app) => {
             }
         }
         const banners = await prisma.banner.findMany({ where: { active: true } })
-        const ranking = await prisma.$queryRaw`
-        SELECT 
-            ranking.position,
-            ranking.id,
-            ranking.username,
-            ranking.total_rarity
-        FROM (
-            SELECT 
-                u.id,
-                u.username,
-                COALESCE(SUM(c.rarity), 0) AS total_rarity,
-                ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(c.rarity), 0) DESC, u.id ASC) AS position
-            FROM users u
-            LEFT JOIN cards_user cu ON u.id = cu.userId
-            LEFT JOIN cards c ON cu.cardId = c.id
-            WHERE u.id = ${user.id}
-            GROUP BY u.id, u.username
-        ) AS ranking` as [Ranking]
-        const topCards = await prisma.card.findMany({ take: 3, orderBy: { rarity: 'desc' }, where: {
+        const ranking = await prisma.user_Ranking.findUnique({ where: { user_id: user.id } })
+        const topCards = (await prisma.card.findMany({ take: 3, orderBy: { rarity: 'desc' }, where: {
             Cards_user: {
                 some: {
                     userId: user.id
                 }
-            }
-        } })
+            },
+        
+        }, select: {
+                Cards_user: { select: { Card: { select: {  image_url: true } } } }
+        } })).map(card => card.Cards_user[0].Card.image_url)
+        const count = await prisma.user.count()
         console.log({ ranking })
         const data = { banners, ranking: {
-            ...ranking[0],
-            position: Number(ranking[0].position),
-            total_rarity: Number(ranking[0].total_rarity)
+            count,
+            position: Number(ranking?.position || count + 1),
+            total_rarity: Number(ranking?.total_rarity || 0)
         }, topCards }
         console.log(data)
         return {
