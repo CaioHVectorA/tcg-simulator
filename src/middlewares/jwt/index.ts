@@ -18,7 +18,7 @@ export async function receiveUser(token: string, jwt: jwtDecorator): Promise<Use
 export const getUserInterceptor = async ({ headers, set, jwt }) => {
     const auth = headers["authorization"];
     if (!auth || !auth.includes("Bearer")) {
-      // set.status = 401;
+      set.status = 401;
       return { user: null };
     }
     const user = await receiveUser(auth.replace("Bearer ", ""), jwt);
