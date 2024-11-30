@@ -85,6 +85,7 @@ model User {
   friendOf          Friend_User[]   @relation("UserIsFriendOf")
   last_daily_bounty DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past
   last_entry        DateTime        @default(now())
+  User_Ranking      User_Ranking?
 
   @@map("users")
 }
@@ -148,4 +149,13 @@ model Banner {
   description String
 
   @@map("banners")
+}
+
+model User_Ranking {
+  user_id      Int  @unique
+  total_rarity Int  @default(0)
+  position     Int
+  user         User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_ranking")
 }
