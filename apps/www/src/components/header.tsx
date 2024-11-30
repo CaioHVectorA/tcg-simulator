@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/sheet'
 import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 
 const menuItems = [
     { name: 'Loja', href: '/store', icon: Store },
@@ -41,9 +42,8 @@ const menuItems = [
 
 const profileItems = [
     { name: 'Perfil', href: '/profile', icon: User },
-    { name: 'Social', href: '/social', icon: Users },
     { name: 'Configurações', href: '/settings', icon: Settings },
-    { name: 'Sair', href: '/signout', icon: LogOut },
+    { name: 'Sair', href: '/sair', icon: LogOut },
 ]
 
 export function HeaderMenu() {
@@ -51,7 +51,7 @@ export function HeaderMenu() {
     const [isOpen, setIsOpen] = React.useState(false)
     const { picture, username, money } = useUser()
     return (
-        <header className="sticky font-syne top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky font-syne top-0 z-[40] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
                 <Link href="/" className="flex items-center mr-6">
                     <img src="/wallpaper.jpg" alt="TCG Logo" className="w-8 h-8 rounded-full object-cover mr-2" />
@@ -79,12 +79,17 @@ export function HeaderMenu() {
                     <SheetTrigger asChild>
                         <Button variant="ghost" size="icon" className="md:hidden">
                             <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle menu</span>
+                            <span className="sr-only">Esconder Menu</span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="right">
-                        <SheetHeader>
-                            <SheetTitle>Menu</SheetTitle>
+                    <SheetContent side="right" className=' !z-[9999]'>
+                        <SheetHeader className=' flex flex-col items-center'>
+                            <SheetTitle className=' sr-only'>Menu</SheetTitle>
+                            <Avatar className=' w-3/12 h-full'>
+                                <AvatarImage src={picture} className=' object-cover' alt="Sua foto de perfil" />
+                                <AvatarFallback>{picture.substring(0, 1)}</AvatarFallback>
+                            </Avatar>
+                            <h3 className=' text-2xl font-syne'>{username}</h3>
                         </SheetHeader>
                         <nav className="flex flex-col space-y-4 mt-4">
                             {menuItems.map((item) => (
@@ -101,6 +106,10 @@ export function HeaderMenu() {
                                     {item.name}
                                 </Link>
                             ))}
+                            <Link href="/friends" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
+                                <Users className="w-4 h-4 mr-2" />
+                                Social
+                            </Link>
                             <Separator />
                             {profileItems.map((item) => (
                                 <Link
@@ -124,30 +133,44 @@ export function HeaderMenu() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative size-10 p-0 bg-transparent rounded-full">
-                                <img
-                                    src="/wallpaper.jpg"
-                                    alt="User Avatar"
-                                    className="h-full w-full rounded-full object-cover"
-                                />
+                                <Avatar className=' h-wull h-full'>
+                                    <AvatarImage className=' object-cover' src={picture} alt="Sua foto de perfil" />
+                                    <AvatarFallback>{username.substring(0, 1)}</AvatarFallback>
+                                </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-40" align="end" forceMount>
-                            {profileItems.map((item, index) => (
-                                <React.Fragment key={item.name}>
-                                    <DropdownMenuItem asChild>
-                                        <Link href={item.href}>
-                                            <item.icon className="mr-2 h-4 w-4" />
-                                            <span>{item.name}</span>
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    {index === profileItems.length - 2 && <DropdownMenuSeparator />}
-                                </React.Fragment>
-                            ))}
+                        <DropdownMenuContent className="w-52" align="center" forceMount>
+                            <>
+                                <p className=' font-syne text-xl my-1 text-center'>{username}</p>
+                                <Separator className=' mb-2' />
+                                {profileItems.map((item, index) => (
+                                    <React.Fragment key={item.name}>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={item.href}>
+                                                <item.icon className="mr-2 h-4 w-4" />
+                                                <span>{item.name}</span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        {index === profileItems.length - 2 && <DropdownMenuSeparator />}
+                                    </React.Fragment>
+                                ))}
+                            </>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <div className=' flex gap-2 items-center'>
                         <p className='text-xl'>{money}</p>
                         <Coins color='gold' className="size-6" />
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Users className=' size-6' />
+                            </SheetTrigger>
+                            <SheetContent side="right">
+                                <SheetHeader>
+                                    <SheetTitle>Social</SheetTitle>
+                                </SheetHeader>
+                                Conteúdo de amizade aqui
+                            </SheetContent>
+                        </Sheet>
                     </div>
                 </div>
             </div>
