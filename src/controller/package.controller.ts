@@ -7,15 +7,91 @@ import type { Card, Package } from "@prisma/client";
 
 export const packageController = new Elysia({}).group("/packages", (app) => {
   return app
-    .use(jwt)
     .decorate("prisma", prisma)
+    .get("/all", async ({ prisma }) => {
+      const packages = await prisma.package.findMany({
+        select: {
+          id: true,
+          name: true,
+          image_url: true,
+          tcg_id: true,
+          price: true,
+        },
+      });
+      const tematics = packages.filter((p) => p.tcg_id);
+      const standard = packages.filter((p) => !p.tcg_id);
+      return {
+        toast: null,
+        data: { tematics, standard },
+        error: null,
+        ok: true,
+      };
+    })
+    .get(
+      "/cards",
+      async ({ prisma, query }) => {
+        const { packageId, page, sort } = query;
+        const orderBy = {
+          "A-Z": { name: "asc" as const },
+          "Z-A": { name: "desc" as const },
+          "r-asc": { rarity: "asc" as const },
+          "r-desc": { rarity: "desc" as const },
+        };
+        const limit = 32;
+        const offset = ((Number(page) || 1) - 1) * limit;
+        const count = await prisma.card.count({
+          where: {
+            card_id: {
+              startsWith: packageId,
+            },
+          },
+        });
+        const pages = Math.ceil(count / limit);
+        const cards = await prisma.card.findMany({
+          where: {
+            card_id: {
+              startsWith: packageId,
+            },
+          },
+          orderBy: orderBy[(sort || "r-desc") as keyof typeof orderBy],
+          take: limit,
+          skip: offset,
+        });
+        const data = {
+          cards,
+          pages,
+          currentPage: Number(page) || 1,
+        };
+        return {
+          toast: null,
+          data,
+          error: null,
+          ok: true,
+        };
+      },
+      {
+        query: t.Object({
+          packageId: t.String(),
+          page: t.Optional(t.Number({ optional: true })),
+          sort: t.Optional(
+            t.Union([
+              t.Literal("A-Z"),
+              t.Literal("Z-A"),
+              t.Literal("r-asc"),
+              t.Literal("r-desc"),
+            ])
+          ),
+        }),
+      }
+    )
+    .use(jwt)
     .derive(getUserInterceptor)
     .get(
       "/",
       async ({ jwt, headers, user, prisma, set }) => {
         if (!user) {
           set.status = 401;
-          return { error: "Sem token de autorização!  " };
+          return { error: "Sem token de autorização!" };
         }
         const ids = await prisma.packages_User.findMany({
           where: { userId: user.id },
@@ -56,11 +132,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
               image_url: t.String(),
               id: t.Number(),
               quantity: t.Number(),
-            })
-          , { description: "Pacotes do usuário" }),
-          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
-        }, 
-        }
+            }),
+            { description: "Pacotes do usuário" }
+          ),
+          401: t.Object(
+            { error: t.String() },
+            { description: "Erro de autenticação" }
+          ),
+        },
+      }
     )
     .post(
       "/buy",
@@ -95,7 +175,11 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       },
       {
         body: t.Object({ packageId: t.Number() }),
-        detail: { tags: ["Package"], deprecated: true, description: "Use /buy-many instead" },
+        detail: {
+          tags: ["Package"],
+          deprecated: true,
+          description: "Use /buy-many instead",
+        },
       }
     )
     .post(
@@ -106,7 +190,8 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           return { error: "Unauthorized" };
         }
         const { packagesId } = body;
-        if (packagesId.some((id) => id > 7 || id < 1)) {
+        const packagesCount = await prisma.package.count({});
+        if (packagesId.some((id) => id > packagesCount || id < 1)) {
           set.status = 400;
           return { error: "ID de pacote inválido!" };
         }
@@ -142,12 +227,28 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       },
       {
         body: t.Object({ packagesId: t.Array(t.Number()) }),
-        detail: { tags: ["Package"], description: "Compre vários pacotes de uma vez, usando seus ID's como referência" },
+        detail: {
+          tags: ["Package"],
+          description:
+            "Compre vários pacotes de uma vez, usando seus ID's como referência",
+        },
         response: {
-          200: t.Object({ message: t.String() }, { description: "Mensagem de sucesso" }),
-          400: t.Object({ error: t.String() }, { description: "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte" }),
-          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
-        }
+          200: t.Object(
+            { message: t.String() },
+            { description: "Mensagem de sucesso" }
+          ),
+          400: t.Object(
+            { error: t.String() },
+            {
+              description:
+                "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte",
+            }
+          ),
+          401: t.Object(
+            { error: t.String() },
+            { description: "Erro de autenticação" }
+          ),
+        },
       }
     )
     .post(
@@ -156,7 +257,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         if (!user) {
           set.status = 401;
           return { error: "Unauthorized" };
-        };
+        }
         const { packagesId } = body;
         const quantities = {} as Record<number, number>;
         packagesId.forEach((id) => {
@@ -210,7 +311,11 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       },
       {
         body: t.Object({ packagesId: t.Array(t.Number()) }),
-        detail: { tags: ["Package"], description: "Abra pacotes de cartas, usando seus ID's como referência" },
+        detail: {
+          tags: ["Package"],
+          description:
+            "Abra pacotes de cartas, usando seus ID's como referência",
+        },
         response: {
           200: t.Array(
             t.Object({
@@ -218,11 +323,21 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
               name: t.String(),
               image_url: t.String(),
               rarity: t.Number(),
-            })
-          , { description: "Cartas abertas" }),
-          400: t.Object({ error: t.String() }, { description: "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte" }),
-          401: t.Object({ error: t.String() }, { description: "Erro de autenticação" }),
-        }
+            }),
+            { description: "Cartas abertas" }
+          ),
+          400: t.Object(
+            { error: t.String() },
+            {
+              description:
+                "Erro de requisição, podendo ser falta de dinheiro do usuário ou ID de pacte",
+            }
+          ),
+          401: t.Object(
+            { error: t.String() },
+            { description: "Erro de autenticação" }
+          ),
+        },
       }
     );
 });

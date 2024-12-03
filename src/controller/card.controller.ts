@@ -27,24 +27,45 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
             data: null,
           };
         }
-
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-
         const where = search ? { name: { startsWith: search } } : {};
+        const count = await prisma.card.count({
+          where: { ...where, Cards_user: { some: { userId: user.id } } },
+        });
         const cards = await prisma.card.findMany({
           where: { ...where, Cards_user: { some: { userId: user.id } } },
           skip,
           take: limit,
           orderBy: { rarity: "desc" },
         });
+        const cardsWithQuantity = await Promise.all(
+          cards.map(async (card) => {
+            const quantity = await prisma.cards_user.count({
+              where: {
+                Card: where,
+                cardId: card.id,
+                userId: user.id,
+              },
+            });
+            return {
+              ...card,
+              quantity,
+            };
+          })
+        );
 
         return {
           ok: true,
           toast: null,
           error: null,
-          data: cards,
+          data: {
+            data: cardsWithQuantity,
+            totalPages: Math.ceil(count / limit),
+            currentPage: parseInt(page || "1"),
+            totalCards: count,
+          },
         };
       },
       {
