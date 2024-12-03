@@ -23,6 +23,7 @@ model Card {
   Trade_Card Trade_Card[]
 
   @@map("cards")
+  Promotional_Cards Promotional_Cards[]
 }
 
 model Package {
@@ -159,4 +160,13 @@ model User_Ranking {
   user         User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_ranking")
+}
+
+model Promotional_Cards {
+  card_id Int 
+  price Int
+  id Int @id @default(autoincrement())
+  created_at DateTime @default(now())  
+  updated_at DateTime @default(now()) @updatedAt
+  card Card @relation(fields: [card_id], references: [id], onDelete: Cascade)
 }
