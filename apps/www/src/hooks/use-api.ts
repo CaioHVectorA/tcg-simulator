@@ -5,15 +5,16 @@ import { getCookie } from "@/lib/cookies";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useToast } from "./use-toast";
-// import { useToast } from "./use-toast";
 
-const CACHE = new Map<string, PropertyKey>();
-export function useApi({ cache }: { cache?: boolean } = { cache: false }) {
+const CACHE = new Map<string, any>();
+export function useApi<T extends Record<string, any>>(
+  { cache }: { cache?: boolean } = { cache: false }
+) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<AxiosError>();
   const [response, setResponse] = useState<AxiosResponse>();
   const [promise, setPromise] = useState<Promise<AxiosResponse>>();
-  const [data, setData] = useState<any>();
+  const [data, setData] = useState<T>();
   const abortControllerRef = useRef<AbortController>();
   const { loading: loading_token, token } = useAuth();
   const { push } = useRouter();
