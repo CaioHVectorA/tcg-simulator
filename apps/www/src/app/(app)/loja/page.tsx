@@ -1,7 +1,4 @@
-import { withAsyncFetchedData } from "@/components/hoc/with-data"
+import { withAsyncFetchedData } from "@/components/hoc/with-data";
+import { StorePage } from "./store";
 
-function Loja({ data }: { data: any }) {
-    return <>{JSON.stringify(data)}</>
-}
-
-export default withAsyncFetchedData(Loja, '/cards');
+export default withAsyncFetchedData(StorePage, '/packages/all')
