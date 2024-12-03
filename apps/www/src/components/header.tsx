@@ -32,17 +32,18 @@ import {
 import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { balanceTranslate } from '@/lib/balance-translate'
 
 const menuItems = [
-    { name: 'Loja', href: '/store', icon: Store },
-    { name: 'Inventário', href: '/inventory', icon: Box },
-    { name: 'Coleção', href: '/collection', icon: Layers },
-    { name: 'Trocas', href: '/trades', icon: RefreshCcw },
+    { name: 'Loja', href: '/loja', icon: Store },
+    { name: 'Inventário', href: '/inventario', icon: Box },
+    { name: 'Coleção', href: '/colecao', icon: Layers },
+    { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
 ]
 
 const profileItems = [
-    { name: 'Perfil', href: '/profile', icon: User },
-    { name: 'Configurações', href: '/settings', icon: Settings },
+    { name: 'Perfil', href: '/perfil', icon: User },
+    { name: 'Configurações', href: '/config', icon: Settings },
     { name: 'Sair', href: '/sair', icon: LogOut },
 ]
 
@@ -90,6 +91,11 @@ export function HeaderMenu() {
                                 <AvatarFallback>{picture.substring(0, 1)}</AvatarFallback>
                             </Avatar>
                             <h3 className=' text-2xl font-syne'>{username}</h3>
+                            <div className=' flex gap-1 items-center'>
+                                <p className='text-xl font-syne'>{balanceTranslate(money)}</p>
+                                <Coins color='gold' className="size-4" />
+                            </div>
+                            <Separator />
                         </SheetHeader>
                         <nav className="flex flex-col space-y-4 mt-4">
                             {menuItems.map((item) => (
@@ -158,7 +164,7 @@ export function HeaderMenu() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <div className=' flex gap-2 items-center'>
-                        <p className='text-xl'>{money}</p>
+                        <p className='text-xl'>{balanceTranslate(money)}</p>
                         <Coins color='gold' className="size-6" />
                         <Sheet>
                             <SheetTrigger asChild>
