@@ -39,6 +39,7 @@ model Package {
   Packages_User         Packages_User[]
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @default(now()) @updatedAt
+  tcg_id                String?
 
   @@map("packages")
 }
