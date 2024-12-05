@@ -16,6 +16,7 @@ import { homeController } from "./controller/home.controller";
 import { staticPlugin } from "@elysiajs/static";
 import { RankingCron } from "./lib/ranking-cron";
 import { rankingController } from "./controller/ranking.controller";
+import { CardsCron } from "./lib/cards-cron";
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
   .use(
@@ -44,6 +45,7 @@ export const server: Elysia = new Elysia({})
   .use(homeController)
   .use(rankingController)
   .use(cron(RankingCron()))
+  .use(cron(CardsCron()))
   .use(
     logger({
       logIP: false,
