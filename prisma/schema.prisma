@@ -14,16 +14,16 @@ datasource db {
 }
 
 model Card {
-  name       String
-  id         Int          @id @default(autoincrement())
-  card_id    String       @unique
-  image_url  String
-  rarity     Int // 1: common, 2: rare, 3: epic, 4: legendary, 5: full legendary
-  Cards_user Cards_user[]
-  Trade_Card Trade_Card[]
+  name              String
+  id                Int                 @id @default(autoincrement())
+  card_id           String              @unique
+  image_url         String
+  rarity            Int // 1: common, 2: rare, 3: epic, 4: legendary, 5: full legendary
+  Cards_user        Cards_user[]
+  Trade_Card        Trade_Card[]
+  Promotional_Cards Promotional_Cards[]
 
   @@map("cards")
-  Promotional_Cards Promotional_Cards[]
 }
 
 model Package {
@@ -163,10 +163,10 @@ model User_Ranking {
 }
 
 model Promotional_Cards {
-  card_id Int 
-  price Int
-  id Int @id @default(autoincrement())
-  created_at DateTime @default(now())  
+  card_id    Int
+  price      Int
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
-  card Card @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  card       Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
 }
