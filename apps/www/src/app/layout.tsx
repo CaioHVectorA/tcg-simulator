@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Syne } from 'next/font/google'
-
+import { Analytics } from '@vercel/analytics/next';
 const syne = Syne({
   weight: ['400', '600', '700', '800', '500'],
   subsets: ['latin'],
@@ -23,6 +23,7 @@ export default function RootLayout({
         className={`${syne.variable} antialiased`}
       >
         {children}
+        <Analytics />
         <Toaster />
       </body>
     </html>
