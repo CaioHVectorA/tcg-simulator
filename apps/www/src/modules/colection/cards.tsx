@@ -1,7 +1,6 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
-import { loadTcgImg } from '@/lib/load-tcg-img'
 import { Metadata } from 'next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

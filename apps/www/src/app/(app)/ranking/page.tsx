@@ -13,10 +13,10 @@ type Ranking = {
     }
 }
 
-export default ({ searchParams }: {
-    searchParams: { page: string | null }
+export default async ({ searchParams }: {
+    searchParams: Promise<{ page: string | null }>
 }) => {
-    const page = searchParams.page ?? '1'
+    const page = (await searchParams).page ?? '1'
     const Page = withAsyncFetchedData(RankingView, '/ranking?page=' + page)
     return <Page />
 }

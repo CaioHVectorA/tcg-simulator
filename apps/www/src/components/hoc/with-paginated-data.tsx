@@ -12,11 +12,12 @@ export function withAsyncPaginatedFetchedData(
     url: string,
 ) {
     return async function WithAsyncFetchedData({ searchParams }: {
-        searchParams: {
+        searchParams: Promise<{
             page: string,
             search: string
-        }
+        }>
     }) {
+        const sParams = await searchParams
         const token = (await cookies()).get('token')?.value
         if (!token) {
             redirect('/entrar')
@@ -28,8 +29,8 @@ export function withAsyncPaginatedFetchedData(
             }
         }
         try {
-            const page = searchParams.page ? `?page=${searchParams.page}` : ''
-            const search = searchParams.search ? page ? `&search=${searchParams.search}` : `?search=${searchParams.search}` : ''
+            const page = sParams.page ? `?page=${sParams.page}` : ''
+            const search = sParams.search ? page ? `&search=${sParams.search}` : `?search=${sParams.search}` : ''
             const { data } = await api.get(`${url}${page}${search}`, options)
             console.log(`Fetching ${url}${page}${search}`)
             console.log({ data })
@@ -38,7 +39,7 @@ export function withAsyncPaginatedFetchedData(
                 data={payload.data || []}
                 currentPage={payload.currentPage}
                 totalPages={payload.totalPages}
-                search={searchParams.search}
+                search={sParams.search}
             />
         } catch (err) {
             console.log('E')
