@@ -32,7 +32,7 @@ export function CardsCron(): CronConfig {
   return {
     name: "card",
     // pattern: Patterns.everyDayAt("06:00"),
-    pattern: Patterns.everySenconds(5),
+    pattern: Patterns.EVERY_HOUR,
     async run() {
       await prisma.promotional_Cards.deleteMany({});
       // random six cards and measure a price to them by some metrics
