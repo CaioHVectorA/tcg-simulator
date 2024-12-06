@@ -2,9 +2,11 @@
   "name": "poke-tcg-center",
   "module": "index.ts",
   "devDependencies": {
-    "@types/bun": "latest",
     "@faker-js/faker": "^8.4.1",
-    "prisma": "^5.18.0"
+    "@mermaid-js/mermaid-cli": "^11.4.2",
+    "@types/bun": "latest",
+    "prisma": "^5.18.0",
+    "prisma-erd-generator": "^1.11.2"
   },
   "scripts": {
     "start:prod": "bun dist/index.js",
