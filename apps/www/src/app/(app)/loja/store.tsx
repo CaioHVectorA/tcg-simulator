@@ -26,11 +26,24 @@ type Package = {
     image_url: string
 }
 
+type Promotional = {
+    card_id: number
+    id: number
+    price: number
+    created_at: string
+    updated_at: string
+    card: {
+        name: string
+        rarity: number
+        image_url: string
+    }
+}
 
-export function StorePage({ data: { standard, tematics } }: {
+export function StorePage({ data: { standard, tematics, promotionalCards } }: {
     data: {
         standard: Package[]
-        tematics: Package[]
+        tematics: Package[],
+        promotionalCards: Promotional[]
     }
 }) {
     return (
@@ -42,7 +55,7 @@ export function StorePage({ data: { standard, tematics } }: {
             <section id="flashcards" className="mb-12">
                 <h2 className="text-2xl font-bold mb-4">Promoções Relâmpago</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {flashSaleCards.map((card, index) => (
+                    {promotionalCards.map((card, index) => (
                         <FlashSaleCard key={index} card={card} />
                     ))}
                 </div>
