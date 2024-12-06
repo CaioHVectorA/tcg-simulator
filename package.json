@@ -9,7 +9,7 @@
   "scripts": {
     "start:prod": "bun dist/index.js",
     "dev": "bun --watch src/index.ts",
-    "build": "tsc src/index.ts --outDir ./dist"
+    "build": "bun widgets/build.ts"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -29,7 +29,7 @@
     "@types/bcrypt": "^5.0.2",
     "aws-sdk": "^2.1691.0",
     "bcrypt": "^5.1.1",
-    "bun": "^1.1.22",
+    "bun": "^1.1.38",
     "elysia": "^1.1.5",
     "mock-aws-s3": "^4.0.2",
     "nock": "^13.5.5"
