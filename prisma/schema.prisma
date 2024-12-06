@@ -167,10 +167,11 @@ model User_Ranking {
 }
 
 model Promotional_Cards {
-  card_id    Int
-  price      Int
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
-  card       Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  card_id        Int
+  price          Int
+  original_price Int
+  id             Int      @id @default(autoincrement())
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now()) @updatedAt
+  card           Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
 }
