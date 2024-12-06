@@ -32,6 +32,7 @@ type Promotional = {
     price: number
     created_at: string
     updated_at: string
+    original_price: number
     card: {
         name: string
         rarity: number

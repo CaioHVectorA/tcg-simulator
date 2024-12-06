@@ -8,6 +8,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
         card_id: true,
         id: true,
         price: true,
+        original_price: true,
         created_at: true,
         updated_at: true,
         card: {
@@ -17,6 +18,9 @@ export const storeController = new Elysia({}).group("/store", (app) => {
             rarity: true,
           },
         },
+      },
+      orderBy: {
+        price: "asc",
       },
     });
     const packages = await prisma.package.findMany({
