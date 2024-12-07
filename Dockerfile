@@ -31,7 +31,7 @@ ADD prisma .
 
 
 # Gerar os arquivos do Prisma
-RUN npx prisma generate
+RUN npx prisma generate --generator client
 
 # Adicionar o restante do código-fonte
 ADD . .
@@ -39,6 +39,7 @@ ADD . .
 # Configurar o usuário e expor a porta da aplicação
 USER bun
 EXPOSE 3000/tcp
+
 
 # Executar a aplicação
 CMD ["bun", "run", "src/index.ts"]
