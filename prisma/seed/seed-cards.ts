@@ -91,44 +91,6 @@ async function main() {
       continue;
     }
   }
-  for await (const card of cards.slice(index).toReversed()) {
-    let card_detailed: Card<SetResume> | undefined;
-    if (count % 10 === 0) {
-      console.log(`Inserted ${count}/${cards.length} cards...`);
-    }
-    try {
-      card_detailed = await (
-        await fetch(`https://api.tcgdex.net/v2/pt/cards/${card.id}`)
-      ).json();
-    } catch (e) {
-      console.error("Error fetching card", e);
-      continue;
-    }
-    try {
-      const alreadyExists = await prisma.card.findFirst({
-        where: { card_id: card.id },
-      });
-      if (alreadyExists) continue;
-      // todo: think about to handle not pokemon cards
-      if (!card_detailed || !card_detailed.hp || !card.image) continue;
-      // rarity is 1 to 5 based on rarityMap
-      const rarity =
-        rarityMap[card_detailed.rarity as keyof typeof rarityMap] ||
-        normalizeRange(0, 300, card_detailed.hp);
-      await prisma.card.create({
-        data: {
-          image_url: card.image,
-          rarity,
-          card_id: card.id,
-          name: card.name,
-        },
-      });
-      count++;
-    } catch (e) {
-      console.error("Error creating card", e);
-      continue;
-    }
-  }
   console.log("Seed done!");
 }
 
