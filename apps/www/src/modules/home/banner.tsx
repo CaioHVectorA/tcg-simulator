@@ -32,6 +32,19 @@ export function Banner({
                             </Card>
                         </CarouselItem>
                     ))}
+                    {data.length === 0 && (
+                        <CarouselItem>
+                            <Card>
+                                <CardContent className="flex aspect-video items-center justify-center p-6">
+                                    <div className="text-center min-h-full w-full">
+                                        <img src="https://via.placeholder.com/400x200" alt="Placeholder" className="w-8/12 mx-auto aspect-video object-cover mb-4 rounded-md" />
+                                        <h3 className="text-xl font-semibold mb-2">Banner</h3>
+                                        <p>Descrição do banner</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </CarouselItem>
+                    )}
                 </CarouselContent>
                 <CarouselPrevious />
                 <CarouselNext />
