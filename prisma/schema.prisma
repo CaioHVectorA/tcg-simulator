@@ -13,8 +13,9 @@ generator erd {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./testing.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Card {
