@@ -7,7 +7,6 @@ import { packageController } from "./controller/package.controller";
 import { tradeController } from "./controller/trade.controller";
 import { cardController } from "./controller/card.controller";
 import { authController } from "./controller/auth.controller";
-//@ts-ignore
 import { logger } from "@grotto/logysia";
 import { cron } from "@elysiajs/cron";
 import { swagger } from "./middlewares/swagger";
@@ -18,6 +17,7 @@ import { RankingCron } from "./lib/ranking-cron";
 import { rankingController } from "./controller/ranking.controller";
 import { CardsCron } from "./lib/cards-cron";
 import { storeController } from "./controller/store.controller";
+//@ts-ignore
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
   .use(
@@ -60,3 +60,7 @@ export const server: Elysia = new Elysia({})
   )
   .listen(8080);
 console.log("Server running");
+//@ts-ignore
+RankingCron().run();
+//@ts-ignore
+CardsCron().run();

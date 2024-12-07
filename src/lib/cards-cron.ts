@@ -78,6 +78,7 @@ export function CardsCron(): CronConfig {
     name: "card",
     // pattern: Patterns.everyDayAt("06:00"),
     pattern: Patterns.EVERY_HOUR,
+    startAt: new Date(),
     // pattern: Patterns.everySenconds(15),
     async run() {
       // random six cards and measure a price to them by some metrics
