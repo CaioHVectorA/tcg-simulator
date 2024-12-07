@@ -13,71 +13,6 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
   return app
     .use(jwt)
     .decorate("prisma", prisma)
-    .derive(getUserInterceptor)
-
-    .get(
-      "/my",
-      async ({ prisma, query, user, set }) => {
-        if (!user) {
-          set.status = 401;
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
-        }
-        const limit = 32;
-        const { page, search } = query;
-        const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-        const where = search ? { name: { startsWith: search } } : {};
-        const count = await prisma.card.count({
-          where: { ...where, Cards_user: { some: { userId: user.id } } },
-        });
-        const cards = await prisma.card.findMany({
-          where: { ...where, Cards_user: { some: { userId: user.id } } },
-          skip,
-          take: limit,
-          orderBy: { rarity: "desc" },
-        });
-        const cardsWithQuantity = await Promise.all(
-          cards.map(async (card) => {
-            const quantity = await prisma.cards_user.count({
-              where: {
-                Card: where,
-                cardId: card.id,
-                userId: user.id,
-              },
-            });
-            return {
-              ...card,
-              quantity,
-            };
-          })
-        );
-
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: {
-            data: cardsWithQuantity,
-            totalPages: Math.ceil(count / limit),
-            currentPage: parseInt(page || "1"),
-            totalCards: count,
-          },
-        };
-      },
-      {
-        query: t.Object({
-          page: t.Optional(t.String()),
-          search: t.Optional(t.String()),
-        }),
-        detail: { tags: ["Card"], description: "Resgata cartas do usuário" },
-        response: baseResponse,
-      }
-    )
-
     .get(
       "/",
       async ({ prisma, query }) => {
@@ -141,6 +76,70 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
       {
         params: t.Object({ id: t.String() }),
         detail: { tags: ["Card"], description: "Lista a carta pelo seu id" },
+        response: baseResponse,
+      }
+    )
+    .derive(getUserInterceptor)
+
+    .get(
+      "/my",
+      async ({ prisma, query, user, set }) => {
+        if (!user) {
+          set.status = 401;
+          return {
+            ok: false,
+            toast: "É necessário estar autenticado para acessar este recurso.",
+            error: "Sem token de autorização!",
+            data: null,
+          };
+        }
+        const limit = 32;
+        const { page, search } = query;
+        const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
+        const where = search ? { name: { startsWith: search } } : {};
+        const count = await prisma.card.count({
+          where: { ...where, Cards_user: { some: { userId: user.id } } },
+        });
+        const cards = await prisma.card.findMany({
+          where: { ...where, Cards_user: { some: { userId: user.id } } },
+          skip,
+          take: limit,
+          orderBy: { rarity: "desc" },
+        });
+        const cardsWithQuantity = await Promise.all(
+          cards.map(async (card) => {
+            const quantity = await prisma.cards_user.count({
+              where: {
+                Card: where,
+                cardId: card.id,
+                userId: user.id,
+              },
+            });
+            return {
+              ...card,
+              quantity,
+            };
+          })
+        );
+
+        return {
+          ok: true,
+          toast: null,
+          error: null,
+          data: {
+            data: cardsWithQuantity,
+            totalPages: Math.ceil(count / limit),
+            currentPage: parseInt(page || "1"),
+            totalCards: count,
+          },
+        };
+      },
+      {
+        query: t.Object({
+          page: t.Optional(t.String()),
+          search: t.Optional(t.String()),
+        }),
+        detail: { tags: ["Card"], description: "Resgata cartas do usuário" },
         response: baseResponse,
       }
     );
