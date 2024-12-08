@@ -191,7 +191,17 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         }
         const { packagesId } = body;
         const packagesCount = await prisma.package.count({});
-        if (packagesId.some((id) => id > packagesCount || id < 1)) {
+        const first = await prisma.package.findFirst({ select: { id: true } });
+        if (!first) {
+          set.status = 400;
+          return { error: "Nenhum pacote encontrado!" };
+        }
+        console.log({ first, packagesCount, packagesId });
+        if (
+          packagesId.some(
+            (id) => id > packagesCount + first.id || id < first.id
+          )
+        ) {
           set.status = 400;
           return { error: "ID de pacote inválido!" };
         }
