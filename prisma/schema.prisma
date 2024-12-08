@@ -93,6 +93,7 @@ model User {
   last_daily_bounty DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past
   last_entry        DateTime        @default(now())
   User_Ranking      User_Ranking?
+  isGuest           Boolean         @default(false)
 
   @@map("users")
 }
