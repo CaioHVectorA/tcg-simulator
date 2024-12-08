@@ -1,5 +1,0 @@
-#!/bin/bash
-set -e
-echo "Inicializando o prisma"
-bunx prisma generate
-exec "$@"
