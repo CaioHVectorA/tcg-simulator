@@ -1,20 +1,22 @@
 import { Elysia, t } from "elysia";
 import { prisma } from "../helpers/prisma.client";
 import { jwt } from "../middlewares/jwt/jwt";
-import { getUserInterceptor } from "../middlewares/jwt";
-
+import { getUserInterceptor, getUserUserMiddleware } from "../middlewares/jwt";
+import type { User } from "@prisma/client";
+import { errorResponse, sucessResponse } from "../lib/mount-response";
 // Tipo base para todas as respostas
 const baseResponse = t.Object({
   ok: t.Boolean(),
   toast: t.Union([t.String(), t.Null()]),
   error: t.Union([t.String(), t.Null()]),
-  data: t.Any()
+  data: t.Any(),
 });
 
 export const userController = new Elysia({}).group("/user", (app) => {
   return app
     .use(jwt)
-    .derive(getUserInterceptor)
+    .decorate("user", {} as User)
+    .onBeforeHandle(getUserUserMiddleware as any)
     .decorate("prisma", prisma)
     .get(
       "/me",
@@ -25,7 +27,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         await prisma.user.update({
@@ -36,15 +38,15 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: null,
           error: null,
-          data: user
+          data: user,
         };
       },
       {
         detail: { tags: ["User"] },
         response: {
           200: baseResponse,
-          401: baseResponse
-        }
+          401: baseResponse,
+        },
       }
     )
     .get(
@@ -57,7 +59,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const friends = await prisma.friend_User.findMany({
@@ -83,7 +85,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Lista de amigos recuperada com sucesso",
           error: null,
-          data: friends_data
+          data: friends_data,
         };
       },
       {
@@ -91,8 +93,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
         detail: { tags: ["User"] },
         response: {
           401: baseResponse,
-          200: baseResponse
-        }
+          200: baseResponse,
+        },
       }
     )
     .get(
@@ -104,7 +106,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const requests = await prisma.friend_User.findMany({
@@ -125,7 +127,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedidos de amizade recuperados com sucesso",
           error: null,
-          data: formatted
+          data: formatted,
         };
       },
       {
@@ -135,8 +137,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
         },
         response: {
           200: baseResponse,
-          401: baseResponse
-        }
+          401: baseResponse,
+        },
       }
     )
     .get(
@@ -148,7 +150,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const requests = await prisma.friend_User.findMany({
@@ -169,18 +171,19 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedidos enviados recuperados com sucesso",
           error: null,
-          data: formatted
+          data: formatted,
         };
       },
       {
         detail: {
           tags: ["User"],
-          description: "Endpoint relacionado a Lista de pedidos de amizade enviados",
+          description:
+            "Endpoint relacionado a Lista de pedidos de amizade enviados",
         },
         response: {
           401: baseResponse,
-          200: baseResponse
-        }
+          200: baseResponse,
+        },
       }
     )
     .post(
@@ -192,7 +195,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const { id } = params;
@@ -202,7 +205,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "ID inválido",
             error: "ID inválido",
-            data: null
+            data: null,
           };
         }
         const friend = await prisma.user.findFirst({
@@ -214,7 +217,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Usuário não encontrado",
             error: "Usuário não encontrado",
-            data: null
+            data: null,
           };
         }
         await prisma.friend_User.create({
@@ -224,7 +227,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedido de amizade enviado com sucesso",
           error: null,
-          data: null
+          data: null,
         };
       },
       {
@@ -239,8 +242,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
           404: baseResponse,
           200: baseResponse,
           401: baseResponse,
-          400: baseResponse
-        }
+          400: baseResponse,
+        },
       }
     )
     .post(
@@ -252,7 +255,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const { id } = params;
@@ -262,7 +265,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "ID inválido",
             error: "ID inválido",
-            data: null
+            data: null,
           };
         }
         const request = await prisma.friend_User.findFirst({
@@ -274,7 +277,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Pedido não encontrado",
             error: "Pedido não encontrado",
-            data: null
+            data: null,
           };
         }
         if (request.accepted) {
@@ -283,7 +286,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "A requisição já foi aceita",
             error: "A requisição já foi aceita",
-            data: null
+            data: null,
           };
         }
         await prisma.friend_User.update({
@@ -294,7 +297,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedido de amizade aceito com sucesso",
           error: null,
-          data: null
+          data: null,
         };
       },
       {
@@ -309,8 +312,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
           401: baseResponse,
           200: baseResponse,
           400: baseResponse,
-          404: baseResponse
-        }
+          404: baseResponse,
+        },
       }
     )
     .delete(
@@ -322,7 +325,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const { id } = params;
@@ -332,7 +335,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "ID inválido",
             error: "ID inválido",
-            data: null
+            data: null,
           };
         }
         const request = await prisma.friend_User.findFirst({
@@ -344,7 +347,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Pedido não encontrado",
             error: "Pedido não encontrado",
-            data: null
+            data: null,
           };
         }
         await prisma.friend_User.delete({ where: { id: request.id } });
@@ -352,7 +355,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedido de amizade rejeitado com sucesso",
           error: null,
-          data: null
+          data: null,
         };
       },
       {
@@ -367,8 +370,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
           401: baseResponse,
           200: baseResponse,
           400: baseResponse,
-          404: baseResponse
-        }
+          404: baseResponse,
+        },
       }
     )
     .delete(
@@ -380,7 +383,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const { id } = params;
@@ -390,7 +393,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "ID inválido",
             error: "ID inválido",
-            data: null
+            data: null,
           };
         }
         const request = await prisma.friend_User.findFirst({
@@ -401,7 +404,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Pedido não encontrado",
             error: "Pedido não encontrado",
-            data: null
+            data: null,
           };
         }
         await prisma.friend_User.delete({ where: { id: request.id } });
@@ -409,13 +412,14 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Pedido de amizade removido com sucesso",
           error: null,
-          data: null
+          data: null,
         };
       },
       {
         detail: {
           tags: ["User"],
-          description: "Endpoint relacionado a cancelar pedidos de amizade enviados",
+          description:
+            "Endpoint relacionado a cancelar pedidos de amizade enviados",
         },
         params: t.Object({
           id: t.Number({ description: "Id do pedido de amizade." }),
@@ -424,8 +428,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
           401: baseResponse,
           200: baseResponse,
           400: baseResponse,
-          404: baseResponse
-        }
+          404: baseResponse,
+        },
       }
     )
     .delete(
@@ -437,7 +441,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const { id } = params;
@@ -447,17 +451,17 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "ID inválido",
             error: "ID inválido",
-            data: null
+            data: null,
           };
         }
         const request = await prisma.friend_User.findFirst({
           where: {
             OR: [
               { AND: [{ user_id: user.id }, { friend_id: Number(id) }] },
-              { AND: [{ user_id: Number(id) }, { friend_id: user.id }] }
-            ]
+              { AND: [{ user_id: Number(id) }, { friend_id: user.id }] },
+            ],
           },
-          include: { User: true, Friend: true }
+          include: { User: true, Friend: true },
         });
         if (!request) {
           set.status = 404;
@@ -465,7 +469,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Amigo não encontrado",
             error: "Amigo não encontrado",
-            data: null
+            data: null,
           };
         }
         await prisma.friend_User.delete({ where: { id: request.id } });
@@ -473,7 +477,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Amizade removida com sucesso",
           error: null,
-          data: null
+          data: null,
         };
       },
       {
@@ -488,8 +492,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
           401: baseResponse,
           200: baseResponse,
           400: baseResponse,
-          404: baseResponse
-        }
+          404: baseResponse,
+        },
       }
     )
     .get(
@@ -501,7 +505,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
         const last_bounty_date = new Date(
@@ -510,17 +514,17 @@ export const userController = new Elysia({}).group("/user", (app) => {
         const now = new Date();
         const diff = now.getTime() - last_bounty_date.getTime();
         const diffDays = Math.floor(diff / (1000 * 3600 * 24));
-        
+
         if (diffDays < 1) {
           set.status = 400;
           return {
             ok: false,
             toast: "Você já coletou sua recompensa diária",
             error: "Você já coletou sua recompensa diária",
-            data: null
+            data: null,
           };
         }
-        
+
         const bountyAmount = Math.min(500 * diffDays, 10000);
         await prisma.user.update({
           where: { id: user.id },
@@ -533,7 +537,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           ok: true,
           toast: "Recompensa coletada com sucesso",
           error: null,
-          data: { bountyAmount }
+          data: { bountyAmount },
         };
       },
       {
@@ -544,8 +548,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
         response: {
           400: baseResponse,
           401: baseResponse,
-          200: baseResponse
-        }
+          200: baseResponse,
+        },
       }
     )
     .get(
@@ -557,31 +561,34 @@ export const userController = new Elysia({}).group("/user", (app) => {
             ok: false,
             toast: "Não autorizado",
             error: "Não autorizado",
-            data: null
+            data: null,
           };
         }
-        const lastBountyDate = new Date(user.last_daily_bounty || new Date("2021-01-01"));
+        const lastBountyDate = new Date(
+          user.last_daily_bounty || new Date("2021-01-01")
+        );
         const diffInMs = new Date().getTime() - lastBountyDate.getTime();
-        
+
         return {
           ok: true,
           toast: "Tempo de recompensa recuperado com sucesso",
           error: null,
           data: {
             time: lastBountyDate.toISOString(),
-            diff: diffInMs
-          }
+            diff: diffInMs,
+          },
         };
       },
       {
         detail: {
           tags: ["User"],
-          description: "Endpoint relacionado ao resgate do tempo da última recompensa",
+          description:
+            "Endpoint relacionado ao resgate do tempo da última recompensa",
         },
         response: {
           401: baseResponse,
-          200: baseResponse
-        }
+          200: baseResponse,
+        },
       }
     );
 });
