@@ -72,13 +72,6 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
     .get(
       "/my",
       async ({ prisma, query, user, set }) => {
-        if (!user) {
-          set.status = 401;
-          return errorResponse(
-            "Usuário não autenticado!",
-            "Usuário não logado!"
-          );
-        }
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
