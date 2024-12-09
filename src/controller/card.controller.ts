@@ -76,7 +76,7 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
           set.status = 401;
           return errorResponse(
             "Usuário não autenticado!",
-            "Usuário não autenticado!"
+            "Usuário não logado!"
           );
         }
         const limit = 32;

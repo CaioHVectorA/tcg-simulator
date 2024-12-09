@@ -1,5 +1,6 @@
 import Elysia from "elysia";
 import { prisma } from "../helpers/prisma.client";
+import { sucessResponse } from "../lib/mount-response";
 
 export const storeController = new Elysia({}).group("/store", (app) => {
   return app.decorate("prisma", prisma).get("/data", async ({ prisma }) => {
@@ -34,16 +35,11 @@ export const storeController = new Elysia({}).group("/store", (app) => {
     });
     const tematics = packages.filter((p) => p.tcg_id);
     const standard = packages.filter((p) => !p.tcg_id);
-    return {
-      toast: null,
-      data: {
-        promotionalCards,
-        tematics,
-        standard,
-      },
-      ok: true,
-      error: null,
-    };
+    return sucessResponse({
+      promotionalCards,
+      tematics,
+      standard,
+    });
   });
   // checkout,
 });
