@@ -1,8 +1,8 @@
 type ResponseMountedOptions<T> = {
-  ok?: boolean;
-  toast?: string | null;
-  data?: T | null;
-  error?: string | null;
+  ok: boolean;
+  toast: string | null;
+  data: T | null;
+  error: string | null;
 };
 
 export const sucessResponse = <T>(
