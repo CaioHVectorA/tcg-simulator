@@ -33,7 +33,7 @@ export const server: Elysia = new Elysia({})
     console.log({ code, error });
     if (error.message === "Invalid token") {
       set.status = 401;
-      return { message: "Invalid token" };
+      return { message: "Token inválida!" };
     }
   })
   .use(swagger)
