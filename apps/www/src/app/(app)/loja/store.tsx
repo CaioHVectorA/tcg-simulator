@@ -8,6 +8,7 @@ import { loadTcgImg } from '@/lib/load-tcg-img'
 import { PackCard } from './pack-card'
 import { FlashSaleCard } from "./flash-sale-card"
 import { Navigation } from "./navigation"
+import { KartProvider } from "./context"
 
 const flashSaleCards = [
     { name: "Pikachu", image_url: "https://assets.tcgdex.net/pt/swsh/swsh7/8/", rarity: "rare", originalPrice: 1000, salePrice: 800 },
