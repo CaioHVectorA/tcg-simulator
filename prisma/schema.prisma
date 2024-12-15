@@ -94,6 +94,7 @@ model User {
   last_entry        DateTime        @default(now())
   User_Ranking      User_Ranking?
   isGuest           Boolean         @default(false)
+  Transaction       Transaction[]
 
   @@map("users")
 }
@@ -176,4 +177,14 @@ model Promotional_Cards {
   created_at     DateTime @default(now())
   updated_at     DateTime @default(now()) @updatedAt
   card           Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+  status         String
+  user_id        Int
+  User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  error          String?
 }
