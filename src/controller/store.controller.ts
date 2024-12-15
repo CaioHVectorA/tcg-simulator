@@ -69,7 +69,9 @@ export const storeController = new Elysia({}).group("/store", (app) => {
                 "Um dos pacotes não foi encontrado"
               );
             }
-            packagesId.push(pack.id);
+            for (let i = 0; i < item.quantity; i++) {
+              packagesId.push(pack.id);
+            }
             total += pack.price * item.quantity;
           } else {
             const card = await prisma.promotional_Cards.findUnique({
