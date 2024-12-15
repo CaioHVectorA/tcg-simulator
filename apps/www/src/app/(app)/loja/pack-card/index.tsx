@@ -14,6 +14,7 @@ import InfiniteScroll from "@/components/ui/infinite-scroll"
 import { Loader2 } from "lucide-react"
 import { KartProvider, useKart } from "../use-kart"
 import { KartFloating } from "../kart-floating"
+import { NumberQuantityInput } from "@/components/ui/quantity-input"
 type Package = {
     price: number
     name: string
@@ -24,8 +25,9 @@ type Package = {
 
 function BuyPack({ pack }: { pack: Package }) {
     const [quantity, setQuantity] = useState(1)
-    const { addItem } = useKart()
+    const { addItem, kart } = useKart()
     const buy = () => {
+        console.log({ kart })
         addItem({
             type: 'package',
             id: pack.id,
@@ -36,18 +38,25 @@ function BuyPack({ pack }: { pack: Package }) {
     }
     return (
         <>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 font-syne">
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="quantity" className="text-right">
                         Quantidade
                     </Label>
-                    <Input
+                    {/* <Input
                         id="quantity"
                         type="number"
-                        className="col-span-3"
+                        className="col-span-3 text-lg"
                         value={quantity}
                         onChange={(e) => setQuantity(Number(e.target.value))}
                         min={1}
+                    /> */}
+                    <NumberQuantityInput
+
+                        initialValue={quantity}
+                        min={1}
+                        onChange={setQuantity}
+                        className="col-span-3 text-lg"
                     />
                 </div>
                 <div className="flex justify-between items-center">
@@ -69,7 +78,6 @@ export function PackCard({ pack, withDialog = false }: {
     const [cards, setCards] = useState<Card[]>([])
     const { get, loading, data } = useApi<{ cards: Card[], pages: number, currentPage: number }>({ cache: true })
     const [hasMore, setHasMore] = useState(true)
-    console.log({ hasMore })
     const next = async () => {
         const page = data?.currentPage || 1
         if (page < (data?.pages || 99)) {
@@ -81,8 +89,7 @@ export function PackCard({ pack, withDialog = false }: {
         }
     }
     return (
-        <KartProvider>
-            <KartFloating />
+        <>
             <Card className="overflow-hidden">
                 <div className="relative aspect-[1/1.4]">
                     <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full h-full object-contain bg-black" />
@@ -134,6 +141,6 @@ export function PackCard({ pack, withDialog = false }: {
                     </Dialog>}
                 </CardFooter>
             </Card>
-        </KartProvider>
+        </>
     )
 }
