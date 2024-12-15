@@ -91,7 +91,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       "/",
       async ({ jwt, headers, user, prisma, set }) => {
         const ids = await prisma.packages_User.findMany({
-          where: { userId: user.id },
+          where: { userId: user.id, opened: false },
           select: { packageId: true },
         });
         // i want duplicates packages
