@@ -37,10 +37,15 @@ const KartContext = createContext<KartContextType | undefined>(undefined);
 export const KartProvider = ({ children }: {
     children: React.ReactNode;
 }) => {
-    const [kart, { setArrState: setKart, undo }] = useArr<KartItem>([]);
+    const [kart, { setArrState: setKart, undo, addItem: add, editItem: edit, removeItem: rm }] = useArr<KartItem>([]);
     const { post, loading } = useApi()
     const addItem = (item: KartItem) => {
-        setKart((prevKart) => [...prevKart, item]);
+        const exists = kart.find((i) => i.id === item.id);
+        if (exists) {
+            return editItem(item.id, { quantity: exists.quantity + item.quantity });
+        }
+        console.log("Adding item:", item, { kart });
+        add(item);
     };
 
     const removeItem = (id: number) => {
