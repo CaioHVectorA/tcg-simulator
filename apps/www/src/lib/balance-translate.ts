@@ -3,5 +3,5 @@ export function balanceTranslate(balance: number): string {
   const suffixNum = Math.floor(Math.log10(balance) / 3);
   const shortValue = (balance / Math.pow(1000, suffixNum)).toFixed(2);
 
-  return parseFloat(shortValue) + suffixes[suffixNum];
+  return String(parseFloat(shortValue) + suffixes[suffixNum]);
 }
