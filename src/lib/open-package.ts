@@ -26,39 +26,48 @@ export async function OpenPackage(
   pkg: Package,
   prisma: PrismaClient
 ): Promise<Card[]> {
-  const cards = [] as Card[];
-  for await (const card of Array.from(
-    { length: pkg.cards_quantity },
-    (_, i) => i
-  )) {
-    let rarity: keyof typeof mapRarity = "common";
-    const getted = Math.random();
-    console.log({ getted });
-    if (getted <= pkg.common_rarity) rarity = "common";
-    else if (getted <= pkg.rare_rarity) rarity = "rare";
-    else if (getted <= pkg.epic_rarity) rarity = "epic";
-    else if (getted <= pkg.legendary_rarity) rarity = "legendary";
-    else if (getted <= pkg.full_legendary_rarity) rarity = "full_legendary";
-    console.log(
-      "Raridade: ",
-      rarity,
-      pkg[(rarity + "_rarity") as keyof Package]
+  const cards: Card[] = [];
+
+  // Carregar todas as cartas possíveis do pacote em uma única consulta
+  const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
+  const allCards = await prisma.card.findMany({
+    where: { card_id: handleTcgId },
+  });
+
+  // Agrupar cartas por raridade
+  const cardsByRarity = allCards.reduce<Record<string, Card[]>>((acc, card) => {
+    const rarity = Object.keys(mapRarity).find(
+      (key) => mapRarity[key] === card.rarity
     );
-    const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
-    const count = await prisma.card.count({
-      where: {
-        rarity: mapRarity[rarity],
-        card_id: handleTcgId,
-      },
-    });
-    const random = Math.floor(Math.random() * count);
-    const card_ = await prisma.card.findFirst({
-      where: { rarity: mapRarity[rarity] },
-      skip: random,
-    });
-    console.log("Carta: ", card_?.name);
-    if (!card_) continue;
-    cards.push(card_);
+    if (rarity) {
+      acc[rarity] = acc[rarity] || [];
+      acc[rarity].push(card);
+    }
+    return acc;
+  }, {});
+
+  // Função para calcular a raridade com base nas probabilidades
+  function getRarity(): keyof typeof mapRarity {
+    const getted = Math.random();
+    if (getted <= pkg.common_rarity) return "common";
+    if (getted <= pkg.rare_rarity) return "rare";
+    if (getted <= pkg.epic_rarity) return "epic";
+    if (getted <= pkg.legendary_rarity) return "legendary";
+    if (getted <= pkg.full_legendary_rarity) return "full_legendary";
+    return "common"; // Fallback
   }
+
+  // Iterar sobre a quantidade de cartas e selecionar
+  for (let i = 0; i < pkg.cards_quantity; i++) {
+    const rarity = getRarity();
+    const pool = cardsByRarity[rarity] || [];
+    if (pool.length === 0) continue;
+
+    // Selecionar carta aleatória do pool
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const card = pool[randomIndex];
+    cards.push(card);
+  }
+
   return cards;
 }
