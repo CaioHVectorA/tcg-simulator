@@ -275,10 +275,6 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             opened: false,
           },
         });
-        console.log({
-          packagesUser: packagesUser.length,
-          packagesId: packagesId.length,
-        });
         if (packagesUser.length < packagesId.length) {
           set.status = 400;
           return errorResponse(
