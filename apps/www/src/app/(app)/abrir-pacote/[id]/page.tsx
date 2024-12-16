@@ -22,8 +22,7 @@ export default async function Page({ params, searchParams }: {
     console.log({ data })
     return (
         <div>
-            <h1>Package {id}, qtd {qtd}</h1>
-            <ul>
+            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
                 {data.data.map((card) => (
                     <TcgCard url={card.image_url} />
                 ))}
