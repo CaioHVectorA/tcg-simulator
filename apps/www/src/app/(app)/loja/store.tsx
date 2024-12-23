@@ -54,11 +54,11 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
         <KartProvider>
             <div className="container mx-auto px-4 py-8 *:font-syne">
                 <Navigation />
-                <h1 className="text-3xl font-bold mb-8">Loja de Cards</h1>
+                <h1 className="text-5xl font-bold mb-8">Loja</h1>
 
                 {/* Flash Sale Cards */}
                 <section id="flashcards" className="mb-12">
-                    <h2 className="text-2xl font-bold mb-4">Promoções Relâmpago</h2>
+                    <h2 className="text-2xl font-bold mb-4">Promoções de hoje</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         {promotionalCards.map((card, index) => (
                             <FlashSaleCard key={index} card={card} />

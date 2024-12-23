@@ -76,12 +76,14 @@ export const storeController = new Elysia({}).group("/store", (app) => {
           } else {
             const card = await prisma.promotional_Cards.findUnique({
               where: { id: item.id },
+              include: { card: true },
             });
+            console.log({ card });
             if (!card) {
               set.status = 404;
               return errorResponse("Card not found", "Carta não encontrada");
             }
-            cardsId.push(card.id);
+            cardsId.push(card.card_id);
             total += card.price * item.quantity;
           }
         }

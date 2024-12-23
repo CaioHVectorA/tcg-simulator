@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { balanceTranslate } from "@/lib/balance-translate"
 import { loadTcgImg } from "@/lib/load-tcg-img"
+import { useKart } from "./use-kart"
 type Promotional = {
     card_id: number
     id: number
@@ -21,6 +22,9 @@ function calcPercentage(original: number, sale: number) {
     return ((original - sale) / original) * 100
 }
 export function FlashSaleCard({ card }: { card: Promotional }) {
+    const { addItem, kart, removeItem } = useKart()
+    console.log({ kart })
+    const isInKart = kart.find(item => (item.id === card.id && item.type === 'card'))
     return (
         <Card className="overflow-hidden">
             <div className="relative aspect-[1/1.4]">
@@ -36,7 +40,22 @@ export function FlashSaleCard({ card }: { card: Promotional }) {
                 </div>
             </CardContent>
             <CardFooter>
-                <Button className="w-full">Comprar</Button>
+                <Button onClick={() => {
+                    if (isInKart) {
+                        removeItem(card.id)
+                    } else {
+                        addItem({
+                            type: 'card',
+                            id: card.id,
+                            name: card.card.name,
+                            price: card.price,
+                            quantity: 1
+                        })
+                    }
+                }} className="w-full">
+                    {isInKart ? "Remover" : "Adicionar"}
+                </Button>
+                {/* <Button className="w-full">Comprar</Button> */}
             </CardFooter>
         </Card>
     )
