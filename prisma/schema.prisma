@@ -46,6 +46,7 @@ model Package {
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @default(now()) @updatedAt
   tcg_id                String?
+  User_Purchase         User_Purchase[]
 
   @@map("packages")
 }
@@ -95,6 +96,7 @@ model User {
   User_Ranking      User_Ranking?
   isGuest           Boolean         @default(false)
   Transaction       Transaction[]
+  User_Purchase     User_Purchase[]
 
   @@map("users")
 }
@@ -173,10 +175,11 @@ model Promotional_Cards {
   card_id        Int
   price          Int
   original_price Int
-  id             Int      @id @default(autoincrement())
-  created_at     DateTime @default(now())
-  updated_at     DateTime @default(now()) @updatedAt
-  card           Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  id             Int             @id @default(autoincrement())
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @default(now()) @updatedAt
+  card           Card            @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  User_Purchase  User_Purchase[]
 }
 
 model Transaction {
@@ -187,4 +190,19 @@ model Transaction {
   user_id        Int
   User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   error          String?
+}
+
+model User_Purchase {
+  id                  Int                @id @default(autoincrement())
+  user_id             Int
+  package_id          Int?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  User                User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Package             Package?           @relation(fields: [package_id], references: [id], onDelete: Cascade)
+  promotional_card_id Int?
+  Promotional_Cards   Promotional_Cards? @relation(fields: [promotional_card_id], references: [id], onDelete: Cascade)
+  quantity            Int                @default(1)
+
+  @@map("user_purchase")
 }
