@@ -91,8 +91,8 @@ export const storeController = new Elysia({}).group("/store", (app) => {
             }
             await prisma.user_Purchase.create({
               data: {
-                promotional_card_id: promotional_card.id,
                 user_id: user.id,
+                card_id: promotional_card.card_id,
               },
             });
             cardsId.push(promotional_card.card_id);
@@ -140,9 +140,13 @@ export const storeController = new Elysia({}).group("/store", (app) => {
     .get("/bought-promotional", async ({ user }) => {
       const cards = await prisma.user_Purchase.findMany({
         where: {
-          promotional_card_id: { not: null },
+          card_id: { not: null },
+        },
+        select: {
+          card_id: true,
         },
       });
-      return sucessResponse(cards);
+      const formatted = cards.map((c) => c.card_id!);
+      return sucessResponse(formatted);
     });
 });
