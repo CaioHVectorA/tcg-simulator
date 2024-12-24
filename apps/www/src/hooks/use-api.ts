@@ -159,6 +159,7 @@ export function useApi<T extends Record<string, any>>(
     loading,
     promise,
     error,
+    setData,
     response,
     // abort // Exportando a função de abort para uso externo
   };

@@ -3,9 +3,9 @@ import { useApi } from "./use-api";
 
 export const useFetch = (url: string) => {
   // const {  } = useApi
-  const { get, data, loading } = useApi();
+  const { get, data, loading, setData } = useApi();
   useEffect(() => {
     get(url);
   }, [url]);
-  return { data, loading };
+  return { data, loading, setData };
 };
