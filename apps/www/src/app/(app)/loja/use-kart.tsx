@@ -1,6 +1,7 @@
 import { useApi } from "@/hooks/use-api";
 import { useArr } from "@/hooks/use-arr-state";
 import { generateUUID } from "@/lib/uuid";
+import { useRouter } from "next/navigation";
 // export type ArrStateActions<T> = {
 //     setArrState: React.Dispatch<React.SetStateAction<T[]>>;
 //     addItem: (item: T) => void;
@@ -16,6 +17,7 @@ type KartItem = {
     price: number;
     quantity: number;
     type: "package" | "card"
+    card_id?: number;
 };
 
 type KartContextType = {
@@ -34,11 +36,13 @@ type KartContextType = {
 
 const KartContext = createContext<KartContextType | undefined>(undefined);
 
-export const KartProvider = ({ children }: {
+export const KartProvider = ({ children, setData }: {
     children: React.ReactNode;
+    setData: React.Dispatch<React.SetStateAction<number[]>>;
 }) => {
     const [kart, { setArrState: setKart, undo, addItem: add, editItem: edit, removeItem: rm }] = useArr<KartItem>([]);
     const { post, loading } = useApi()
+    const { refresh } = useRouter()
     const addItem = (item: KartItem) => {
         const exists = kart.find((i) => (i.id === item.id && i.type === item.type));
         if (exists) {
@@ -70,6 +74,8 @@ export const KartProvider = ({ children }: {
                 setKart([]);
             }
             setOpen(false)
+            const cardsId = kart.filter(item => item.type === 'card').map(item => item.card_id!)
+            setData((prev) => [...prev, ...cardsId])
             return { ok, message: "Compra efetuada com êxito!" };
         } catch (error) {
             return { ok: false, message: "Erro ao finalizar compra, tente novamente em alguns segundos" };
