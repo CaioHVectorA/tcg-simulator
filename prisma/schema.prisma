@@ -27,6 +27,7 @@ model Card {
   Cards_user        Cards_user[]
   Trade_Card        Trade_Card[]
   Promotional_Cards Promotional_Cards[]
+  User_Purchase     User_Purchase[]
 
   @@map("cards")
 }
@@ -175,11 +176,10 @@ model Promotional_Cards {
   card_id        Int
   price          Int
   original_price Int
-  id             Int             @id @default(autoincrement())
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @default(now()) @updatedAt
-  card           Card            @relation(fields: [card_id], references: [id], onDelete: Cascade)
-  User_Purchase  User_Purchase[]
+  id             Int      @id @default(autoincrement())
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now()) @updatedAt
+  card           Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
@@ -193,16 +193,16 @@ model Transaction {
 }
 
 model User_Purchase {
-  id                  Int                @id @default(autoincrement())
-  user_id             Int
-  package_id          Int?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @default(now()) @updatedAt
-  User                User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  Package             Package?           @relation(fields: [package_id], references: [id], onDelete: Cascade)
-  promotional_card_id Int?
-  Promotional_Cards   Promotional_Cards? @relation(fields: [promotional_card_id], references: [id], onDelete: Cascade)
-  quantity            Int                @default(1)
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  package_id Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Package    Package? @relation(fields: [package_id], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  card_id    Int?
+  Card       Card?    @relation(fields: [card_id], references: [id], onDelete: Cascade)
 
   @@map("user_purchase")
 }
