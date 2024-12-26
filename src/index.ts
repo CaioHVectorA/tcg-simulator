@@ -16,10 +16,12 @@ import { staticPlugin } from "@elysiajs/static";
 import { RankingCron } from "./lib/ranking-cron";
 import { rankingController } from "./controller/ranking.controller";
 import { CardsCron } from "./lib/cards-cron";
+import { helmet } from "elysia-helmet";
 import { storeController } from "./controller/store.controller";
 //@ts-ignore
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
+  .use(helmet())
   .use(
     cors({
       origin: "*",
