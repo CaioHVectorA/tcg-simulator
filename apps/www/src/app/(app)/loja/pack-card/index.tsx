@@ -118,7 +118,7 @@ export function PackCard({ pack, withDialog = false }: {
                                 setCards(res.data.data.cards)
                             }} variant="outline">Ver Cartas</Button>
                         </DialogTrigger>
-                        <DialogContent className=" max-w-[70vw]">
+                        <DialogContent className=" max-w-[70vw] max-md:max-w-[90vw]">
                             <DialogHeader>
                                 <DialogTitle>Cartas em {pack.name}</DialogTitle>
                                 <DialogDescription>
@@ -126,8 +126,8 @@ export function PackCard({ pack, withDialog = false }: {
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="max-h-[70vh] overflow-y-auto">
-                                <div className="mt-4 grid grid-cols-4 gap-4">
-                                    {cards.map((card) => <img key={card.card_id} src={loadTcgImg(card.image_url)} alt={card.name} className="object-contain" />)}
+                                <div className="mt-4 grid grid-cols-4 max-md:grid-cols-2 gap-4">
+                                    {cards.map((card) => <img key={card.id} src={loadTcgImg(card.image_url)} alt={card.name} className="object-contain" />)}
                                 </div>
                                 <InfiniteScroll hasMore={hasMore} isLoading={loading} next={next} threshold={1}>
                                     {/* {hasMore && <LoadingRing />} */}

@@ -39,6 +39,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.1",
     "react-intersection-observer": "^9.13.1",
+    "react-nice-avatar": "^1.5.0",
     "react-simple-typewriter": "^5.0.1",
     "recharts": "^2.13.3",
     "resend": "^4.0.1",
