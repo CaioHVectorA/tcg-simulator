@@ -27,7 +27,6 @@ function BuyPack({ pack }: { pack: Package }) {
     const [quantity, setQuantity] = useState(1)
     const { addItem, kart } = useKart()
     const buy = () => {
-        console.log({ kart })
         addItem({
             type: 'package',
             id: pack.id,
@@ -82,7 +81,6 @@ export function PackCard({ pack, withDialog = false }: {
         const page = data?.currentPage || 1
         if (page < (data?.pages || 99)) {
             const res = await get(`/packages/cards?packageId=${pack.tcg_id}&page=${page + 1}`)
-            console.log({ res_data: res.data })
             //@ts-ignore
             setCards([...cards, ...res.data.data.cards])
             if (res.data.data.currentPage === res.data.data.pages) setHasMore(false)
@@ -117,7 +115,6 @@ export function PackCard({ pack, withDialog = false }: {
                         <DialogTrigger asChild>
                             <Button onClick={async () => {
                                 const res = await get(`/packages/cards?packageId=${pack.tcg_id}`)
-                                console.log({ data })
                                 setCards(res.data.data.cards)
                             }} variant="outline">Ver Cartas</Button>
                         </DialogTrigger>
