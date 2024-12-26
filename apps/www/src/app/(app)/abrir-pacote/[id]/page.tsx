@@ -19,7 +19,6 @@ export default async function Page({ params, searchParams }: {
             Authorization: `Bearer ${token}`
         }
     });
-    console.log({ data })
     return (
         <div>
             <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">

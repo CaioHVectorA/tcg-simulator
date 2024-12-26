@@ -23,7 +23,7 @@ export function withAsyncFetchedData(
             return <Component data={data.data ?? data} />
         } catch (err) {
             console.log('E')
-            redirect('/entrar')
+            // redirect('/entrar')
             return null
         }
     }
