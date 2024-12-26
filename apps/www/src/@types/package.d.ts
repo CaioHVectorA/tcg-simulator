@@ -5,3 +5,10 @@ type Package = {
   tcg_id?: string;
   image_url: string;
 };
+
+type UserPackage = {
+  name: string;
+  image_url: string;
+  id: number;
+  quantity: number;
+};

@@ -1,7 +1,9 @@
 import Elysia, { t } from "elysia";
-import { getUserInterceptor } from "../middlewares/jwt";
+import { getUserInterceptor, getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 import { jwt } from "../middlewares/jwt/jwt";
+import type { User } from "@prisma/client";
+import { errorResponse, sucessResponse } from "../lib/mount-response";
 
 const baseResponse = t.Object({
   ok: t.Boolean(),
@@ -14,28 +16,15 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
   return app
     .use(jwt)
     .decorate("prisma", prisma)
-    .derive(getUserInterceptor)
+    .decorate("user", {} as User)
+    .onBeforeHandle(getUserUserMiddleware as any)
     .get(
       "/",
       async ({ user, prisma, query, set }) => {
-        if (!user) {
-          set.status = 401;
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
-        }
         const { page, search } = query;
         if (isNaN(Number(page))) {
           set.status = 400;
-          return {
-            ok: false,
-            toast: "Página inválida",
-            error: "Página inválida",
-            data: null,
-          };
+          return errorResponse("Página inválida", "Página inválida");
         }
         if (search) {
           const trades = await prisma.trade.findMany({
@@ -47,12 +36,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
               ],
             },
           });
-          return {
-            ok: true,
-            toast: null,
-            error: null,
-            data: trades,
-          };
+          return sucessResponse(trades);
         }
         const trades = await prisma.trade.findMany({
           skip: (Number(page) - 1) * 16,
@@ -81,12 +65,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           }));
           return { cards, users: t.userTrades };
         });
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: formatted,
-        };
+        return sucessResponse(trades);
       },
       {
         query: t.Object({
@@ -102,56 +81,27 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .get(
       "/:id",
       async ({ user, prisma, params }) => {
-        if (!user)
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
         const { id } = params;
-        if (isNaN(Number(id)))
-          return {
-            ok: false,
-            toast: "ID inválido",
-            error: "ID inválido",
-            data: null,
-          };
+        if (isNaN(Number(id))) {
+          return errorResponse("ID inválido", "ID inválido");
+        }
         const trade = await prisma.trade.findFirst({
           where: { id: Number(id) },
           include: { cards: true, userTrades: true },
         });
-        if (!trade)
-          return {
-            ok: false,
-            toast: "Troca não encontrada",
-            error: "Troca não encontrada",
-            data: null,
-          };
-        return {
-          // cards: trade.cards,
-          // users: trade.userTrades,
-          ok: true,
-          toast: null,
-          error: null,
-          data: {
-            cards: trade.cards,
-            users: trade.userTrades,
-          },
-        };
+        if (!trade) {
+          return errorResponse("Troca não encontrada", "Troca não encontrada");
+        }
+        return sucessResponse({
+          cards: trade.cards,
+          users: trade.userTrades,
+        });
       },
       { detail: { tags: ["Trade"] }, response: baseResponse }
     )
     .get(
       "/available",
       async ({ user, prisma }) => {
-        if (!user)
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
         // available is the trades that user can make based on his cards
         const userCards = await prisma.cards_user.findMany({
           where: { userId: user.id },
@@ -163,19 +113,13 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
             userTrades: { none: { user_id: user.id } },
           },
         });
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: trades,
-        };
+        return sucessResponse(trades);
       },
       { detail: { tags: ["Trade"] }, response: baseResponse }
     )
     .post(
       "/",
       async ({ body, user, prisma, set }) => {
-        if (!user) return { body: { error: "Unauthorized" } };
         const { receiver_cards, sender_cards } = body;
         const trade = await prisma.trade.create({});
         const formatted_receiver_cards = receiver_cards.map((i) => ({
@@ -191,13 +135,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         await prisma.trade_Card.createMany({
           data: [...formatted_receiver_cards, ...formatted_sender_cards],
         });
-        // return trade.id;
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: trade.id,
-        };
+        return sucessResponse(trade.id);
       },
       {
         body: t.Object({
@@ -210,13 +148,6 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .get(
       "/my",
       async ({ user, prisma }) => {
-        if (!user)
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
         const trades = await prisma.trade.findMany({
           where: {
             userTrades: {
@@ -225,74 +156,40 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           },
         });
         // return trades;
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: trades,
-        };
+        return sucessResponse(trades);
       },
       { detail: { tags: ["Trade"] }, response: baseResponse }
     )
     .post(
       "/accept/:id",
       async ({ user, prisma, params }) => {
-        if (!user)
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
         const { id } = params;
-        if (isNaN(Number(id)))
-          return {
-            ok: false,
-            toast: "ID inválido",
-            error: "ID inválido",
-            data: null,
-          };
+        if (isNaN(Number(id))) {
+          return errorResponse("ID inválido", "ID inválido");
+        }
         const trade = await prisma.trade.findFirst({
           where: { id: Number(id) },
           include: { userTrades: true },
         });
-        if (!trade)
-          return {
-            ok: false,
-            toast: "Troca não encontrada",
-            error: "Troca não encontrada",
-            data: null,
-          };
+        if (!trade) {
+          return errorResponse("Troca não encontrada", "Troca não encontrada");
+        }
         if (trade.userTrades.some((t) => t.user_id === user.id)) {
-          return {
-            ok: false,
-            toast: "Você já aceitou esta troca",
-            error: "Você já aceitou esta troca",
-            data: null,
-          };
+          return errorResponse(
+            "Você já aceitou esta troca",
+            "Você já aceitou esta troca"
+          );
         }
         await prisma.user_Trade.create({
           data: { user_id: user.id, trade_id: trade.id, is_sender: false },
         });
-        return {
-          ok: true,
-          toast: "Trade aceita com sucesso!",
-          error: null,
-          data: null,
-        };
+        return sucessResponse(null, "Trade aceita com sucesso!");
       },
       { detail: { tags: ["Trade"] }, response: baseResponse }
     )
     .get(
       "/my/accepted",
       async ({ user, prisma }) => {
-        if (!user)
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
         const trades = await prisma.trade.findMany({
           where: {
             userTrades: {
@@ -300,12 +197,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
             },
           },
         });
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: trades,
-        };
+        return sucessResponse(trades);
       },
       { detail: { tags: ["Trade"] }, response: baseResponse }
     );

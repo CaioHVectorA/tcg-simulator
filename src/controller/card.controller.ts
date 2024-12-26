@@ -1,7 +1,9 @@
 import Elysia, { t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
-import { getUserInterceptor } from "../middlewares/jwt";
+import { getUserInterceptor, getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
+import { errorResponse, sucessResponse } from "../lib/mount-response";
+import type { User } from "@prisma/client";
 const baseResponse = t.Object({
   ok: t.Boolean(),
   toast: t.Union([t.String(), t.Null()]),
@@ -13,13 +15,14 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
   return app
     .use(jwt)
     .decorate("prisma", prisma)
+    .decorate("user", {} as User)
+    .onBeforeHandle(getUserUserMiddleware as any)
     .get(
       "/",
-      async ({ prisma, query }) => {
+      async ({ prisma, query, user }) => {
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-
         const where = search ? { name: { startsWith: search } } : {};
         const cards = await prisma.card.findMany({
           where,
@@ -28,12 +31,7 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
           orderBy: { rarity: "desc" },
         });
 
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: cards,
-        };
+        return sucessResponse(cards);
       },
       {
         query: t.Object({
@@ -58,20 +56,10 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
 
         if (!card) {
           set.status = 404;
-          return {
-            ok: false,
-            toast: "Carta não encontrada.",
-            error: "Card not found",
-            data: null,
-          };
+          return errorResponse("Carta não encontrada.", "Card not found");
         }
 
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: card,
-        };
+        return sucessResponse(card);
       },
       {
         params: t.Object({ id: t.String() }),
@@ -84,15 +72,6 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
     .get(
       "/my",
       async ({ prisma, query, user, set }) => {
-        if (!user) {
-          set.status = 401;
-          return {
-            ok: false,
-            toast: "É necessário estar autenticado para acessar este recurso.",
-            error: "Sem token de autorização!",
-            data: null,
-          };
-        }
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
@@ -121,18 +100,12 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
             };
           })
         );
-
-        return {
-          ok: true,
-          toast: null,
-          error: null,
-          data: {
-            data: cardsWithQuantity,
-            totalPages: Math.ceil(count / limit),
-            currentPage: parseInt(page || "1"),
-            totalCards: count,
-          },
-        };
+        return sucessResponse({
+          data: cardsWithQuantity,
+          totalPages: Math.ceil(count / limit),
+          currentPage: parseInt(page || "1"),
+          totalCards: count,
+        });
       },
       {
         query: t.Object({
