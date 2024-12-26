@@ -53,7 +53,7 @@ export function HeaderMenu() {
     const [isOpen, setIsOpen] = React.useState(false)
     const { picture, username, money } = useUser()
     return (
-        <header className="sticky font-syne top-0 z-[40] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
                 <Link href="/" className="flex items-center mr-6">
                     <img src="/wallpaper.jpg" alt="TCG Logo" className="w-8 h-8 rounded-full object-cover mr-2" />

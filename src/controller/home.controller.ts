@@ -32,6 +32,9 @@ export const homeController = new Elysia({}).group("/home", (app) => {
           },
         })
       ).map((card) => card.Cards_user[0].Card.image_url);
+      if (topCards.length > 1) {
+        [topCards[0], topCards[1]] = [topCards[1], topCards[0]];
+      }
       const count = await prisma.user.count();
       console.log({ ranking });
       const data = {
