@@ -139,6 +139,16 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         },
       }
     )
+    .get("/:id", async ({ prisma, params }) => {
+      const { id } = params;
+      const package_ = await prisma.package.findFirst({
+        where: { id: Number(id) },
+        select: { id: true, name: true, image_url: true, price: true },
+      });
+      if (!package_)
+        return errorResponse("Pacote não encontrado", "Pacote não encontrado");
+      return sucessResponse(package_);
+    })
     .post(
       "/buy",
       async ({ body, user, prisma, set }) => {

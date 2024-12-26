@@ -6,6 +6,7 @@ import { NumberQuantityInput } from "@/components/ui/quantity-input";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import Link from "next/link";
 import { useState } from "react";
+import { OpenPackagePopup } from "./open-popup";
 export function PackageCard({ pack }: { pack: UserPackage }) {
     const [quantity, setQuantity] = useState(1);
     return (
@@ -29,11 +30,10 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                             onChange={(value) => setQuantity(value)}
                             min={1}
                         />
-                        <Button asChild className="w-full mt-2">
-                            <Link href={`/abrir-pacote/${pack.id}?qtd=${quantity}`}>
-                                Abrir
-                            </Link>
-                        </Button>
+                        {/* <Button className="w-full mt-2">
+                            Abrir
+                        </Button> */}
+                        <OpenPackagePopup pack={pack} quantity={quantity} />
                     </PopoverContent>
                 </Popover>
             </CardFooter>
