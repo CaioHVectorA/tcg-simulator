@@ -1,9 +1,16 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "lucide-react";
-type Quest = {}
-export function QuestCard({ quest }) {
+type Quest = {
+    name: string;
+    description: string;
+    progress: number;
+    total: number;
+    reward: string;
+    pokemonNeeded?: string[];
+}
+export function QuestCard({ quest }: { quest: Quest }) {
     return (
         <Card>
             <CardHeader>

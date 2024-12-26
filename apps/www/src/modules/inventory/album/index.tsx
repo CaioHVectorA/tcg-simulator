@@ -4,7 +4,7 @@ import { DialogHeader } from "@/components/ui/dialog";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Share2 } from "lucide-react";
 
-export function AlbumCard({ album }) {
+export function AlbumCard({ album }: any) {
     return (
         <Card>
             <CardHeader>
