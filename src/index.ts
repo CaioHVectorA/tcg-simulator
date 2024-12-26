@@ -24,7 +24,7 @@ export const server: Elysia = new Elysia({})
   .use(helmet())
   .use(
     cors({
-      origin: "*",
+      origin: process.env.CLIENT_URL || "*",
       methods: ["GET", "POST", "PUT", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
       exposeHeaders: ["Content-Type", "Authorization"],
