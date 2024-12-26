@@ -27,6 +27,7 @@ model Card {
   Cards_user        Cards_user[]
   Trade_Card        Trade_Card[]
   Promotional_Cards Promotional_Cards[]
+  User_Purchase     User_Purchase[]
 
   @@map("cards")
 }
@@ -46,6 +47,7 @@ model Package {
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @default(now()) @updatedAt
   tcg_id                String?
+  User_Purchase         User_Purchase[]
 
   @@map("packages")
 }
@@ -95,6 +97,7 @@ model User {
   User_Ranking      User_Ranking?
   isGuest           Boolean         @default(false)
   Transaction       Transaction[]
+  User_Purchase     User_Purchase[]
 
   @@map("users")
 }
@@ -187,4 +190,19 @@ model Transaction {
   user_id        Int
   User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   error          String?
+}
+
+model User_Purchase {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  package_id Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Package    Package? @relation(fields: [package_id], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  card_id    Int?
+  Card       Card?    @relation(fields: [card_id], references: [id], onDelete: Cascade)
+
+  @@map("user_purchase")
 }

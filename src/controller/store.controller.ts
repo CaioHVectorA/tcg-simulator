@@ -72,19 +72,31 @@ export const storeController = new Elysia({}).group("/store", (app) => {
             for (let i = 0; i < item.quantity; i++) {
               packagesId.push(pack.id);
             }
+            await prisma.user_Purchase.create({
+              data: {
+                quantity: item.quantity,
+                package_id: pack.id,
+                user_id: user.id,
+              },
+            });
             total += pack.price * item.quantity;
           } else {
-            const card = await prisma.promotional_Cards.findUnique({
+            const promotional_card = await prisma.promotional_Cards.findUnique({
               where: { id: item.id },
               include: { card: true },
             });
-            console.log({ card });
-            if (!card) {
+            if (!promotional_card) {
               set.status = 404;
               return errorResponse("Card not found", "Carta não encontrada");
             }
-            cardsId.push(card.card_id);
-            total += card.price * item.quantity;
+            await prisma.user_Purchase.create({
+              data: {
+                user_id: user.id,
+                card_id: promotional_card.card_id,
+              },
+            });
+            cardsId.push(promotional_card.card_id);
+            total += promotional_card.price;
           }
         }
         if (user.money < total)
@@ -124,5 +136,17 @@ export const storeController = new Elysia({}).group("/store", (app) => {
           ),
         }),
       }
-    );
+    )
+    .get("/bought-promotional", async ({ user }) => {
+      const cards = await prisma.user_Purchase.findMany({
+        where: {
+          card_id: { not: null },
+        },
+        select: {
+          card_id: true,
+        },
+      });
+      const formatted = cards.map((c) => c.card_id!);
+      return sucessResponse(formatted);
+    });
 });
