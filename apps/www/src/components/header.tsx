@@ -33,6 +33,7 @@ import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { balanceTranslate } from '@/lib/balance-translate'
+import { Wip } from './wip'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
@@ -174,7 +175,8 @@ export function HeaderMenu() {
                                 <SheetHeader>
                                     <SheetTitle>Social</SheetTitle>
                                 </SheetHeader>
-                                Conteúdo de amizade aqui
+                                {/* Conteúdo de amizade aqui */}
+                                <Wip />
                             </SheetContent>
                         </Sheet>
                     </div>
