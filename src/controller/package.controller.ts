@@ -6,7 +6,12 @@ import {
   receiveUser,
 } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
-import { OpenPackage } from "../lib/open-package";
+import {
+  getByRarityCluster,
+  getRandomCardFromPackage,
+  OpenPackage,
+  OpenPackageStreamingHandle,
+} from "../lib/open-package";
 import type { Card, Package, User } from "@prisma/client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
 const baseResponse = t.Object({
@@ -90,9 +95,9 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
     .get(
       "/",
       async ({ jwt, headers, user, prisma, set }) => {
-        const ids = await prisma.packages_User.findMany({
+        const packagesUnformatted = await prisma.packages_User.findMany({
           where: { userId: user.id, opened: false },
-          select: { packageId: true },
+          select: { Package: true },
         });
         // i want duplicates packages
         const packages = [] as {
@@ -101,18 +106,18 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           id: number;
           quantity: number;
         }[];
-        for (const id of ids) {
-          const package_ = await prisma.package.findFirst({
-            where: { id: id.packageId },
-            select: { name: true, image_url: true, id: true },
-          });
-          if (!package_) continue;
-          if (packages.some((p) => p.id === package_.id)) {
-            const index = packages.findIndex((p) => p.id === package_.id);
-            packages[index].quantity++;
-            continue;
+        for (const package_ of packagesUnformatted) {
+          const found = packages.find((p) => p.id === package_.Package.id);
+          if (found) {
+            found.quantity++;
+          } else {
+            packages.push({
+              name: package_.Package.name,
+              image_url: package_.Package.image_url,
+              id: package_.Package.id,
+              quantity: 1,
+            });
           }
-          packages.push({ ...package_, quantity: 1 });
         }
         return packages;
       },
@@ -313,12 +318,10 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             data: { opened: true },
           });
         }
-        for await (const card of allCards) {
-          await prisma.cards_user.create({
-            data: { userId: user.id, cardId: card.id },
-          });
-        }
-        return sucessResponse(allCards.sort((a, b) => b.rarity - a.rarity));
+        await prisma.cards_user.createMany({
+          data: allCards.map((card) => ({ userId: user.id, cardId: card.id })),
+        });
+        return sucessResponse(allCards.sort((a, b) => a.rarity - b.rarity));
       },
       {
         body: t.Object({ packagesId: t.Array(t.Number()) }),
@@ -333,5 +336,80 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           401: baseResponse,
         },
       }
+    )
+    .post(
+      "/open",
+      async ({ user, prisma, body }) => {
+        const { packageId } = body;
+        const package_ = await prisma.packages_User.findFirst({
+          where: { userId: user.id, packageId, opened: false },
+        });
+        if (!package_)
+          return errorResponse(
+            "Pacote não encontrado",
+            "Pacote não encontrado"
+          );
+        const packageToOpen = await prisma.package.findFirst({
+          where: { id: packageId },
+        });
+        if (!packageToOpen)
+          return errorResponse(
+            "Pacote não encontrado",
+            "Pacote não encontrado"
+          );
+        const cards = await OpenPackage(packageToOpen, prisma);
+        await prisma.packages_User.update({
+          where: { userId: user.id, packageId, opened: false, id: package_.id },
+          data: { opened: true },
+        });
+        await prisma.cards_user.createMany({
+          data: cards.map((card) => ({ userId: user.id, cardId: card.id })),
+        });
+        const sortedCards = cards.sort((a, b) => a.rarity - b.rarity);
+        return sucessResponse(sortedCards);
+      },
+      { body: t.Object({ packageId: t.Number() }) }
     );
+  // TODO
+  // .post(
+  //   "/open-many-strm",
+  //   async function* ({ user, prisma, body }) {
+  //     const { packageId, quantity } = body;
+  //     const package_ = await prisma.packages_User.findFirst({
+  //       where: { userId: user.id, packageId, opened: false },
+  //     });
+  //     if (!package_)
+  //       return errorResponse(
+  //         "Pacote não encontrado",
+  //         "Pacote não encontrado"
+  //       );
+  //     const quantityGot = await prisma.packages_User.count({
+  //       where: { userId: user.id, packageId, opened: false },
+  //     });
+  //     if (quantityGot < quantity)
+  //       return errorResponse(
+  //         "Quantidade insuficiente",
+  //         "Quantidade insuficiente"
+  //       );
+  //     const packageToOpen = await prisma.package.findFirst({
+  //       where: { id: packageId },
+  //     });
+  //     if (!packageToOpen)
+  //       return errorResponse(
+  //         "Pacote não encontrado",
+  //         "Pacote não encontrado"
+  //       );
+  //     for (let i = 0; i < quantity; i++) {
+  //       const rarity = await getByRarityCluster({
+  //         pkg: packageToOpen,
+  //         prisma,
+  //       });
+  //       for (let i = 0; i < packageToOpen.cards_quantity * 100; i++) {
+  //         const cards = getRandomCardFromPackage(packageToOpen, rarity);
+  //         yield cards;
+  //       }
+  //     }
+  //   },
+  //   { body: t.Object({ packageId: t.Number(), quantity: t.Number() }) }
+  // );
 });
