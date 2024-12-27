@@ -8,6 +8,7 @@ const data = [
     price: 100,
     common_rarity: 0.5,
     rare_rarity: 0.3,
+    description: "Pacote comum com 8 cartas",
     epic_rarity: 0.15,
     legendary_rarity: 0.05,
     full_legendary_rarity: 0.01,
@@ -16,6 +17,7 @@ const data = [
   },
   {
     name: "Pacote raro",
+    description: "Pacote com 8, mais chance de vir raras!",
     price: 200,
     common_rarity: 0.3,
     rare_rarity: 0.4,
@@ -27,18 +29,20 @@ const data = [
   },
   {
     name: "Grande pacote",
-    price: 400,
+    price: 600,
     cards_quantity: 16,
-    common_rarity: 0.4,
-    rare_rarity: 0.4,
-    epic_rarity: 0.1,
-    legendary_rarity: 0.05,
-    full_legendary_rarity: 0.05,
+    common_rarity: 0.25,
+    description: "Pacote com 16 cartas! Tá mais pra pacotão!",
+    rare_rarity: 0.25,
+    epic_rarity: 0.2,
+    legendary_rarity: 0.2,
+    full_legendary_rarity: 0.1,
     image_url: "https://via.placeholder.com/150",
   },
   {
     name: "Pacote épicos",
     price: 2000,
+    description: "Pacote com 3 cartas, mas grandes chances de vir épicas!",
     cards_quantity: 3,
     common_rarity: 0.1,
     rare_rarity: 0.2,
@@ -52,6 +56,8 @@ const data = [
     price: 5000,
     cards_quantity: 1,
     common_rarity: 0.05,
+    description:
+      "Há apenas uma carta, mas ela tem altas chances de ser uma lendária!",
     rare_rarity: 0.1,
     epic_rarity: 0.2,
     legendary_rarity: 0.4,
@@ -64,6 +70,8 @@ const data = [
     cards_quantity: 1,
     common_rarity: 0.01,
     rare_rarity: 0.02,
+    description:
+      "Pra quem gosta de viver perigosamente! Uma carta, mas pode ser a Carta...",
     epic_rarity: 0.05,
     legendary_rarity: 0.1,
     full_legendary_rarity: 0.82,
@@ -76,6 +84,8 @@ const data = [
     common_rarity: 0.1,
     rare_rarity: 0.1,
     epic_rarity: 0.5,
+    description:
+      "Pra quem não se contenta com pouco! 24 cartas, várias épicas!",
     legendary_rarity: 0.15,
     full_legendary_rarity: 0.05,
     image_url: "https://via.placeholder.com/150",
@@ -83,9 +93,14 @@ const data = [
 ] as Package[];
 async function seedPackages() {
   await prisma.package.deleteMany();
+  let index = 0;
   for (const packageData of data) {
+    index++;
     await prisma.package.create({
-      data: packageData,
+      data: {
+        ...packageData,
+        id: index,
+      },
     });
   }
   const sets = await tcg.fetchSets();
