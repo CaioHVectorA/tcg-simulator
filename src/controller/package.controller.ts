@@ -309,13 +309,17 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             console.log("Package not found");
             continue;
           }
-          await prisma.packages_User.update({
+          const pkgPkgIds = packagesUser
+            .map((p) => p.id)
+            .slice(0, quantities[package_.id]);
+          console.log({ pkgPkgIds });
+          await prisma.packages_User.updateMany({
+            data: { opened: true },
             where: {
               userId: user.id,
-              packageId: package_.id,
-              id: packageUserId,
+              id: { in: pkgPkgIds },
+              opened: false,
             },
-            data: { opened: true },
           });
         }
         await prisma.cards_user.createMany({
