@@ -15,7 +15,7 @@ type NumberQuantityInputProps = {
 } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>
 
 export function NumberQuantityInput({
-    initialValue = 0,
+    initialValue = 1,
     min = 0,
     max = Infinity,
     step = 1,

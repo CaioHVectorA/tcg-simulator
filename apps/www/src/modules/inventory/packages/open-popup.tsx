@@ -8,18 +8,21 @@ import { loadTcgImg } from '@/lib/load-tcg-img';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import Image from 'next/image';
 import { useApi } from '@/hooks/use-api';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { TcgCard } from '@/components/tcg-card-view';
 
 interface UserPackageProps {
     packageData: UserPackage;
     setCanGoNext: (canGoNext: boolean) => void;
     actualPack: number;
+    isFlipped: boolean;
+    setIsFlipped: (isFlipped: boolean) => void;
 }
 
-export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCanGoNext, actualPack }) => {
-    const [isFlipped, setIsFlipped] = useState(false)
+export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCanGoNext, actualPack, isFlipped, setIsFlipped }) => {
+    // const [isFlipped, setIsFlipped] = useState(false)
     const { post, data, loading } = useApi()
+    const [api, setApi] = useState<CarouselApi>()
     const handleFlip = () => {
         // setIsFlipped(!isFlipped)
         if (isFlipped) return
@@ -29,6 +32,7 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
     }
     useEffect(() => {
         setIsFlipped(false)
+        api?.scrollTo(0)
         // post(`/packages/open`, { packageId: packageData.id })
     }, [actualPack])
     return (
@@ -73,10 +77,10 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
                 >
                     {loading && <LoadingRing />}
                     {data && (
-                        <Carousel className=' w-full p-6'>
+                        <Carousel setApi={setApi} className=' w-full p-6'>
                             <CarouselContent>
-                                {data.map((card: { name: string, id: number, card_id: string, image_url: string, rarity: string }) => (
-                                    <CarouselItem key={card.id}>
+                                {data.map((card: { name: string, id: number, card_id: string, image_url: string, rarity: string }, index: number) => (
+                                    <CarouselItem key={card.id + index}>
                                         <img src={loadTcgImg(card.image_url)} alt={card.name} width={300} height={400} />
                                     </CarouselItem>
                                 ))}
@@ -93,14 +97,14 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
     )
 }
 function CardsViewer({ cards }: { cards: Card[] }) {
+    if (!cards) return
     return (
 
         <div className="max-h-[70vh] overflow-y-auto">
             <div className="mt-4 grid grid-cols-4 max-md:grid-cols-2 gap-4">
-                {cards.map(({ image_url, id }) => (
-                    <TcgCard key={id} url={image_url} />
+                {cards.map(({ image_url, id }, index) => (
+                    <TcgCard key={id + index} url={image_url} />
                 ))}
-                {/* {cards.map((card) => <img key={card.id} src={loadTcgImg(card.image_url, true)} alt={card.name} className="object-contain" />)} */}
             </div>
         </div>
     )
@@ -128,10 +132,12 @@ export function OpenPackagePopup({
     }, [quantity, pack])
     const [open, setOpen] = useState(false)
     const [canGoNext, setCanGoNext] = useState(false)
+    const [isFlipped, setIsFlipped] = useState(false)
     const handleOpenAll = async () => {
         const rest = quantity - actualPack
         const res = await post(`/packages/open-packages`, { packagesId: Array.from({ length: rest }, (_, i) => pack.id) })
         const cards = (res.data.data ?? res.data)
+        if (!cards) return
         setCanGoNext(true)
         setActualPack(quantity - 1)
         setCards(cards)
@@ -151,12 +157,12 @@ export function OpenPackagePopup({
                         <AlertDialogDescription asChild className=' w-full h-full'>
                             {cards ? <CardsViewer cards={cards} /> : (
 
-                                <PackageOpening packageData={pack} setCanGoNext={setCanGoNext} actualPack={actualPack} />
+                                <PackageOpening isFlipped={isFlipped} setIsFlipped={setIsFlipped} packageData={pack} setCanGoNext={setCanGoNext} actualPack={actualPack} />
                             )}
                             {/* {Packs[actualPack]({ packageData: pack, setCanGoNext, actualPack })} */}
                         </AlertDialogDescription>
                         <AlertDialogFooter>
-                            {!cards && <AlertDialogCancel onClick={handleOpenAll}>Abrir todos</AlertDialogCancel>}
+                            {(!cards && !isFlipped) && <AlertDialogCancel onClick={handleOpenAll}>Abrir todos</AlertDialogCancel>}
                             <AlertDialogAction disabled={!canGoNext} onClick={handleNext}>
                                 {isLastPack ? 'Finalizar' : 'Próximo'}
                             </AlertDialogAction>

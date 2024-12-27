@@ -26,6 +26,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                         <h2>Quantos pacotes você quer abrir?</h2>
                         <NumberQuantityInput
                             defaultValue={quantity}
+                            initialValue={quantity}
                             max={pack.quantity}
                             onChange={(value) => setQuantity(value)}
                             min={1}
