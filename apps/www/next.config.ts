@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ["assets.tcgdex.net"],
+    domains: ["assets.tcgdex.net", "via.placeholder.com"],
   },
 };
 

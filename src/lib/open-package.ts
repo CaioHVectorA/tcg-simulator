@@ -1,20 +1,11 @@
-// model Package {
-//     price                 Int
-//     id                    Int             @id @default(autoincrement())
-//     common_rarity         Float
-//     rare_rarity           Float
-//     epic_rarity           Float
-//     legendary_rarity      Float
-//     full_legendary_rarity Float
-//     name                  String
-//     image_url             String
-//     cards_quantity        Int
-//     Packages_User         Packages_User[]
-
-import type { Card, Package, PrismaClient } from "@prisma/client";
-
-//     @@map("packages")
-//   }
+import type {
+  Card,
+  Package,
+  Packages_User,
+  PrismaClient,
+} from "@prisma/client";
+import {} from "@elysiajs/stream";
+import { cache } from "./cache";
 const mapRarity = {
   common: 1,
   rare: 2,
@@ -22,43 +13,91 @@ const mapRarity = {
   legendary: 4,
   full_legendary: 5,
 };
+export function getRandomCardFromPackage(
+  pkg: Package,
+  cardsByRarity: Record<string, Card[]>
+): Card | null {
+  function getRarity(): keyof typeof mapRarity {
+    const getted = Math.random();
+    if (getted <= pkg.common_rarity) return "common";
+    if (getted <= pkg.rare_rarity) return "rare";
+    if (getted <= pkg.epic_rarity) return "epic";
+    if (getted <= pkg.legendary_rarity) return "legendary";
+    if (getted <= pkg.full_legendary_rarity) return "full_legendary";
+    return "common"; // Fallback
+  }
+
+  const rarity = getRarity();
+  const pool = cardsByRarity[rarity] || [];
+  if (pool.length === 0) return null;
+
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  return pool[randomIndex];
+}
+
+export async function getByRarityCluster({
+  pkg,
+  prisma,
+}: {
+  pkg: Package;
+  prisma: PrismaClient;
+}) {
+  const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
+  let allCards: Card[] = [];
+  if (pkg.tcg_id && cache.get(pkg.tcg_id)) {
+    allCards = cache.get(pkg.tcg_id) as Card[];
+  } else if (!pkg.tcg_id && cache.get("all")) {
+    allCards = cache.get("all") as Card[];
+  } else {
+    allCards = await prisma.card.findMany({
+      where: { card_id: handleTcgId },
+    });
+    if (pkg.tcg_id) {
+      cache.set(pkg.tcg_id, allCards);
+    } else {
+      cache.set("all", allCards);
+    }
+  }
+
+  const cardsByRarity = allCards.reduce<Record<string, Card[]>>((acc, card) => {
+    const rarity = Object.keys(mapRarity).find(
+      //@ts-ignore
+      (key) => mapRarity[key] === card.rarity
+    );
+    if (rarity) {
+      acc[rarity] = acc[rarity] || [];
+      acc[rarity].push(card);
+    }
+    return acc;
+  }, {});
+  return cardsByRarity;
+}
+
 export async function OpenPackage(
   pkg: Package,
   prisma: PrismaClient
 ): Promise<Card[]> {
-  const cards = [] as Card[];
-  for await (const card of Array.from(
-    { length: pkg.cards_quantity },
-    (_, i) => i
-  )) {
-    let rarity: keyof typeof mapRarity = "common";
-    const getted = Math.random();
-    console.log({ getted });
-    if (getted <= pkg.common_rarity) rarity = "common";
-    else if (getted <= pkg.rare_rarity) rarity = "rare";
-    else if (getted <= pkg.epic_rarity) rarity = "epic";
-    else if (getted <= pkg.legendary_rarity) rarity = "legendary";
-    else if (getted <= pkg.full_legendary_rarity) rarity = "full_legendary";
-    console.log(
-      "Raridade: ",
-      rarity,
-      pkg[(rarity + "_rarity") as keyof Package]
-    );
-    const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
-    const count = await prisma.card.count({
-      where: {
-        rarity: mapRarity[rarity],
-        card_id: handleTcgId,
-      },
-    });
-    const random = Math.floor(Math.random() * count);
-    const card_ = await prisma.card.findFirst({
-      where: { rarity: mapRarity[rarity] },
-      skip: random,
-    });
-    console.log("Carta: ", card_?.name);
-    if (!card_) continue;
-    cards.push(card_);
+  const cards: Card[] = [];
+  const cardsByRarity = await getByRarityCluster({ pkg, prisma });
+
+  for (let i = 0; i < pkg.cards_quantity; i++) {
+    const card = getRandomCardFromPackage(pkg, cardsByRarity);
+    if (card) {
+      cards.push(card);
+    }
   }
+
   return cards;
+}
+
+export async function* OpenPackageStreamingHandle(
+  pkg: Package,
+  qtd: number,
+  prisma: PrismaClient
+) {
+  yield "start";
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  yield "loading";
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  yield "end";
 }

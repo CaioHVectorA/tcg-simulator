@@ -1,5 +1,5 @@
 'use client'
-
+import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -33,6 +33,7 @@ import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { balanceTranslate } from '@/lib/balance-translate'
+import { Wip } from './wip'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
@@ -50,9 +51,10 @@ const profileItems = [
 export function HeaderMenu() {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = React.useState(false)
-    const { picture, username, money } = useUser()
+    const { picture, username, money, email } = useUser()
+    const config = React.useMemo(() => genConfig(username), [])
     return (
-        <header className="sticky font-syne top-0 z-[40] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
                 <Link href="/" className="flex items-center mr-6">
                     <img src="/wallpaper.jpg" alt="TCG Logo" className="w-8 h-8 rounded-full object-cover mr-2" />
@@ -86,10 +88,11 @@ export function HeaderMenu() {
                     <SheetContent side="right" className=' !z-[9999]'>
                         <SheetHeader className=' flex flex-col items-center'>
                             <SheetTitle className=' sr-only'>Menu</SheetTitle>
-                            <Avatar className=' w-3/12 h-full'>
+                            {/* <Avatar className=' w-3/12 h-full'>
                                 <AvatarImage src={picture} className=' object-cover' alt="Sua foto de perfil" />
                                 <AvatarFallback>{picture.substring(0, 1)}</AvatarFallback>
-                            </Avatar>
+                            </Avatar> */}
+                            <NiceAvatar className=' w-3/12 h-full' {...config} />
                             <h3 className=' text-2xl font-syne'>{username}</h3>
                             <div className=' flex gap-1 items-center'>
                                 <p className='text-xl font-syne'>{balanceTranslate(money)}</p>
@@ -139,10 +142,12 @@ export function HeaderMenu() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative size-10 p-0 bg-transparent rounded-full">
-                                <Avatar className=' h-wull h-full'>
+                                {/* <Avatar className=' h-wull h-full'>
                                     <AvatarImage className=' object-cover' src={picture} alt="Sua foto de perfil" />
                                     <AvatarFallback>{username.substring(0, 1)}</AvatarFallback>
-                                </Avatar>
+                                </Avatar> */
+                                    <NiceAvatar className='h-full aspect-square' {...config} />
+                                }
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-52" align="center" forceMount>
@@ -174,7 +179,8 @@ export function HeaderMenu() {
                                 <SheetHeader>
                                     <SheetTitle>Social</SheetTitle>
                                 </SheetHeader>
-                                Conteúdo de amizade aqui
+                                {/* Conteúdo de amizade aqui */}
+                                <Wip />
                             </SheetContent>
                         </Sheet>
                     </div>
