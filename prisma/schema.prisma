@@ -79,26 +79,29 @@ model Cards_user {
 }
 
 model User {
-  id                Int             @id @default(autoincrement())
+  id                Int                @id @default(autoincrement())
   username          String
   password          String
   email             String
-  isAdmin           Boolean         @default(false)
+  isAdmin           Boolean            @default(false)
   Packages_User     Packages_User[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @default(now()) @updatedAt
-  money             Int             @default(500)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+  money             Int                @default(500)
   Cards_user        Cards_user[]
   Trade_User        User_Trade[]
-  picture           String          @default("/wallpaper.jpg")
-  friendships       Friend_User[]   @relation("UserFriends")
-  friendOf          Friend_User[]   @relation("UserIsFriendOf")
-  last_daily_bounty DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past
-  last_entry        DateTime        @default(now())
+  picture           String             @default("/wallpaper.jpg")
+  friendships       Friend_User[]      @relation("UserFriends")
+  friendOf          Friend_User[]      @relation("UserIsFriendOf")
+  last_daily_bounty DateTime?          @default("2021-01-01T00:00:00.000Z") // some date in the past
+  last_entry        DateTime           @default(now())
   User_Ranking      User_Ranking?
-  isGuest           Boolean         @default(false)
+  isGuest           Boolean            @default(false)
   Transaction       Transaction[]
   User_Purchase     User_Purchase[]
+  fromReferralId    Int?
+  ReferrerProtocol  ReferrerProtocol[]
+  Referred          Referred[]
 
   @@map("users")
 }
@@ -206,4 +209,20 @@ model User_Purchase {
   Card       Card?    @relation(fields: [card_id], references: [id], onDelete: Cascade)
 
   @@map("user_purchase")
+}
+
+model ReferrerProtocol {
+  id                Int        @id @default(autoincrement())
+  referrerCreatorId Int
+  referrerCreator   User       @relation(fields: [referrerCreatorId], references: [id], onDelete: Cascade)
+  referreds         Referred[]
+  hash              String     @unique
+}
+
+model Referred {
+  id                 Int              @id @default(autoincrement())
+  referredId         Int
+  referred           User             @relation(fields: [referredId], references: [id], onDelete: Cascade)
+  referrerProtocolId Int
+  referrerProtocol   ReferrerProtocol @relation(fields: [referrerProtocolId], references: [id], onDelete: Cascade)
 }
