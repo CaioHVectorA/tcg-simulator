@@ -116,4 +116,14 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         response: baseResponse,
       }
     );
+  // .get("/duplicates", async ({ prisma, user }) => {
+  //   const duplicates = await prisma.cards_user.findMany({
+  //     select: {
+  //       id: true,
+  //     },
+  //     where: { userId: user.id },
+  //   });
+  //   const diff = duplicates.length - new Set(duplicates).size;
+  //   return sucessResponse(diff);
+  // });
 });
