@@ -15,10 +15,13 @@ import { Loader2 } from "lucide-react"
 import { KartProvider, useKart } from "../use-kart"
 import { KartFloating } from "../kart-floating"
 import { NumberQuantityInput } from "@/components/ui/quantity-input"
+import { InfoCircledIcon } from "@radix-ui/react-icons"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 type Package = {
     price: number
     name: string
     id: number
+    description?: string
     tcg_id?: string
     image_url: string
 }
@@ -91,8 +94,18 @@ export function PackCard({ pack, withDialog = false }: {
             <Card className="overflow-hidden">
                 <div className="relative aspect-[1/1.4]">
                     <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full h-full object-contain bg-black" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 flex items-center gap-2 text-white p-2">
                         <p className="font-semibold text-sm">{pack.name}</p>
+                        {!pack.tcg_id && <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <InfoCircledIcon />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{pack?.description}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>}
                     </div>
                 </div>
                 <CardContent className="p-4">

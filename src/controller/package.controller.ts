@@ -105,6 +105,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           image_url: string;
           id: number;
           quantity: number;
+          description: string;
         }[];
         for (const package_ of packagesUnformatted) {
           const found = packages.find((p) => p.id === package_.Package.id);
@@ -116,6 +117,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
               image_url: package_.Package.image_url,
               id: package_.Package.id,
               quantity: 1,
+              description: package_.Package.description || "",
             });
           }
         }
@@ -133,6 +135,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
               name: t.String(),
               image_url: t.String(),
               id: t.Number(),
+              description: t.String(),
               quantity: t.Number(),
             }),
             { description: "Pacotes do usuário" }

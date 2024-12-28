@@ -4,6 +4,7 @@ import Image from "next/image"
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogClose } from "./ui/dialog"
 import { Cross } from "lucide-react"
 import { Cross1Icon } from "@radix-ui/react-icons"
+import { LoadingRing } from "./loading-spinner"
 
 export function TcgCard({
     url
@@ -18,6 +19,7 @@ export function TcgCard({
                         src={loadTcgImg(url, true)}
                         alt="card"
                         layout="fill"
+                        // loader={() => "/wallpaper.png"}
                         objectFit="cover"
                         className="rounded-lg"
                         placeholder="blur"
