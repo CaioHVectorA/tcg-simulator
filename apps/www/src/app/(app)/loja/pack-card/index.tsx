@@ -15,10 +15,13 @@ import { Loader2 } from "lucide-react"
 import { KartProvider, useKart } from "../use-kart"
 import { KartFloating } from "../kart-floating"
 import { NumberQuantityInput } from "@/components/ui/quantity-input"
+import { InfoCircledIcon } from "@radix-ui/react-icons"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 type Package = {
     price: number
     name: string
     id: number
+    description?: string
     tcg_id?: string
     image_url: string
 }
@@ -27,7 +30,6 @@ function BuyPack({ pack }: { pack: Package }) {
     const [quantity, setQuantity] = useState(1)
     const { addItem, kart } = useKart()
     const buy = () => {
-        console.log({ kart })
         addItem({
             type: 'package',
             id: pack.id,
@@ -82,7 +84,6 @@ export function PackCard({ pack, withDialog = false }: {
         const page = data?.currentPage || 1
         if (page < (data?.pages || 99)) {
             const res = await get(`/packages/cards?packageId=${pack.tcg_id}&page=${page + 1}`)
-            console.log({ res_data: res.data })
             //@ts-ignore
             setCards([...cards, ...res.data.data.cards])
             if (res.data.data.currentPage === res.data.data.pages) setHasMore(false)
@@ -93,8 +94,18 @@ export function PackCard({ pack, withDialog = false }: {
             <Card className="overflow-hidden">
                 <div className="relative aspect-[1/1.4]">
                     <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full h-full object-contain bg-black" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 flex items-center gap-2 text-white p-2">
                         <p className="font-semibold text-sm">{pack.name}</p>
+                        {!pack.tcg_id && <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <InfoCircledIcon />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{pack?.description}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>}
                     </div>
                 </div>
                 <CardContent className="p-4">
@@ -117,11 +128,10 @@ export function PackCard({ pack, withDialog = false }: {
                         <DialogTrigger asChild>
                             <Button onClick={async () => {
                                 const res = await get(`/packages/cards?packageId=${pack.tcg_id}`)
-                                console.log({ data })
                                 setCards(res.data.data.cards)
                             }} variant="outline">Ver Cartas</Button>
                         </DialogTrigger>
-                        <DialogContent className=" max-w-[70vw]">
+                        <DialogContent className=" max-w-[70vw] max-md:max-w-[90vw]">
                             <DialogHeader>
                                 <DialogTitle>Cartas em {pack.name}</DialogTitle>
                                 <DialogDescription>
@@ -129,8 +139,8 @@ export function PackCard({ pack, withDialog = false }: {
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="max-h-[70vh] overflow-y-auto">
-                                <div className="mt-4 grid grid-cols-4 gap-4">
-                                    {cards.map((card) => <img key={card.card_id} src={loadTcgImg(card.image_url)} alt={card.name} className="object-contain" />)}
+                                <div className="mt-4 grid grid-cols-4 max-md:grid-cols-2 gap-4">
+                                    {cards.map((card) => <img key={card.id} src={loadTcgImg(card.image_url)} alt={card.name} className="object-contain" />)}
                                 </div>
                                 <InfiniteScroll hasMore={hasMore} isLoading={loading} next={next} threshold={1}>
                                     {/* {hasMore && <LoadingRing />} */}

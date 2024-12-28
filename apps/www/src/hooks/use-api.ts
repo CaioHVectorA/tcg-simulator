@@ -45,6 +45,11 @@ export function useApi<T extends Record<string, any>>(
     //@ts-ignore
     console.log({ err: err.response?.data || err });
     setError(err);
+    // go horse:
+    //@ts-ignore
+    if (err.message?.includes("undefined")) {
+      push("/erro");
+    }
     //@ts-ignore
     if (err.response?.status === 401) {
       console.log("unauthorized");
@@ -76,6 +81,7 @@ export function useApi<T extends Record<string, any>>(
     setPromise(promise);
     promise.catch(handleError);
     const response = await promise;
+    console.log({ response });
     if (response.status == 401) push("/entrar");
     setResponse(response);
     setData(response.data.data || response.data);

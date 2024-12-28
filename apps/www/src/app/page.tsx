@@ -8,7 +8,6 @@ import { redirect } from 'next/navigation'
 export default async function LandingPage(data: any) {
   const cook = await cookies()
   const token = cook.get('token')
-  console.log({ token })
   if (token?.value) {
     redirect('/home')
   }

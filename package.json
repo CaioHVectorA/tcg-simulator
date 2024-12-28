@@ -33,6 +33,7 @@
     "@elysiajs/jwt": "^1.1.0",
     "@elysiajs/node": "^0.0.0-alpha.0",
     "@elysiajs/static": "^1.1.1",
+    "@elysiajs/stream": "^1.1.0",
     "@elysiajs/swagger": "^1.1.1",
     "@grotto/logysia": "^0.1.4",
     "@prisma/client": "^5.18.0",
@@ -42,6 +43,7 @@
     "bcrypt": "^5.1.1",
     "bun": "^1.1.38",
     "elysia": "^1.1.5",
+    "elysia-helmet": "^2.0.0",
     "mock-aws-s3": "^4.0.2",
     "nock": "^13.5.5"
   }

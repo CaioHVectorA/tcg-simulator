@@ -22,8 +22,8 @@ export function withAsyncFetchedData(
             // handle error, invalid data, etc
             return <Component data={data.data ?? data} />
         } catch (err) {
-            console.log('E')
-            redirect('/entrar')
+            console.log(err)
+            // redirect('/entrar')
             return null
         }
     }

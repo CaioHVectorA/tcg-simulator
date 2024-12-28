@@ -48,7 +48,6 @@ export const KartProvider = ({ children, setData }: {
         if (exists) {
             return editItem(item.id, { quantity: exists.quantity + item.quantity });
         }
-        console.log("Adding item:", item, { kart });
         add(item);
     };
 

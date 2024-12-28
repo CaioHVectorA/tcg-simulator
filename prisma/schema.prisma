@@ -40,6 +40,7 @@ model Package {
   epic_rarity           Float
   legendary_rarity      Float
   full_legendary_rarity Float
+  description           String?
   name                  String
   image_url             String
   cards_quantity        Int

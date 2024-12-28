@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import InfiniteScroll from '@/components/ui/infinite-scroll';
 import { useApi } from '@/hooks/use-api';
 import { Loader2 } from 'lucide-react';
+import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
+
 import React, { useState } from 'react';
 type Ranking = {
     total_rarity: number;
@@ -20,15 +22,16 @@ export function RankingView({
     data: Ranking[]
 }) {
     const [ranking, setRanking] = useState<Ranking[]>(data)
-    const [page, setPage] = React.useState(0);
+    const [page, setPage] = React.useState(1);
     const [hasMore, setHasMore] = React.useState(true);
     const { get, loading } = useApi()
     const next = async () => {
         const res = await get(`/ranking?page=${page + 1}`);
-        setRanking([...ranking, ...res.data])
+        setRanking([...ranking, ...res.data.data])
         setPage((prev) => prev + 1);
 
-        if (res.data.length < 3) {
+        if (res.data.data.length < 3) {
+            console.log('AAAA')
             setHasMore(false);
         }
     };
@@ -40,10 +43,11 @@ export function RankingView({
                     <Card key={index} className=' *:font-syne'>
                         <CardHeader className="flex flex-row items-center space-y-0">
                             <CardTitle className="text-lg font-semibold">#{ranking.position}</CardTitle>
-                            <Avatar className="ml-4">
+                            {/* <Avatar className="ml-4">
                                 <AvatarImage className=" object-cover" src={ranking.user.picture} alt={ranking.user.username} />
                                 <AvatarFallback>{ranking.user.username[0]}</AvatarFallback>
-                            </Avatar>
+                            </Avatar> */}
+                            <NiceAvatar className='h-12 w-12 ml-4' {...genConfig(ranking.user.username)} />
                             <div className="ml-4 flex-grow w-4/12">
                                 <CardTitle className="text-lg truncate w-11/12">{ranking.user.username}</CardTitle>
                             </div>

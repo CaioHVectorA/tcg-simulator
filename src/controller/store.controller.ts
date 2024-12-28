@@ -36,6 +36,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
           image_url: true,
           tcg_id: true,
           price: true,
+          description: true,
         },
       });
       const tematics = packages.filter((p) => p.tcg_id);

@@ -32,6 +32,7 @@
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.5.1",
     "embla-carousel-react": "^8.5.1",
+    "framer-motion": "^11.15.0",
     "lucide-react": "^0.460.0",
     "next": "15.0.2",
     "next-themes": "^0.3.0",
@@ -39,8 +40,10 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.1",
     "react-intersection-observer": "^9.13.1",
+    "react-nice-avatar": "^1.5.0",
     "react-simple-typewriter": "^5.0.1",
     "recharts": "^2.13.3",
+    "resend": "^4.0.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"
