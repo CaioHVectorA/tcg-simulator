@@ -17,6 +17,7 @@ import { useApi } from '@/hooks/use-api'
 import { useToast } from '@/hooks/use-toast'
 import { setCookie } from '@/lib/cookies'
 import { useRouter } from 'next/navigation'
+import { LoaderSimple, LoadingRing } from '@/components/loading-spinner'
 
 const loginSchema = z.object({
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
@@ -29,8 +30,9 @@ const registerSchema = z.object({
     password: z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres" }),
 })
 
-const LoginForm = ({ onSubmit }: {
-    onSubmit: (values: z.infer<typeof loginSchema>) => void
+const LoginForm = ({ onSubmit, loading }: {
+    onSubmit: (values: z.infer<typeof loginSchema>) => void,
+    loading: boolean
 }) => {
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -69,7 +71,9 @@ const LoginForm = ({ onSubmit }: {
                         </FormItem>
                     )}
                 />
-                <Button type="submit" className="w-full">Entrar</Button>
+                <Button type="submit" className="w-full">
+                    {loading ? <LoaderSimple /> : "Entrar"}
+                </Button>
             </form>
         </Form>
     )
@@ -135,9 +139,10 @@ const RegisterForm = ({ onSubmit }: {
     )
 }
 
-const GuestLoginDialog = ({ isOpen, onClose }: {
+const GuestLoginDialog = ({ isOpen, onClose, onConfirm }: {
     isOpen: boolean
     onClose: () => void
+    onConfirm: () => void
 }) => (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
         <AlertDialogContent>
@@ -149,7 +154,7 @@ const GuestLoginDialog = ({ isOpen, onClose }: {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={onClose}>Continuar</AlertDialogAction>
+                <AlertDialogAction onClick={onConfirm}>Continuar</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
@@ -158,7 +163,7 @@ const GuestLoginDialog = ({ isOpen, onClose }: {
 export default function LoginRegisterPage() {
     const [activeTab, setActiveTab] = useState('login')
     const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
-    const { post } = useApi()
+    const { post, loading } = useApi()
     const { toast } = useToast()
     const { push } = useRouter()
     async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
@@ -178,7 +183,14 @@ export default function LoginRegisterPage() {
             push('/home')
         }
     }
-
+    async function onGuestSubmit() {
+        const response = await post('/auth/guest', {})
+        if (response.data.ok) {
+            const token = response.data.data.token
+            setCookie('token', token, 7)
+            push('/home')
+        }
+    }
     return (
         <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
@@ -200,7 +212,7 @@ export default function LoginRegisterPage() {
                                 <TabsTrigger value="register">Registrar</TabsTrigger>
                             </TabsList>
                             <TabsContent value="login">
-                                <LoginForm onSubmit={onLoginSubmit} />
+                                <LoginForm loading={loading} onSubmit={onLoginSubmit} />
                             </TabsContent>
                             <TabsContent value="register">
                                 <RegisterForm onSubmit={onRegisterSubmit} />
@@ -231,7 +243,7 @@ export default function LoginRegisterPage() {
                     </CardFooter>
                 </Card>
             </div>
-            <GuestLoginDialog isOpen={isGuestDialogOpen} onClose={() => setIsGuestDialogOpen(false)} />
+            <GuestLoginDialog onConfirm={onGuestSubmit} isOpen={isGuestDialogOpen} onClose={() => setIsGuestDialogOpen(false)} />
         </div>
     )
 }
