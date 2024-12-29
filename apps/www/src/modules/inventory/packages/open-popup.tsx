@@ -81,7 +81,7 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
                             <CarouselContent>
                                 {data.map((card: { name: string, id: number, card_id: string, image_url: string, rarity: string }, index: number) => (
                                     <CarouselItem key={card.id + index}>
-                                        <img src={loadTcgImg(card.image_url)} alt={card.name} width={300} height={400} />
+                                        <img src={loadTcgImg(card.image_url)} alt={card.name} width={300} height={400} className=' w-[300px] h-[400px]' />
                                     </CarouselItem>
                                 ))}
                             </CarouselContent>
