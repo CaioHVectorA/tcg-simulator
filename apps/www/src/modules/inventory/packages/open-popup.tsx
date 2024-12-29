@@ -53,12 +53,12 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
                 <div style={{ backfaceVisibility: 'hidden' }}>
                     <CardContent>
                         <div className="relative w-full aspect-[2/3]">
-                            <Image
+                            <img
                                 src={loadTcgImg(packageData.image_url, true)}
                                 alt={packageData.name}
-                                layout="fill"
-                                objectFit="contain"
-                                className="rounded-lg"
+                                // layout="fill"
+                                // objectFit="contain"
+                                className="rounded-lg object-contain"
                             />
                         </div>
                     </CardContent>
@@ -81,7 +81,7 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
                             <CarouselContent>
                                 {data.map((card: { name: string, id: number, card_id: string, image_url: string, rarity: string }, index: number) => (
                                     <CarouselItem key={card.id + index}>
-                                        <Image quality={20} src={loadTcgImg(card.image_url)} alt={card.name} width={300} height={400} />
+                                        <img src={loadTcgImg(card.image_url)} alt={card.name} width={300} height={400} />
                                     </CarouselItem>
                                 ))}
                             </CarouselContent>
