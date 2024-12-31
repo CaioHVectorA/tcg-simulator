@@ -1,4 +1,5 @@
 import { HeaderMenu } from "@/components/header";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/context/UserContext";
 
 export default function RootLayout({
@@ -8,10 +9,12 @@ export default function RootLayout({
 }>) {
     return (
         <main>
-            <UserProvider>
-                <HeaderMenu />
-                {children}
-            </UserProvider>
+            <QueryProvider>
+                <UserProvider>
+                    <HeaderMenu />
+                    {children}
+                </UserProvider>
+            </QueryProvider>
         </main>
     );
 }
