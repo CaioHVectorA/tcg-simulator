@@ -57,7 +57,9 @@ export function KartFloating() {
                                 </div>
                             </SheetHeader>
                             <SheetFooter>
-                                <Button onClick={() => checkout(setOpen)} className="w-full">
+                                <Button onClick={async () => {
+                                    await checkout(setOpen)
+                                }} className="w-full">
                                     {loading ? <LoadingRing /> : "Finalizar compra"}
                                 </Button>
                             </SheetFooter>
