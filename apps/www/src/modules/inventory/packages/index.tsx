@@ -1,12 +1,22 @@
+"use client"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TooltipProvider, TooltipTrigger, Tooltip, TooltipContent } from "@/components/ui/tooltip";
 import { Package, Book, Trophy } from "lucide-react";
 import { PackageCard } from '../packages/pkg-card'
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "@/hooks/use-api";
 export function InventoryPage({
-    data
+    data: initialData
 }: {
     data: UserPackage[]
 }) {
+    const { get } = useApi()
+    const { data } = useQuery<UserPackage[]>({
+        initialData, staleTime: 1000 * 60 * 5, queryKey: ['packages'], queryFn: async () => {
+            const res = await get('/packages')
+            return res.data.data ?? res.data
+        }
+    });
     return (
         <div className="container mx-auto px-4 py-8 font-syne">
             <h1 className="text-3xl font-bold mb-8">Seu Inventário</h1>

@@ -2,6 +2,7 @@ import type { User } from "@prisma/client";
 import { prisma } from "../../helpers/prisma.client";
 import * as jwt from "@elysiajs/jwt";
 import { errorResponse } from "../../lib/mount-response";
+import { AUTH_ERROR } from "../../helpers/const";
 //elysiajs/jwt
 type jwtDecorator = {
   readonly sign: (
@@ -16,10 +17,10 @@ export async function receiveUser(
   jwt: jwtDecorator
 ): Promise<User> {
   const data = await jwt.verify(token);
-  if (!data) throw new Error("Invalid token");
+  if (!data) throw new Error(AUTH_ERROR);
   const { id } = data as { id: number };
   const user = await prisma.user.findFirst({ where: { id } });
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error(AUTH_ERROR);
   return user;
 }
 //@ts-ignore
