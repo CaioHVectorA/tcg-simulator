@@ -11,7 +11,6 @@ export type ArrStateActions<T> = {
 export function useArr<T>(initialState: T[] | (() => T[])) {
   const [arrState, setArrState] = useState<T[]>(initialState);
   const lastState = useRef<T[] | null>(null);
-  console.log("useArr", { arrState });
   const addItem = (item: T) => {
     setArrState((prevState) => {
       lastState.current = prevState;
