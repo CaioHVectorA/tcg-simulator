@@ -18,6 +18,8 @@ import { rankingController } from "./controller/ranking.controller";
 import { CardsCron } from "./lib/cards-cron";
 import { helmet } from "elysia-helmet";
 import { storeController } from "./controller/store.controller";
+import { errorResponse } from "./lib/mount-response";
+import { AUTH_ERROR } from "./helpers/const";
 //@ts-ignore
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
@@ -39,6 +41,12 @@ export const server: Elysia = new Elysia({})
     }
   })
   .use(swagger)
+  .onError(({ error, set }) => {
+    if (error.message == AUTH_ERROR) {
+      set.status = 401;
+    }
+    return errorResponse(error.message, error.message);
+  })
   .use(authController)
   .use(userController)
   .use(packageController)
