@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
 
 export default async function LandingPage(data: any) {
-  const cook = await cookies()
-  const token = cook.get('token')
-  if (token?.value) {
-    redirect('/home')
-  }
+  // const cook = await cookies()
+  // const token = cook.get('token')
+  // if (token?.value) {
+  //   redirect('/home')
+  // }
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-primary text-primary-foreground py-6">
@@ -30,7 +31,7 @@ export default async function LandingPage(data: any) {
       <main className="container mx-auto px-4 py-12 space-y-24">
         <section className="text-center">
           <h1 className="text-5xl font-bold mb-6">Bem-vindo ao Pokémon TCG Simulator</h1>
-          <p className="text-2xl mb-8">De treinadores para treinadores: Colecione, troque e batalhe gratuitamente no universo Pokémon!</p>
+          <p className="text-2xl mb-8 font-syne"><b>De treinadores para treinadores</b>: Troque, abra pacotes e colecione no universo de cartas pokemon!</p>
           <Button asChild size="lg" className="text-xl py-6 px-8">
             <a href="/entrar">
               Comece a jogar agora <ArrowRight className="ml-2 h-6 w-6" />
@@ -38,48 +39,72 @@ export default async function LandingPage(data: any) {
           </Button>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <section className="grid grid-cols-1 font-syne md:grid-cols-3 gap-4">
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle className="text-2xl">Colecione</CardTitle>
+              <CardTitle className="text-3xl font-syne">Colecione</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow">
-              <img src="/wallpaper.jpg" alt="Coleção de cards" className="w-full h-60 object-cover mb-6 rounded-md" />
-              <p className="text-lg">Monte sua coleção única de cards Pokémon e torne-se um verdadeiro Mestre Pokémon! Abra pacotes, complete missões e participe de eventos para expandir seu acervo.</p>
+              <p className="text-lg xl">Monte sua coleção com seus pokémon favoritos e com as mais bonitas cartas! O SimTcg possui as cartas mais raras e até<i> as que foram esquecidas.</i></p>
             </CardContent>
           </Card>
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle className="text-2xl">Troque</CardTitle>
+              <CardTitle className="text-3xl font-syne">Chegue ao topo</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow">
-              <img src="/wallpaper.jpg" alt="Troca de cards" className="w-full h-60 object-cover mb-6 rounded-md" />
-              <p className="text-lg">Conecte-se com treinadores do mundo todo e faça trocas incríveis para expandir sua coleção! Negocie cards raros, forme alianças e construa seu deck dos sonhos.</p>
+              <p className="text-lg xl">Conforme você consegue cartas das mais raras, você acumula pontos de raridade. Quem não quer subir ao pódio?</p>
             </CardContent>
           </Card>
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle className="text-2xl">Batalhe</CardTitle>
+              <CardTitle className="text-3xl font-syne">Abra pacotes</CardTitle>
             </CardHeader>
             <CardContent className="flex-grow">
-              <img src="/wallpaper.jpg" alt="Batalha de cards" className="w-full h-60 object-cover mb-6 rounded-md" />
-              <p className="text-lg">Teste suas habilidades em emocionantes duelos contra outros treinadores e prove seu valor! Participe de torneios, suba no ranking e torne-se uma lenda do TCG.</p>
+              <p className="text-lg xl">O que não podia faltar: A emoção de abrir pacotes e conseguir cartas em situações das mais improváveis! É claro que isso não iria faltar.</p>
+            </CardContent>
+          </Card>
+          <Card className="flex flex-col">
+            <CardHeader className=' flex gap-2 flex-row justify-between'>
+              <CardTitle className="text-3xl font-syne">Troque</CardTitle>
+              <Badge className="">Em breve</Badge>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-lg xl">Conecte-se com treinadores e faça trocas para expandir sua coleção! Negocie, pechinche e consiga a sua carta mais procurada!</p>
+            </CardContent>
+          </Card>
+          <Card className="flex flex-col">
+            <CardHeader className=' flex gap-2 flex-row justify-between'>
+              <CardTitle className="text-3xl font-syne">Faça amigos!</CardTitle>
+              <Badge className="">Em breve</Badge>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-lg xl">Consiga novas amizades e forme alianças. Um treinador não sobe até os pódios sozinho!</p>
+            </CardContent>
+          </Card>
+          <Card className="flex flex-col">
+            <CardHeader className=' flex gap-2 flex-row justify-between'>
+              <CardTitle className="text-3xl font-syne">Batalhe</CardTitle>
+              <Badge className="">muito em breve</Badge>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-lg xl">Teste suas habilidades em emocionantes duelos contra outros treinadores e prove seu valor! Participe de torneios, suba no ranking e torne-se uma lenda do TCG.</p>
             </CardContent>
           </Card>
         </section>
 
-        <section className="bg-accent rounded-lg p-12">
+        <section className="bg-accent rounded-lg p-12 border">
           <h2 className="text-3xl font-bold mb-6 text-center">Bônus de Boas-vindas</h2>
           <p className="text-xl text-center mb-8">Registre-se agora e ganhe 3000 moedas para começar sua jornada com o pé direito!</p>
           <div className="flex justify-center">
-            <Button asChild variant="secondary" size="lg" className="text-xl py-6 px-8">
-              <a href="/entrar">
+            <Button asChild variant="outline" size="lg" className="text-xl py-6 px-8">
+              <a href="/entrar?with_bonus=true">
                 <Gift className="mr-2 h-6 w-6" /> Resgatar Bônus
               </a>
             </Button>
           </div>
         </section>
-
+        {/* 
         <section className="flex flex-col md:flex-row items-center gap-12">
           <div className="md:w-1/2">
             <h2 className="text-4xl font-bold mb-6">De Jogadores para Jogadores</h2>
@@ -139,9 +164,9 @@ export default async function LandingPage(data: any) {
               </Card>
             ))}
           </div>
-        </section>
+        </section> */}
 
-        <section className="text-center">
+        <section className="text-center border px-[12%] py-12">
           <h2 className="text-4xl font-bold mb-6">Apoie o Projeto</h2>
           <p className="text-xl mb-8">Ajude-nos a manter o Pokémon TCG Simulator gratuito e em constante evolução! Sua contribuição nos permite trazer novos recursos, cards e eventos para toda a comunidade.</p>
           <Button variant="outline" asChild size="lg" className="text-xl py-6 px-8">
