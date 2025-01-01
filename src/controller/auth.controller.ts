@@ -103,12 +103,15 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         if (!user) break;
         name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
       }
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
       const newUser = await prisma.user.create({
         data: {
           username: name,
           email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
           password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
           isGuest: true,
+          last_daily_bounty: yesterday,
         },
         select: { id: true },
       });

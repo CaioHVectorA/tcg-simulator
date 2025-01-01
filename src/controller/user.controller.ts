@@ -386,9 +386,10 @@ export const userController = new Elysia({}).group("/user", (app) => {
           500 * diffDays,
           20000 * (1 + Math.floor(user.daily_bounty_level / 10))
         );
+        const oneDay = 1000 * 60 * 60 * 24;
         return sucessResponse({
           time: lastBountyDate.toISOString(),
-          diff: diffInMs,
+          diff: oneDay - diffInMs,
           canCollect: diffDays >= 1,
           bountyAmount,
         });

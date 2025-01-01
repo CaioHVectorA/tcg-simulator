@@ -7,8 +7,9 @@ import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
 export default async function LandingPage(data: any) {
-  // const cook = await cookies()
-  // const token = cook.get('token')
+  const cook = await cookies()
+  const token = cook.get('token')
+  const link = token ? '/home' : '/entrar'
   // if (token?.value) {
   //   redirect('/home')
   // }
@@ -21,7 +22,7 @@ export default async function LandingPage(data: any) {
             <span className="text-3xl font-bold">Pokémon TCG Simulator</span>
           </div>
           <nav>
-            <a href="/entrar" className="text-primary-foreground hover:underline text-lg">
+            <a href={link} className="text-primary-foreground hover:underline text-lg">
               Entrar
             </a>
           </nav>
