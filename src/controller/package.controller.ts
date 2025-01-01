@@ -73,7 +73,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           pages,
           currentPage: Number(page) || 1,
         };
-        return data;
+        return sucessResponse(data);
       },
       {
         query: t.Object({
