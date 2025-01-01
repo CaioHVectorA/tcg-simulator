@@ -93,8 +93,8 @@ model User {
   picture            String          @default("/wallpaper.jpg")
   friendships        Friend_User[]   @relation("UserFriends")
   friendOf           Friend_User[]   @relation("UserIsFriendOf")
-  last_daily_bounty  DateTime?       @default("2021-01-01T00:00:00.000Z") // some date in the past
-  daily_bounty_level Int             @default(1) // 1 to 10
+  last_daily_bounty  DateTime?       @default(now()) // some date in the past
+  daily_bounty_level Int             @default(1) // 1 to n
   last_entry         DateTime        @default(now())
   User_Ranking       User_Ranking?
   isGuest            Boolean         @default(false)
