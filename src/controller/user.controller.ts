@@ -360,10 +360,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
             },
           },
         });
-        return sucessResponse(
-          { money: user.money + bountyAmount },
-          "Recompensa coletada com sucesso"
-        );
+        return sucessResponse(null, "Recompensa coletada com sucesso");
       },
       {
         detail: {
