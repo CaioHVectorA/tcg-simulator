@@ -51,7 +51,7 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
             <div className="container mx-auto px-4 py-8 *:font-syne">
                 <Navigation />
                 <h1 className="text-5xl font-bold mb-8">Loja</h1>
-
+                <h2 className="text-2xl font-bold mb-4">Resgate sua recompensa diária</h2>
                 {/* Flash Sale Cards */}
                 {!loading && data && <section id="flashcards" className="mb-12">
                     <h2 className="text-2xl font-bold mb-4">Promoções de hoje</h2>

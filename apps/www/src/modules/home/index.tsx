@@ -103,7 +103,7 @@ export function HomePage({ data }: {
                         <p className=' text-center mt-2'>Vá para a loja e compre um pacote para começar sua coleção!</p>
                         <div className=' text-center mt-4'>
                             <Button asChild size={'lg'}>
-                                <Link href="/store">
+                                <Link href="/loja">
                                     Ir para a Loja
                                     <ExternalLink />
                                 </Link>
