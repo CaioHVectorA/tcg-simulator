@@ -54,7 +54,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/register",
       async ({ body, jwt, set }) => {
-        const { email, password, username } = body;
+        const { email, password, username, withBonus } = body;
         const alreadyExists = await prisma.user.findFirst({ where: { email } });
 
         if (alreadyExists) {
@@ -63,8 +63,17 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         }
 
         const hashed = await hash(password, 10);
+        const money = withBonus ? 3000 : 500;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
         const user = await prisma.user.create({
-          data: { email, password: hashed, username },
+          data: {
+            email,
+            password: hashed,
+            username,
+            money,
+            last_daily_bounty: yesterday,
+          },
         });
 
         const token = await jwt.sign({ id: user.id });
@@ -75,6 +84,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           email: t.String(),
           password: t.String(),
           username: t.String(),
+          withBonus: t.Optional(t.Boolean()),
         }),
         detail: { tags: ["Auth"] },
         response: {
@@ -98,6 +108,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           username: name,
           email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
           password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
+          isGuest: true,
         },
         select: { id: true },
       });
