@@ -14,6 +14,9 @@ import { KartProvider } from "./use-kart"
 import { KartFloating } from "./kart-floating"
 import { useApi } from "@/hooks/use-api"
 import { useFetch } from "@/hooks/use-fetch"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { api } from "@/lib/api"
+import { Timer } from "@/modules/timer"
 
 type Package = {
     price: number
@@ -44,6 +47,25 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
         promotionalCards: Promotional[]
     }
 }) {
+    const { get, post } = useApi()
+    const qClient = useQueryClient()
+    const { isLoading: loadingBounty, data: timeData, error, refetch } = useQuery<{ time: string, diff: number, canCollect: boolean, bountyAmounty: boolean }>({
+        queryKey: ['bounty-time'],
+        queryFn: async () => {
+            const res = await get('/user/bounty-time')
+            return res.data.data ?? res.data
+        }
+    })
+    const { mutateAsync, data: bountyData, isPending } = useMutation({
+        mutationKey: ['bounty-collect'],
+        mutationFn: async () => {
+            const res = await post('/user/bounty', {})
+            await refetch()
+            await qClient.invalidateQueries({ queryKey: ['user'] })
+            await qClient.refetchQueries({ queryKey: ['user'] })
+            return res.data.data ?? res.data
+        }
+    })
     const { data, loading, setData } = useFetch('/store/bought-promotional/') as unknown as { data: number[], loading: boolean, setData: React.Dispatch<React.SetStateAction<number[]>> }
     const isInPurchased = (id: number) => data.includes(id)
     return (
@@ -52,6 +74,23 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                 <Navigation />
                 <h1 className="text-5xl font-bold mb-8">Loja</h1>
                 <h2 className="text-2xl font-bold mb-4">Resgate sua recompensa diária</h2>
+                {timeData && !loadingBounty && <section className=" border font-syne w-fit mx-auto px-12 flex flex-col justify-center items-center py-8 gap-2 rounded-lg">
+                    {timeData.canCollect ? (
+                        <>
+                            <h2 className=" text-4xl">Colete sua recompensa diária!</h2>
+                            <p>Você pode coletar sua recompensa diária de {timeData.bountyAmounty} moedas!</p>
+                            <Button onClick={() => mutateAsync()} className=" lg:px-40">
+                                {isPending ? 'Carregando...' : 'Coletar recompensa'}
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className=" text-4xl">Recompensa diária</h2>
+                            <p>Você já coletou sua recompensa diária, volte amanhã para coletar novamente!</p>
+                            <p>Tempo restante para coletar: <Timer initialTime={timeData.diff} /></p>
+                        </>
+                    )}
+                </section>}
                 {/* Flash Sale Cards */}
                 {!loading && data && <section id="flashcards" className="mb-12">
                     <h2 className="text-2xl font-bold mb-4">Promoções de hoje</h2>
