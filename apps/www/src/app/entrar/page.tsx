@@ -143,7 +143,7 @@ const RegisterForm = ({ onSubmit, referrer }: {
                         <FormItem>
                             <FormLabel>Código de afiliado</FormLabel>
                             <FormControl>
-                                <Input type="text" {...field} />
+                                <Input disabled={!!referrer} type="text" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -183,7 +183,7 @@ export default function LoginRegisterPage() {
     const { toast } = useToast()
     const { push } = useRouter()
     const searchParams = useSearchParams()
-    const referrerCode = searchParams.get("ref")
+    const referrerCode = searchParams.get("referrer")
     const withBonus = !!searchParams.get("with_bonus")
     async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
         const response = await post('/auth/login', values)
@@ -203,7 +203,7 @@ export default function LoginRegisterPage() {
         }
     }
     async function onGuestSubmit() {
-        const response = await post('/auth/guest', {})
+        const response = await post('/auth/guest', { referrer: referrerCode })
         if (response.data.ok) {
             const token = response.data.data.token
             setCookie('token', token, 7)
