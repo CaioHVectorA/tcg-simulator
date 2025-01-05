@@ -15,27 +15,20 @@ export function TcgCard({
         <Dialog>
             <DialogTrigger>
                 <div className="relative aspect-[1/1.4] rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Image
+                    <img
                         src={loadTcgImg(url, true)}
                         alt="card"
-                        layout="fill"
-                        // loader={() => "/wallpaper.png"}
-                        objectFit="cover"
-                        className="rounded-lg"
-                        placeholder="blur"
-                        blurDataURL="/wallpaper.png"
+                        className="rounded-lg object-cover w-full h-full"
                     />
                 </div>
             </DialogTrigger>
             <DialogContent className="py-4 bg-black/05 backdrop-blur-sm border-none text-white">
                 <DialogTitle className=" sr-only">Detalhes</DialogTitle>
                 <div className="relative aspect-[1/1.4] max-h-[90vh] rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <Image
+                    <img
                         src={loadTcgImg(url)}
                         alt="card"
-                        layout="fill"
-                        objectFit="contain"
-                        className="rounded-lg"
+                        className="rounded-lg object-contain"
                     />
                 </div>
             </DialogContent>
