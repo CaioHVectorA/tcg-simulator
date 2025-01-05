@@ -95,10 +95,13 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
     .get(
       "/",
       async ({ jwt, headers, user, prisma, set }) => {
+        console.log({ user });
         const packagesUnformatted = await prisma.packages_User.findMany({
           where: { userId: user.id, opened: false },
           select: { Package: true },
+          distinct: ["packageId"],
         });
+        console.log({ packagesUnformatted });
         // i want duplicates packages
         const packages = [] as {
           name: string;
@@ -107,19 +110,35 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           quantity: number;
           description: string;
         }[];
+        // for (const package_ of packagesUnformatted) {
+        //   const found = packages.find((p) => p.id === package_.Package.id);
+        //   if (found) {
+        //     found.quantity++;
+        //   } else {
+        //     packages.push({
+        //       name: package_.Package.name,
+        //       image_url: package_.Package.image_url,
+        //       id: package_.Package.id,
+        //       quantity: 1,
+        //       description: package_.Package.description || "",
+        //     });
+        //   }
+        // }
         for (const package_ of packagesUnformatted) {
-          const found = packages.find((p) => p.id === package_.Package.id);
-          if (found) {
-            found.quantity++;
-          } else {
-            packages.push({
-              name: package_.Package.name,
-              image_url: package_.Package.image_url,
-              id: package_.Package.id,
-              quantity: 1,
-              description: package_.Package.description || "",
-            });
-          }
+          const quantity = await prisma.packages_User.count({
+            where: {
+              userId: user.id,
+              packageId: package_.Package.id,
+              opened: false,
+            },
+          });
+          packages.push({
+            name: package_.Package.name,
+            image_url: package_.Package.image_url,
+            id: package_.Package.id,
+            quantity,
+            description: package_.Package.description || "",
+          });
         }
         return packages;
       },

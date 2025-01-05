@@ -329,7 +329,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
         },
       }
     )
-    .get(
+    .post(
       "/bounty",
       async ({ user, prisma, set }) => {
         const last_bounty_date = new Date(
@@ -346,19 +346,21 @@ export const userController = new Elysia({}).group("/user", (app) => {
             "Você já coletou sua recompensa diária"
           );
         }
-
-        const bountyAmount = Math.min(500 * diffDays, 10000);
+        const bountyAmount = Math.min(
+          500 * diffDays,
+          20000 * (1 + Math.floor(user.daily_bounty_level / 10))
+        );
         await prisma.user.update({
           where: { id: user.id },
           data: {
             last_daily_bounty: now,
             money: user.money + bountyAmount,
+            daily_bounty_level: {
+              increment: 1,
+            },
           },
         });
-        return sucessResponse(
-          { money: user.money + bountyAmount },
-          "Recompensa coletada com sucesso"
-        );
+        return sucessResponse(null, "Recompensa coletada com sucesso");
       },
       {
         detail: {
@@ -379,14 +381,18 @@ export const userController = new Elysia({}).group("/user", (app) => {
           user.last_daily_bounty || new Date("2021-01-01")
         );
         const diffInMs = new Date().getTime() - lastBountyDate.getTime();
-
-        return sucessResponse(
-          {
-            time: lastBountyDate.toISOString(),
-            diff: diffInMs,
-          },
-          "Tempo de recompensa recuperado com sucesso"
+        const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
+        const bountyAmount = Math.min(
+          500 * diffDays,
+          20000 * (1 + Math.floor(user.daily_bounty_level / 10))
         );
+        const oneDay = 1000 * 60 * 60 * 24;
+        return sucessResponse({
+          time: lastBountyDate.toISOString(),
+          diff: oneDay - diffInMs,
+          canCollect: diffDays >= 1,
+          bountyAmount,
+        });
       },
       {
         detail: {
