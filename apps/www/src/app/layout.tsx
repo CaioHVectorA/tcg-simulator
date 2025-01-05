@@ -3,6 +3,8 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next';
+import { Suspense } from "react";
+import { Loader } from "@/components/loading-spinner";
 const syne = Syne({
   weight: ['400', '600', '700', '800', '500'],
   subsets: ['latin'],
@@ -22,7 +24,9 @@ export default function RootLayout({
       <body
         className={`${syne.variable} antialiased`}
       >
-        {children}
+        <Suspense fallback={<Loader />}>
+          {children}
+        </Suspense>
         <Analytics />
         <Toaster />
       </body>
