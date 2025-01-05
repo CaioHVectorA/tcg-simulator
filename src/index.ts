@@ -20,6 +20,7 @@ import { helmet } from "elysia-helmet";
 import { storeController } from "./controller/store.controller";
 import { errorResponse } from "./lib/mount-response";
 import { AUTH_ERROR } from "./helpers/const";
+import { specialController } from "./controller/special.controller";
 //@ts-ignore
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
@@ -56,6 +57,7 @@ export const server: Elysia = new Elysia({})
   .use(homeController)
   .use(rankingController)
   .use(storeController)
+  .use(specialController)
   .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(
