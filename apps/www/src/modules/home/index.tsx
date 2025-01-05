@@ -8,23 +8,32 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Banner } from './banner'
 import { HeaderHome } from './header-home'
 import { loadTcgImg } from '@/lib/load-tcg-img'
-
-export function HomePage({ data }: {
-    data: {
-        banners: {
-            title: string
-            description: string
-            image_url: string
-        }[],
-        topCards: string[],
-        ranking: {
-            position: number,
-            total_rarity: number,
-            count: number
-        }
+import { useQuery } from '@tanstack/react-query'
+import { useApi } from '@/hooks/use-api'
+import { Loader } from '@/components/loading-spinner'
+type HomeData = {
+    banners: {
+        title: string
+        description: string
+        image_url: string
+    }[],
+    topCards: string[],
+    ranking: {
+        position: number,
+        total_rarity: number,
+        count: number
     }
-}) {
-    // "Falta pouco para você chegar nos top..."
+}
+export function HomePage() {
+    const { get } = useApi()
+    const { data, isLoading } = useQuery<HomeData>({
+        queryKey: ['/home'],
+        queryFn: async () => {
+            const res = await get('/home')
+            return res.data.data ?? res.data
+        }
+    })
+    if (isLoading || !data) return <Loader />
     const nextStep = ((data.ranking.position / data.ranking.count) * 100 - 100) + 10
     return (
         <div className="container mx-auto px-4 py-8">
