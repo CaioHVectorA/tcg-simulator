@@ -119,7 +119,7 @@ async function seedPackages() {
         legendary_rarity: 0.25,
         full_legendary_rarity: 0.15,
         cards_quantity: 10,
-        price: 2000,
+        price: 600,
       },
     });
     index++;
