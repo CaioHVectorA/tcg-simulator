@@ -225,6 +225,8 @@ model Referred {
   id                 Int              @id @default(autoincrement())
   referredId         Int
   createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now()) @updatedAt
+  bountyRedeemed     Boolean          @default(false)
   referred           User             @relation(fields: [referredId], references: [id], onDelete: Cascade)
   referrerProtocolId Int
   referrerProtocol   ReferrerProtocol @relation(fields: [referrerProtocolId], references: [id], onDelete: Cascade)

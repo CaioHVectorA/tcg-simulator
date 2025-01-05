@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Referred" ADD COLUMN     "bountyRedeemed" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
