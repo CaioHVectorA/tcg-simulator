@@ -54,16 +54,32 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/register",
       async ({ body, jwt, set }) => {
-        const { email, password, username, withBonus } = body;
+        const { email, password, username, withBonus, referrer } = body;
         const alreadyExists = await prisma.user.findFirst({ where: { email } });
-
         if (alreadyExists) {
           set.status = 400;
           return errorResponse("O usuário já existe!", "O usuário já existe!");
         }
+        let referralId = undefined;
+        if (referrer) {
+          const referralProtocol = await prisma.referrerProtocol.findFirst({
+            where: { hash: referrer },
+          });
+          if (!referralProtocol) {
+            set.status = 400;
+            return errorResponse(
+              "Protocolo de referência inválido",
+              "Protocolo de referência inválido"
+            );
+          }
 
+          referralId = referralProtocol.id;
+        }
+        let initialMoney = 500;
+        if (referrer) initialMoney += 3000;
+        if (withBonus) initialMoney += 3000;
         const hashed = await hash(password, 10);
-        const money = withBonus ? 3000 : 500;
+        const money = initialMoney;
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const user = await prisma.user.create({
@@ -73,9 +89,17 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             username,
             money,
             last_daily_bounty: yesterday,
+            fromReferralId: referralId,
           },
         });
-
+        if (referralId) {
+          await prisma.referred.create({
+            data: {
+              referrerProtocolId: referralId,
+              referredId: user.id,
+            },
+          });
+        }
         const token = await jwt.sign({ id: user.id });
         return sucessResponse({ token }, "Usuário criado com sucesso!");
       },
@@ -85,6 +109,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           password: t.String(),
           username: t.String(),
           withBonus: t.Optional(t.Boolean()),
+          referrer: t.Optional(t.String()),
         }),
         detail: { tags: ["Auth"] },
         response: {
@@ -93,29 +118,57 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         },
       }
     )
-    .post("/guest", async ({ body, jwt }) => {
-      let count = await prisma.user.count({
-        where: { username: { startsWith: "Convidado" } },
-      });
-      let name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
-      while (true) {
-        const user = await prisma.user.findFirst({ where: { username: name } });
-        if (!user) break;
-        name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
-      }
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const newUser = await prisma.user.create({
-        data: {
-          username: name,
-          email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
-          password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
-          isGuest: true,
-          last_daily_bounty: yesterday,
+    .post(
+      "/guest",
+      async ({ body, jwt }) => {
+        let count = await prisma.user.count({
+          where: { username: { startsWith: "Convidado" } },
+        });
+        const { referrer } = body;
+        let name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
+        while (true) {
+          const user = await prisma.user.findFirst({
+            where: { username: name },
+          });
+          if (!user) break;
+          name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
+        }
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const newUser = await prisma.user.create({
+          data: {
+            username: name,
+            email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
+            password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
+            isGuest: true,
+            last_daily_bounty: yesterday,
+          },
+          select: { id: true },
+        });
+        if (referrer) {
+          const referralProtocol = await prisma.referrerProtocol.findFirst({
+            where: { hash: referrer },
+          });
+          if (referralProtocol) {
+            await prisma.referred.create({
+              data: {
+                referrerProtocolId: referralProtocol.id,
+                referredId: newUser.id,
+              },
+            });
+          }
+        }
+        const token = await jwt.sign({ id: newUser.id });
+        return sucessResponse(
+          { token },
+          "Usuário convidado criado com sucesso!"
+        );
+      },
+      {
+        body: t.Object({ referrer: t.Optional(t.Nullable(t.String())) }),
+        response: {
+          200: baseResponse,
         },
-        select: { id: true },
-      });
-      const token = await jwt.sign({ id: newUser.id });
-      return sucessResponse({ token }, "Usuário convidado criado com sucesso!");
-    });
+      }
+    );
 });
