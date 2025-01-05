@@ -7,7 +7,6 @@ import { packageController } from "./controller/package.controller";
 import { tradeController } from "./controller/trade.controller";
 import { cardController } from "./controller/card.controller";
 import { authController } from "./controller/auth.controller";
-import { logger } from "@grotto/logysia";
 import { cron } from "@elysiajs/cron";
 import { swagger } from "./middlewares/swagger";
 import { bannerController } from "./controller/banner.controller";
@@ -21,6 +20,9 @@ import { storeController } from "./controller/store.controller";
 import { errorResponse } from "./lib/mount-response";
 import { AUTH_ERROR } from "./helpers/const";
 import { specialController } from "./controller/special.controller";
+import { referralController } from "./controller/referral.controller";
+//@ts-ignore
+import { logger } from "@grotto/logysia";
 //@ts-ignore
 export const server: Elysia = new Elysia({})
   .use(staticPlugin())
@@ -57,6 +59,7 @@ export const server: Elysia = new Elysia({})
   .use(homeController)
   .use(rankingController)
   .use(storeController)
+  .use(referralController)
   .use(specialController)
   .use(cron(RankingCron()))
   .use(cron(CardsCron()))
