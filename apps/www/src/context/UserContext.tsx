@@ -1,4 +1,5 @@
 "use client"
+import { LoadingRing } from "@/components/loading-spinner";
 // context/UserContext.tsx
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
@@ -38,11 +39,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             return response.data.data
         },
     })
-    if (!user) return
-    return (
-        <UserContext.Provider value={{ user }}>
-            {children}
+    // if (!user) return console.log('User not found')
+    if (isLoading) return (
+        <UserContext.Provider value={{ user: null }}>
+            {/* {children} */}
+            <LoadingRing />
         </UserContext.Provider>
+    )
+    return (
+        <UserContext.Provider value={{ user: user || null }}>
+            {children}
+        </UserContext.Provider >
     );
 };
 

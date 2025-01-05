@@ -99,7 +99,7 @@ async function seedPackages() {
     await prisma.package.create({
       data: {
         ...packageData,
-        id: index,
+        // id: index,
       },
     });
   }
@@ -112,15 +112,17 @@ async function seedPackages() {
         tcg_id: set.id,
         image_url: set.logo,
         name: set.name,
-        common_rarity: 0.5,
+        common_rarity: 0.3,
+        // id: index,
         rare_rarity: 0.3,
-        epic_rarity: 0.15,
-        legendary_rarity: 0.04,
-        full_legendary_rarity: 0.02,
-        cards_quantity: 8,
-        price: 100,
+        epic_rarity: 0.2,
+        legendary_rarity: 0.15,
+        full_legendary_rarity: 0.05,
+        cards_quantity: 10,
+        price: 2000,
       },
     });
+    index++;
   }
   console.log("Packages seeded");
   prisma.$disconnect();

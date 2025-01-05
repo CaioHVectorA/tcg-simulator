@@ -3,7 +3,7 @@ import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins } from 'lucide-react'
+import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,6 +40,7 @@ const menuItems = [
     { name: 'Inventário', href: '/inventario', icon: Box },
     { name: 'Coleção', href: '/colecao', icon: Layers },
     { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
+    { name: "Afiliado", href: "/afiliado", icon: Handshake }
 ]
 
 const profileItems = [
@@ -56,7 +57,7 @@ export function HeaderMenu() {
     return (
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
-                <Link href="/" className="flex items-center mr-6">
+                <Link href="/home" className="flex items-center mr-6">
                     <img src="/wallpaper.jpg" alt="TCG Logo" className="w-8 h-8 rounded-full object-cover mr-2" />
                     <span className="font-bold">Pokémon TCG Simulator</span>
                 </Link>

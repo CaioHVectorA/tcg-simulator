@@ -7,7 +7,7 @@ import { Edit, ShoppingCart, Trash } from "lucide-react";
 import { balanceTranslate } from "@/lib/balance-translate";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import { LoadingRing } from "@/components/loading-spinner";
+import { LoaderSimple, LoadingRing } from "@/components/loading-spinner";
 import { NumberQuantityInput } from "@/components/ui/quantity-input";
 import Image from "next/image";
 
@@ -20,7 +20,7 @@ export function KartFloating() {
         setOpen(open)
         setEditMode(false)
     }
-    const quantity = kart.reduce((acc, item) => acc + item.quantity, 0)
+    const quantity = balanceTranslate(kart.reduce((acc, item) => acc + item.quantity, 0))
     return (
         <Sheet open={open} onOpenChange={handleClose}>
             {kart.length > 0 && <SheetTrigger asChild>
@@ -57,8 +57,10 @@ export function KartFloating() {
                                 </div>
                             </SheetHeader>
                             <SheetFooter>
-                                <Button onClick={() => checkout(setOpen)} className="w-full">
-                                    {loading ? <LoadingRing /> : "Finalizar compra"}
+                                <Button onClick={async () => {
+                                    await checkout(setOpen)
+                                }} className="w-full">
+                                    {loading ? <LoaderSimple /> : "Finalizar compra"}
                                 </Button>
                             </SheetFooter>
                         </>

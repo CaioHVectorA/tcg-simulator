@@ -18,12 +18,7 @@ export function TcgCard({
                     <img
                         src={loadTcgImg(url, true)}
                         alt="card"
-                        // layout="fill"
-                        // loader={() => "/wallpaper.png"}
-                        // objectFit="cover"
-                        className="rounded-lg object-cover"
-                    // placeholder="blur"
-                    // blurDataURL="/wallpaper.png"
+                        className="rounded-lg object-cover w-full h-full"
                     />
                 </div>
             </DialogTrigger>
@@ -33,8 +28,6 @@ export function TcgCard({
                     <img
                         src={loadTcgImg(url)}
                         alt="card"
-                        // layout="fill"
-                        // objectFit="contain"
                         className="rounded-lg object-contain"
                     />
                 </div>

@@ -16,7 +16,7 @@ import { Typewriter } from '@/modules/auth/typewriter'
 import { useApi } from '@/hooks/use-api'
 import { useToast } from '@/hooks/use-toast'
 import { setCookie } from '@/lib/cookies'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderSimple, LoadingRing } from '@/components/loading-spinner'
 
 const loginSchema = z.object({
@@ -28,11 +28,12 @@ const registerSchema = z.object({
     username: z.string().min(3, { message: "O nome de usuário deve ter pelo menos 3 caracteres" }),
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
     password: z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres" }),
+    referrer: z.string().optional(),
 })
 
 const LoginForm = ({ onSubmit, loading }: {
     onSubmit: (values: z.infer<typeof loginSchema>) => void,
-    loading: boolean
+    loading: boolean,
 }) => {
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -79,8 +80,9 @@ const LoginForm = ({ onSubmit, loading }: {
     )
 }
 
-const RegisterForm = ({ onSubmit }: {
-    onSubmit: (values: z.infer<typeof registerSchema>) => void
+const RegisterForm = ({ onSubmit, referrer }: {
+    onSubmit: (values: z.infer<typeof registerSchema>) => void,
+    referrer?: string
 }) => {
     const form = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
@@ -88,6 +90,7 @@ const RegisterForm = ({ onSubmit }: {
             username: "",
             email: "",
             password: "",
+            referrer: referrer ?? "",
         },
     })
 
@@ -133,6 +136,19 @@ const RegisterForm = ({ onSubmit }: {
                         </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="referrer"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Código de afiliado</FormLabel>
+                            <FormControl>
+                                <Input disabled={!!referrer} type="text" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <Button type="submit" className="w-full">Criar Conta</Button>
             </form>
         </Form>
@@ -149,7 +165,7 @@ const GuestLoginDialog = ({ isOpen, onClose, onConfirm }: {
             <AlertDialogHeader>
                 <AlertDialogTitle>Entrar como Convidado</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Você está prestes a entrar como convidado. Suas atividades serão limitadas e não serão salvas. Deseja continuar?
+                    Você está prestes a entrar como convidado. Suas atividades serão limitadas e não serão salvas. Deseja continuar? Nenhum bônus será aplicado!
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -166,6 +182,9 @@ export default function LoginRegisterPage() {
     const { post, loading } = useApi()
     const { toast } = useToast()
     const { push } = useRouter()
+    const searchParams = useSearchParams()
+    const referrerCode = searchParams.get("referrer")
+    const withBonus = !!searchParams.get("with_bonus")
     async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
         const response = await post('/auth/login', values)
         if (response.data.ok) {
@@ -176,7 +195,7 @@ export default function LoginRegisterPage() {
     }
 
     async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-        const response = await post('/auth/register', values)
+        const response = await post('/auth/register', { ...values, withBonus })
         if (response.data.ok) {
             const token = response.data.data.token
             setCookie('token', token, 7)
@@ -184,7 +203,7 @@ export default function LoginRegisterPage() {
         }
     }
     async function onGuestSubmit() {
-        const response = await post('/auth/guest', {})
+        const response = await post('/auth/guest', { referrer: referrerCode })
         if (response.data.ok) {
             const token = response.data.data.token
             setCookie('token', token, 7)
@@ -202,12 +221,12 @@ export default function LoginRegisterPage() {
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
                         <CardDescription className="text-center">
-                            {activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
+                            {!withBonus && activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
+                        <Tabs value={withBonus ? 'register' : activeTab} onValueChange={setActiveTab} className="w-full">
+                            <TabsList style={{ display: withBonus ? 'none' : 'grid' }} className="w-full grid-cols-2">
                                 <TabsTrigger value="login">Entrar</TabsTrigger>
                                 <TabsTrigger value="register">Registrar</TabsTrigger>
                             </TabsList>
@@ -215,7 +234,7 @@ export default function LoginRegisterPage() {
                                 <LoginForm loading={loading} onSubmit={onLoginSubmit} />
                             </TabsContent>
                             <TabsContent value="register">
-                                <RegisterForm onSubmit={onRegisterSubmit} />
+                                <RegisterForm onSubmit={onRegisterSubmit} referrer={referrerCode!} />
                             </TabsContent>
                         </Tabs>
                     </CardContent>
