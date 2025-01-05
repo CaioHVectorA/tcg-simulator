@@ -12,7 +12,8 @@ export function InventoryPage({
 }) {
     const { get } = useApi()
     const { data } = useQuery<UserPackage[]>({
-        initialData, staleTime: 1000 * 60 * 5, queryKey: ['packages'], queryFn: async () => {
+        initialData,
+        queryKey: ['packages'], queryFn: async () => {
             const res = await get('/packages')
             return res.data.data ?? res.data
         }
