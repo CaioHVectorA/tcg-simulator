@@ -54,9 +54,8 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/register",
       async ({ body, jwt, set }) => {
-        const { email, password, username } = body;
+        const { email, password, username, withBonus, referrer } = body;
         const alreadyExists = await prisma.user.findFirst({ where: { email } });
-
         if (alreadyExists) {
           set.status = 400;
           return errorResponse("O usuário já existe!", "O usuário já existe!");
@@ -75,6 +74,8 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           email: t.String(),
           password: t.String(),
           username: t.String(),
+          withBonus: t.Optional(t.Boolean()),
+          referrer: t.Optional(t.String()),
         }),
         detail: { tags: ["Auth"] },
         response: {

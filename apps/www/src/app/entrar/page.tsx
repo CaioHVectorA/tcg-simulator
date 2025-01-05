@@ -28,11 +28,12 @@ const registerSchema = z.object({
     username: z.string().min(3, { message: "O nome de usuário deve ter pelo menos 3 caracteres" }),
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
     password: z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres" }),
+    referrer: z.string().optional(),
 })
 
 const LoginForm = ({ onSubmit, loading }: {
     onSubmit: (values: z.infer<typeof loginSchema>) => void,
-    loading: boolean
+    loading: boolean,
 }) => {
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -79,8 +80,9 @@ const LoginForm = ({ onSubmit, loading }: {
     )
 }
 
-const RegisterForm = ({ onSubmit }: {
-    onSubmit: (values: z.infer<typeof registerSchema>) => void
+const RegisterForm = ({ onSubmit, referrer }: {
+    onSubmit: (values: z.infer<typeof registerSchema>) => void,
+    referrer?: string
 }) => {
     const form = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
@@ -88,6 +90,7 @@ const RegisterForm = ({ onSubmit }: {
             username: "",
             email: "",
             password: "",
+            referrer: referrer ?? "",
         },
     })
 
@@ -133,6 +136,19 @@ const RegisterForm = ({ onSubmit }: {
                         </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="referrer"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Código de afiliado</FormLabel>
+                            <FormControl>
+                                <Input type="text" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <Button type="submit" className="w-full">Criar Conta</Button>
             </form>
         </Form>
@@ -166,6 +182,9 @@ export default function LoginRegisterPage() {
     const { post, loading } = useApi()
     const { toast } = useToast()
     const { push } = useRouter()
+    const searchParams = useSearchParams()
+    const referrerCode = searchParams.get("ref")
+    const withBonus = !!searchParams.get("with_bonus")
     async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
         const response = await post('/auth/login', values)
         if (response.data.ok) {
@@ -215,7 +234,7 @@ export default function LoginRegisterPage() {
                                 <LoginForm loading={loading} onSubmit={onLoginSubmit} />
                             </TabsContent>
                             <TabsContent value="register">
-                                <RegisterForm onSubmit={onRegisterSubmit} />
+                                <RegisterForm onSubmit={onRegisterSubmit} referrer={referrerCode!} />
                             </TabsContent>
                         </Tabs>
                     </CardContent>
