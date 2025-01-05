@@ -26,6 +26,7 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
       return sucessResponse(referral);
     })
     .get("/my-referrals", async ({ prisma, user, set }) => {
+      console.log({ user });
       const protocol = await prisma.referrerProtocol.findFirst({
         where: { referrerCreatorId: user.id },
       });

@@ -29,9 +29,9 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
         mutationFn: async (referredId: number) => {
             const response = await post('/referral/redeem', { referredId })
             await qClient.invalidateQueries({ queryKey: ["referral", "my-referrals"] })
-            await qClient.invalidateQueries({ queryKey: ["me"] })
+            await qClient.invalidateQueries({ queryKey: ["user"] })
             await qClient.refetchQueries({ queryKey: ["referral", "my-referrals"] })
-            await qClient.refetchQueries({ queryKey: ["me"] })
+            await qClient.refetchQueries({ queryKey: ["user"] })
             return response.data.data
         },
         mutationKey: ["referral", "redeem"]
@@ -124,9 +124,9 @@ export default function Affiliate() {
                             <input type="text" disabled value={`${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`} className=" w-full text-black/50 p-2 border rounded-l-full" />
                             <Button onClick={handleCopy} className="rounded-r-full font-syne text-xl" size={'lg'}>Copiar</Button>
                         </div>
+                        <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-64 mx-auto mt-4 object-cover" />
                     </div>
                 )}
-                <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-64 mx-auto mt-4 object-cover" />
             </div>
             {/* <section className=" pt-8 pb-20 flex flex-col items-center justify-center relative"> */}
             {isLoading ? (
@@ -136,29 +136,16 @@ export default function Affiliate() {
             ) : (
                 <>
                     {!data ? (
-                        <div className=" mt-6 flex flex-col items-center">
-                            <h2 className=" font-syne text-4xl text-right">
-                                Convide seus amigos, ganhe moedas!
-                            </h2>
-                            <h3 className=" font-syne text-3xl text-center">Comece agora!</h3>
-                            <p className="font-syne text-xl text-center mt-2">Está gostando da experiência? Por que não chama seus amigos para colecionar cartas com você?</p>
-                            <Button onClick={() => mutate()} className=" mt-12 rounded-full font-syne text-xl" size={'lg'}>Criar link de afiliado</Button>
-                        </div>
+                        <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-full mx-auto mt-4 object-cover" />
                     ) : (
                         <div>
-                            {/* <h3 className=" font-syne mt-8 text-3xl text-center">Seu link de afiliado</h3>
-                                <p className=" font-syne text-xl text-center mt-2">Compartilhe este link com seus amigos e comece a ganhar moedas!</p>
-                                <div className=" mt-12 flex">
-                                    <input type="text" disabled value={`${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`} className=" w-full text-black/50 p-2 border rounded-l-full" />
-                                    <Button onClick={handleCopy} className="rounded-r-full font-syne text-xl" size={'lg'}>Copiar</Button>
-                                </div> */}
                             <h3 className=" font-syne mt-8 text-3xl text-center">Seus convidados</h3>
                             {data.referrals.length === 0 ? (
                                 <Card className=" mt-4">
                                     <CardHeader>
                                         <CardTitle className=" text-xl font-syne">Você ainda não convidou ninguém</CardTitle>
                                     </CardHeader>
-                                    <CardDescription className=" text-center">Compartilhe seu link de afiliado e comece a ganhar moedas convidando seus amigos!</CardDescription>
+                                    <CardDescription className=" text-center font-syne mb-8">Compartilhe seu link de afiliado e comece a ganhar moedas convidando seus amigos!</CardDescription>
                                 </Card>
                             ) : (
                                 <TableReferral referrals={data.referrals} />

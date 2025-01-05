@@ -165,7 +165,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         );
       },
       {
-        body: t.Object({ referrer: t.Optional(t.String()) }),
+        body: t.Object({ referrer: t.Optional(t.Nullable(t.String())) }),
         response: {
           200: baseResponse,
         },
