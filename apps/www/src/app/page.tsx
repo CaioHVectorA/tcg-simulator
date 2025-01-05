@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
+import { GitHubLogoIcon } from '@radix-ui/react-icons'
 
 export default async function LandingPage(data: any) {
   const cook = await cookies()
@@ -171,17 +173,20 @@ export default async function LandingPage(data: any) {
           <h2 className="text-4xl font-bold mb-6">Apoie o Projeto</h2>
           <p className="text-xl mb-8">Ajude-nos a manter o Pokémon TCG Simulator gratuito e em constante evolução! Sua contribuição nos permite trazer novos recursos, cards e eventos para toda a comunidade.</p>
           <Button variant="outline" asChild size="lg" className="text-xl py-6 px-8">
-            <a href="#support">
+            <Link href={'https://pixmeacoffee.vercel.app/caihe'} target='_blank'>
               <Coffee className="mr-2 h-6 w-6" /> Me Pague um Café
-            </a>
+            </Link>
           </Button>
         </section>
       </main>
 
       <footer className="bg-muted py-8 mt-24">
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto px-4 flex flex-col gap-2 items-center text-center">
           <p className="text-lg">&copy; 2024 Pokémon TCG Simulator. Todos os direitos reservados.</p>
           <p className="mt-4 text-lg">Criado com amor por treinadores, para treinadores.</p>
+          <Link className=' text-center text-lg' href={`https://github.com/CaioHVectorA/tcg-simulator/`}>
+            <GitHubLogoIcon className=' text-lg' />
+          </Link>
         </div>
       </footer>
     </div>
