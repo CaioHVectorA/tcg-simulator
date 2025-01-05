@@ -8,9 +8,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator erd {
-  provider = "prisma-erd-generator"
-}
+// generator erd {
+//   provider = "prisma-erd-generator"
+// }
 
 datasource db {
   provider  = "postgresql"
@@ -163,6 +163,7 @@ model Banner {
   active      Boolean  @default(false)
   title       String
   description String
+  anchor      String?
 
   @@map("banners")
 }

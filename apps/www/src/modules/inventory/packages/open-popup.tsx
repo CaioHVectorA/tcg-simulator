@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useApi } from '@/hooks/use-api';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { TcgCard } from '@/components/tcg-card-view';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UserPackageProps {
     packageData: UserPackage;
@@ -117,11 +118,15 @@ export function OpenPackagePopup({
 }) {
     const [actualPack, setActualPack] = useState(0)
     const [cards, setCards] = useState<Card[]>()
+    const qClient = useQueryClient()
     const isLastPack = actualPack === quantity - 1
     const { post, data, loading } = useApi()
     const handleNext = () => {
         if (isLastPack) {
             setOpen(false)
+            qClient.invalidateQueries({ queryKey: ['packages'] })
+            qClient.refetchQueries({ queryKey: ['packages'] })
+
         } else {
             setActualPack(actualPack + 1)
         }
@@ -142,6 +147,7 @@ export function OpenPackagePopup({
         setActualPack(quantity - 1)
         setCards(cards)
     }
+    console.log({ actualPack, canGoNext })
     return (
         <AlertDialog open={open}>
             <AlertDialogTrigger asChild>
@@ -163,7 +169,7 @@ export function OpenPackagePopup({
                         </AlertDialogDescription>
                         <AlertDialogFooter>
                             {(!cards && !isFlipped) && <AlertDialogCancel onClick={handleOpenAll}>Abrir todos</AlertDialogCancel>}
-                            <AlertDialogAction disabled={!canGoNext} onClick={handleNext}>
+                            <AlertDialogAction disabled={!(canGoNext) || (quantity == 1 && !isFlipped)} onClick={handleNext}>
                                 {isLastPack ? 'Finalizar' : 'Próximo'}
                             </AlertDialogAction>
                         </AlertDialogFooter>

@@ -16,7 +16,7 @@ import { Typewriter } from '@/modules/auth/typewriter'
 import { useApi } from '@/hooks/use-api'
 import { useToast } from '@/hooks/use-toast'
 import { setCookie } from '@/lib/cookies'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderSimple, LoadingRing } from '@/components/loading-spinner'
 
 const loginSchema = z.object({
@@ -165,7 +165,7 @@ const GuestLoginDialog = ({ isOpen, onClose, onConfirm }: {
             <AlertDialogHeader>
                 <AlertDialogTitle>Entrar como Convidado</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Você está prestes a entrar como convidado. Suas atividades serão limitadas e não serão salvas. Deseja continuar?
+                    Você está prestes a entrar como convidado. Suas atividades serão limitadas e não serão salvas. Deseja continuar? Nenhum bônus será aplicado!
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -195,7 +195,7 @@ export default function LoginRegisterPage() {
     }
 
     async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-        const response = await post('/auth/register', values)
+        const response = await post('/auth/register', { ...values, withBonus })
         if (response.data.ok) {
             const token = response.data.data.token
             setCookie('token', token, 7)
@@ -213,20 +213,20 @@ export default function LoginRegisterPage() {
     return (
         <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
-                <div className="flex flex-col max-md:hidden justify-center items-center bg-primary text-primary-foreground p-8 rounded-lg">
-                    <img src="/logo.png" alt="TCG Logo" className="w-64 h-64 mb-4" />
+                <div className="flex flex-col font-syne max-md:hidden justify-center items-center bg-primary text-primary-foreground p-8 rounded-lg">
+                    {/* <img src="/logo.png" alt="TCG Logo" className="w-64 h-64 mb-4" /> */}
                     <h1 className="text-7xl font-bold mb-2 text-white">SimTCG</h1>
                     <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
                         <CardDescription className="text-center">
-                            {activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
+                            {!withBonus && activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
+                        <Tabs value={withBonus ? 'register' : activeTab} onValueChange={setActiveTab} className="w-full">
+                            <TabsList style={{ display: withBonus ? 'none' : 'grid' }} className="w-full grid-cols-2">
                                 <TabsTrigger value="login">Entrar</TabsTrigger>
                                 <TabsTrigger value="register">Registrar</TabsTrigger>
                             </TabsList>

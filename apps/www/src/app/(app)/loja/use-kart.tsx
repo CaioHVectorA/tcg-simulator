@@ -1,6 +1,7 @@
 import { useApi } from "@/hooks/use-api";
 import { useArr } from "@/hooks/use-arr-state";
 import { generateUUID } from "@/lib/uuid";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 // export type ArrStateActions<T> = {
 //     setArrState: React.Dispatch<React.SetStateAction<T[]>>;
@@ -42,6 +43,7 @@ export const KartProvider = ({ children, setData }: {
 }) => {
     const [kart, { setArrState: setKart, undo, addItem: add, editItem: edit, removeItem: rm }] = useArr<KartItem>([]);
     const { post, loading } = useApi()
+    const qClient = useQueryClient()
     const { refresh } = useRouter()
     const addItem = (item: KartItem) => {
         const exists = kart.find((i) => (i.id === item.id && i.type === item.type));
@@ -70,13 +72,18 @@ export const KartProvider = ({ children, setData }: {
             });
             const { data, ok } = res.data;
             if (ok) {
+                console.log('Chegou aqui!')
+                await qClient.invalidateQueries({ queryKey: ["user"] })
+                await qClient.refetchQueries({ queryKey: ["user"] })
                 setKart([]);
+                console.log('Chegou aqui! 2!')
             }
             setOpen(false)
             const cardsId = kart.filter(item => item.type === 'card').map(item => item.card_id!)
             setData((prev) => [...prev, ...cardsId])
             return { ok, message: "Compra efetuada com êxito!" };
         } catch (error) {
+            console.log(error)
             return { ok: false, message: "Erro ao finalizar compra, tente novamente em alguns segundos" };
         }
     }

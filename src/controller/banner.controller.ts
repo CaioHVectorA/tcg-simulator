@@ -20,7 +20,7 @@ export const bannerController = new Elysia({}).group("/banner", (app) => {
       "/",
       async ({ body, prisma, jwt, user, set }) => {
         console.log(user);
-        if (user.isAdmin) {
+        if (!user.isAdmin) {
           set.status = 401;
           return errorResponse("Não autorizado", "Não autorizado!");
         }
@@ -29,6 +29,7 @@ export const bannerController = new Elysia({}).group("/banner", (app) => {
             description: body.description,
             title: body.title,
             active: Boolean(Number(body.active)) ?? false,
+            anchor: body.anchor,
           },
         });
         const storePath = await storeImg(banner.id, "/banners/", body.image);
@@ -41,6 +42,7 @@ export const bannerController = new Elysia({}).group("/banner", (app) => {
       {
         body: t.Object({
           title: t.String(),
+          anchor: t.Optional(t.String()),
           description: t.String(),
           image: t.File(),
           active: t.Optional(t.String()),
