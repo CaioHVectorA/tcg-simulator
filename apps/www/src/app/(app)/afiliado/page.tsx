@@ -101,8 +101,9 @@ export default function Affiliate() {
     const { toast } = useToast()
     const handleCopy = async () => {
         if (!data) return
-        await navigator.clipboard.writeText(`${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`)
-        toast({ title: 'Link copiado!', description: 'Agora você pode compartilhar seu link com seus amigos!' })
+        const text = `Venha colecionar cartas comigo! \n ${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`
+        await navigator.clipboard.writeText(text)
+        toast({ title: 'Link copiado!', description: 'Agora você pode compartilhar seu link com seus amigos e nas suas redes!' })
     }
     return (
         <main className=" grid grid-cols-2 gap-4 px-[5%]">
