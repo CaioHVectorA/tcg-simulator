@@ -7,7 +7,13 @@ import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { GitHubLogoIcon } from '@radix-ui/react-icons'
-
+import { Metadata } from 'next'
+export const metadata: Metadata = {
+  title: 'TCGSim',
+  keywords: 'Pokémon, TCG, Simulator, Cards, Trading Card Game, Jogo de Cartas, Coleção, Troca, Batalha, Comunidade, Gratuito',
+  description: "O TCGSim é uma plataforma onde você pode colecionar, trocar e batalhar com cartas Pokémon de forma gratuita. Junte-se à comunidade de treinadores e comece sua jornada!",
+  // description: 'O WhatsEasy é uma plataforma que você pode contratar nossos serviços para a construção de um sistema automatizado com WhatsApp.',
+}
 export default async function LandingPage(data: any) {
   const cook = await cookies()
   const token = cook.get('token')
