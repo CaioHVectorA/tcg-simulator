@@ -1,10 +1,12 @@
 "use client"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TooltipProvider, TooltipTrigger, Tooltip, TooltipContent } from "@/components/ui/tooltip";
-import { Package, Book, Trophy } from "lucide-react";
+import { Package, Book, Trophy, ExternalLink } from "lucide-react";
 import { PackageCard } from '../packages/pkg-card'
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 export function InventoryPage({
     data: initialData
 }: {
@@ -69,6 +71,13 @@ export function InventoryPage({
                             <PackageCard key={pack.id + index} pack={pack} />
                         ))}
                     </div>
+                    {data.length === 0 && (
+                        <div className="text-center mt-8">
+                            <h3 className=" text-2xl">Você ainda não possui nenhum pacote!</h3>
+                            <p className="text-lg mt-4">Compre pacotes na loja para começar a colecionar!</p>
+                            <Button asChild className=" mt-2"><Link href={'/loja'}>Ir para a loja <ExternalLink /></Link></Button>
+                        </div>
+                    )}
                 </TabsContent>
                 <TabsContent value="quests">
                     <h2 className="text-2xl font-bold mb-4">Missões Ativas</h2>
