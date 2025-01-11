@@ -11,6 +11,7 @@ import { loadTcgImg } from '@/lib/load-tcg-img'
 import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
 import { Loader } from '@/components/loading-spinner'
+import { useRouter } from 'next/navigation'
 type HomeData = {
     banners: {
         title: string
@@ -26,10 +27,12 @@ type HomeData = {
 }
 export function HomePage() {
     const { get } = useApi()
+    const { refresh } = useRouter()
     const { data, isLoading } = useQuery<HomeData>({
         queryKey: ['/home'],
         queryFn: async () => {
             const res = await get('/home')
+            if (res.status.toString().startsWith('4')) return refresh()
             return res.data.data ?? res.data
         }
     })
