@@ -53,14 +53,20 @@ export const PackageOpening: React.FC<UserPackageProps> = ({ packageData, setCan
             >
                 <div style={{ backfaceVisibility: 'hidden' }}>
                     <CardContent>
-                        <div className="relative w-full aspect-[2/3]">
-                            <img
+                        <div className="relative w-full font-syne aspect-[2/3] bg-black text-white p-4 rounded-lg border-yellow-600 border-4 shadow-xl">
+                            {/* <img
                                 src={loadTcgImg(packageData.image_url, true)}
                                 alt={packageData.name}
                                 // layout="fill"
                                 // objectFit="contain"
                                 className="rounded-lg object-contain"
-                            />
+                            /> */}
+                            {!packageData.tcg_id ? <>
+                                <h3 className="text-3xl font-bold">{packageData.name}</h3>
+                                <h1 className="text-lg opacity-70 font-bold">{packageData.description}</h1>
+                            </> : (
+                                <img src={loadTcgImg(packageData.image_url)} alt={packageData.name} className="w-full aspect-[1/1.4] object-contain rounded-md" />
+                            )}
                         </div>
                     </CardContent>
                 </div>

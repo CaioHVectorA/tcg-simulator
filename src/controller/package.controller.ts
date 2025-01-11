@@ -101,29 +101,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           select: { Package: true },
           distinct: ["packageId"],
         });
-        console.log({ packagesUnformatted });
         // i want duplicates packages
         const packages = [] as {
           name: string;
           image_url: string;
           id: number;
+          tcg_id?: string;
           quantity: number;
           description: string;
         }[];
-        // for (const package_ of packagesUnformatted) {
-        //   const found = packages.find((p) => p.id === package_.Package.id);
-        //   if (found) {
-        //     found.quantity++;
-        //   } else {
-        //     packages.push({
-        //       name: package_.Package.name,
-        //       image_url: package_.Package.image_url,
-        //       id: package_.Package.id,
-        //       quantity: 1,
-        //       description: package_.Package.description || "",
-        //     });
-        //   }
-        // }
         for (const package_ of packagesUnformatted) {
           const quantity = await prisma.packages_User.count({
             where: {
@@ -132,11 +118,13 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
               opened: false,
             },
           });
+          // console.log({ package_ });
           packages.push({
             name: package_.Package.name,
             image_url: package_.Package.image_url,
             id: package_.Package.id,
             quantity,
+            tcg_id: package_.Package.tcg_id || undefined,
             description: package_.Package.description || "",
           });
         }

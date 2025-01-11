@@ -15,7 +15,12 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                 <CardTitle className="text-lg">{pack.name}</CardTitle>
             </CardHeader>
             <CardContent>
-                <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full aspect-[1/1.4] object-contain rounded-md" />
+                {!pack.tcg_id ? <div className=" py-4 px-8 text-white font-syne aspect-[1/1.4] bg-black">
+                    <h3 className="text-3xl font-bold">{pack.name}</h3>
+                    <h1 className="text-lg opacity-70 font-bold">{pack.description}</h1>
+                </div> : (
+                    <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full aspect-[1/1.4] object-contain rounded-md" />
+                )}
             </CardContent>
             <CardFooter>
                 <Popover>
