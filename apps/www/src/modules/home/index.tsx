@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
 import { Loader } from '@/components/loading-spinner'
 import { useRouter } from 'next/navigation'
+import { getCookie } from '@/lib/cookies'
 type HomeData = {
     banners: {
         title: string
@@ -31,8 +32,10 @@ export function HomePage() {
     const { data, isLoading } = useQuery<HomeData>({
         queryKey: ['/home'],
         queryFn: async () => {
+            if (!getCookie('token')) return refresh()
             const res = await get('/home')
-            if (res.status.toString().startsWith('4')) return refresh()
+            console.log(res)
+            // if (res.status.toString().startsWith('4')) return refresh()
             return res.data.data ?? res.data
         }
     })
