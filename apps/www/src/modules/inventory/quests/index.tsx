@@ -42,8 +42,15 @@ export function Quests() {
         }
     })
     if (isLoading || !data) return <p>Carregando...</p>
+    const totalCompleted = data.filter(quest => quest.fullCompleted).length
+    const totalClaims = data.reduce((acc, quest) => acc += quest.currentLevel, 0)
     return (
         <>
+            <div className=" md:col-span-2 lg:col-span-3">
+                <h2 className="text-2xl font-bold my-4">Missões Ativas</h2>
+                <p className="text-sm text-muted-foreground">Missões Completadas: {totalCompleted} / {data.length}</p>
+                <p className="text-sm text-muted-foreground">Recompensas Coletadas: {totalClaims} / {data.length}</p>
+            </div>
             {data.sort((a, b) => Number(a.fullCompleted) - Number(b.fullCompleted)).map((quest, index) => (
                 <Card key={quest.id}>
                     <CardHeader>
@@ -54,7 +61,7 @@ export function Quests() {
                                     <Check />
                                 </Badge>
                             ) : (
-                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel}</Badge>
+                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel++}</Badge>
                             )}
                         </div>
                         <CardDescription>{quest.description}</CardDescription>
