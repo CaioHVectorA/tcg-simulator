@@ -43,8 +43,8 @@ export function Quests() {
         }
     })
     if (isLoading || !data) return <p>Carregando...</p>
-    const totalCompleted = useMemo(() => data.filter(quest => quest.fullCompleted).length, [])
-    const totalClaims = useMemo(() => data.reduce((acc, quest) => acc += quest.currentLevel, 0), [])
+    const totalCompleted = useMemo(() => data.filter(quest => quest.fullCompleted).length, [data])
+    const totalClaims = useMemo(() => data.reduce((acc, quest) => acc += quest.currentLevel, 0), [data])
     return (
         <>
             <div className=" md:col-span-2 lg:col-span-3 font-syne">
