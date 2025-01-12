@@ -46,8 +46,8 @@ export function Quests() {
     const totalClaims = data.reduce((acc, quest) => acc += quest.currentLevel, 0)
     return (
         <>
-            <div className=" md:col-span-2 lg:col-span-3">
-                <h2 className="text-2xl font-bold my-4">Missões Ativas</h2>
+            <div className=" md:col-span-2 lg:col-span-3 font-syne">
+                <h2 className="text-3xl font-bold my-4">Missões Ativas</h2>
                 <p className="text-sm text-muted-foreground">Missões Completadas: {totalCompleted} / {data.length}</p>
                 <p className="text-sm text-muted-foreground">Recompensas Coletadas: {totalClaims} / {data.length}</p>
             </div>
