@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useApi } from "@/hooks/use-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
+import { useMemo } from "react";
 type Quest = {
     name: string;
     description: string;
@@ -42,8 +43,8 @@ export function Quests() {
         }
     })
     if (isLoading || !data) return <p>Carregando...</p>
-    const totalCompleted = data.filter(quest => quest.fullCompleted).length
-    const totalClaims = data.reduce((acc, quest) => acc += quest.currentLevel, 0)
+    const totalCompleted = useMemo(() => data.filter(quest => quest.fullCompleted).length, [])
+    const totalClaims = useMemo(() => data.reduce((acc, quest) => acc += quest.currentLevel, 0), [])
     return (
         <>
             <div className=" md:col-span-2 lg:col-span-3 font-syne">
@@ -61,7 +62,7 @@ export function Quests() {
                                     <Check />
                                 </Badge>
                             ) : (
-                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel++}</Badge>
+                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel}</Badge>
                             )}
                         </div>
                         <CardDescription>{quest.description}</CardDescription>

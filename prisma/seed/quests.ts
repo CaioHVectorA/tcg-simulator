@@ -22,8 +22,24 @@ const GET_CARDS_FROM_X_TYPE = (type: string) =>
   `SELECT count(*) >= $GOAL as mission_complete, count(*) as progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND C.type = '${type}';`;
 const GET_PIKACHU = `SELECT count(*) >= $GOAL as mission_complete, count(*) as progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND C.name ILIKE '%Pikachu%';`;
 const GET_CHARIZARD = `SELECT count(*) >= $GOAL as mission_complete, count(*) as progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND C.name ILIKE '%Charizard%';`;
-const GET_SUICUNE_ENTEI_RAIKOU = `SELECT (COUNT(DISTINCT C.name) = 3) AS mission_complete, COUNT(DISTINCT C.name) AS progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND (C.name ILIKE '%Suicune%' OR C.name ILIKE '%Entei%' OR C.name ILIKE '%Raikou%');`;
-const GET_PALKIA_GIRATINA_DIALGA = `SELECT (COUNT(DISTINCT C.name) = 3) AS mission_complete, COUNT(DISTINCT C.name) AS progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND (C.name ILIKE '%Palkia%' OR C.name ILIKE '%Giratina%' OR C.name ILIKE '%Dialga%');`;
+const GET_SUICUNE_ENTEI_RAIKOU = `
+  SELECT 
+    COUNT(DISTINCT C.name) AS progress, 
+    (COUNT(DISTINCT C.name) = 3)::int AS mission_complete
+  FROM cards_user CU 
+  INNER JOIN cards C ON CU."cardId" = C.id 
+  WHERE CU."userId" = $USER_ID AND 
+        (C.name ILIKE '%Suicune%' OR C.name ILIKE '%Entei%' OR C.name ILIKE '%Raikou%');
+`;
+const GET_PALKIA_GIRATINA_DIALGA = `
+  SELECT 
+    COUNT(DISTINCT C.name) AS progress, 
+    (COUNT(DISTINCT C.name) = 3)::int AS mission_complete
+  FROM cards_user CU 
+  INNER JOIN cards C ON CU."cardId" = C.id 
+  WHERE CU."userId" = $USER_ID AND 
+        (C.name ILIKE '%Palkia%' OR C.name ILIKE '%Giratina%' OR C.name ILIKE '%Dialga%');
+`;
 const GET_ARCEUS = `SELECT count(*) >= $GOAL as mission_complete, count(*) as progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND C.name ILIKE '%Arceus%';`;
 const GET_GENGAR = `SELECT count(*) >= $GOAL as mission_complete, count(*) as progress FROM cards_user CU INNER JOIN cards C ON CU."cardId" = C.id WHERE CU."userId" = $USER_ID AND C.name ILIKE '%Gengar%';`;
 export const QUESTS = {
