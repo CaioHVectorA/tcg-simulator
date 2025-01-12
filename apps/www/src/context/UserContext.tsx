@@ -3,6 +3,7 @@ import { LoadingRing } from "@/components/loading-spinner";
 // context/UserContext.tsx
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 type User = {
@@ -32,18 +33,30 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     //         console.log({ err })
     //     });
     // }, []);
+    const { push } = useRouter()
     const { isLoading, data: user } = useQuery({
         queryKey: ['user'],
         queryFn: async () => {
             const response = await get("/user/me")
+            if (response.status === 401) {
+                await new Promise(resolve => setTimeout(resolve, 3000))
+                const newResponse = await get("/user/me")
+                if (newResponse.status === 401) {
+                    return push('/entrar')
+                }
+                return newResponse.data.data
+            }
             return response.data.data
         },
     })
     // if (!user) return console.log('User not found')
     if (isLoading) return (
         <UserContext.Provider value={{ user: null }}>
-            {/* {children} */}
-            <LoadingRing />
+            <div className=" w-full flex flex-col items-center h-full justify-center">
+                <LoadingRing />
+                <h3 className="text-black font-syne">Carregando suas informações</h3>
+                <p className=" font-syne">Caso demore muito, considere atualizar.</p>
+            </div>
         </UserContext.Provider>
     )
     return (

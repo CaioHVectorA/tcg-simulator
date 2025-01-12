@@ -3,7 +3,7 @@ import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake } from 'lucide-react'
+import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,7 +40,8 @@ const menuItems = [
     { name: 'Inventário', href: '/inventario', icon: Box },
     { name: 'Coleção', href: '/colecao', icon: Layers },
     { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
-    { name: "Afiliado", href: "/afiliado", icon: Handshake }
+    { name: "Afiliado", href: "/afiliado", icon: Handshake },
+    { name: "Missões", href: "/missoes", icon: Trophy }
 ]
 
 const profileItems = [
