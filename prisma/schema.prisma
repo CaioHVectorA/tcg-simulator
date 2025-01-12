@@ -28,6 +28,8 @@ model Card {
   Trade_Card        Trade_Card[]
   Promotional_Cards Promotional_Cards[]
   User_Purchase     User_Purchase[]
+  hp                Int                 @default(0)
+  type              String              @default("none")
 
   @@map("cards")
 }
@@ -103,6 +105,7 @@ model User {
   fromReferralId     Int?
   ReferrerProtocol   ReferrerProtocol[]
   Referred           Referred[]
+  QuestUser          QuestUser[]
 
   @@map("users")
 }
@@ -230,4 +233,35 @@ model Referred {
   referred           User             @relation(fields: [referredId], references: [id], onDelete: Cascade)
   referrerProtocolId Int
   referrerProtocol   ReferrerProtocol @relation(fields: [referrerProtocolId], references: [id], onDelete: Cascade)
+}
+
+model Quest {
+  id           Int         @id @default(autoincrement())
+  levelCount   Int
+  levelRewards Int[]
+  levelGoals   Int[]
+  createdAt    DateTime    @default(now())
+  name         String
+  description  String[] // can be unique description to each level or the same for all levels
+  // model     String // Cards_user+Card, Package+Package_User, Referrer, Purchase
+  // key       String // Cards_user.count, Cards_user.Card.hp, count(Cards_user.Card.type), count(Cards_user.Card.rarity); Etc
+  // value     String // 1, 200, Fire
+  QuestUser    QuestUser[]
+  queryCheck   String
+
+  @@map("quests")
+}
+
+model QuestUser {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  quest_id     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  User         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Quest        Quest    @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  currentLevel Int      @default(0)
+  completed    Boolean  @default(false)
+
+  @@map("quest_user")
 }

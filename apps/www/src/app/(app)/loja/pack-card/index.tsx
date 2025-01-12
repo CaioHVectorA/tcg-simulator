@@ -93,20 +93,19 @@ export function PackCard({ pack, withDialog = false }: {
         <>
             <Card className="overflow-hidden">
                 <div className="relative aspect-[1/1.4]">
-                    <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full h-full object-contain bg-black" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 flex items-center gap-2 text-white p-2">
-                        <p className="font-semibold text-sm">{pack.name}</p>
-                        {!pack.tcg_id && <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <InfoCircledIcon />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{pack?.description}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>}
-                    </div>
+                    {pack.tcg_id ? (
+                        <>
+                            <img src={loadTcgImg(pack.image_url)} alt={pack.name} className="w-full h-full object-contain bg-black" />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 flex items-center gap-2 text-white p-2">
+                                <p className="font-semibold text-sm">{pack.name}</p>
+                            </div>
+                        </>
+                    ) : (
+                        <div className=" pt-4 px-8 text-white font-syne h-full bg-black">
+                            <h3 className="text-3xl font-bold">{pack.name}</h3>
+                            <h1 className="text-lg opacity-70 font-bold">{pack.description}</h1>
+                        </div>
+                    )}
                 </div>
                 <CardContent className="p-4">
                     <p className="font-bold text-lg">{pack.price} moedas</p>

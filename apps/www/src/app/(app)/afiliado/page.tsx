@@ -37,14 +37,14 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
         mutationKey: ["referral", "redeem"]
     })
     return (
-        <div className="h-80 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 snap-y snap-mandatory">
+        <div className="h-80 max-w-full overflow-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 snap-y snap-mandatory">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 snap-start">
                     <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Nome
                         </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" className="px-6 max-md:hidden py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Pontos de Raridade
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -61,13 +61,10 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
                                 {/* </td> */}
                                 <div className="text-lg font-syne font-medium text-gray-900">{referral.username}</div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4 max-md:hidden whitespace-nowrap">
                                 <div className="text-sm text-gray-500 font-syne">{referral.referredRarity} Pontos</div>
                             </td>
-                            {/* <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-500">{new Date(referral.referredDate).toLocaleDateString()}</div>
-                            </td> */}
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 whitespace-nowrap">
                                 <Button onClick={() => mutate(referral.id)} disabled={referral.redeemed} className="rounded-full font-syne text-sm" size={'sm'}>
                                     {referral.redeemed ? 'Resgatado' : 'Resgatar'}
                                 </Button>
@@ -101,12 +98,13 @@ export default function Affiliate() {
     const { toast } = useToast()
     const handleCopy = async () => {
         if (!data) return
-        await navigator.clipboard.writeText(`${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`)
-        toast({ title: 'Link copiado!', description: 'Agora você pode compartilhar seu link com seus amigos!' })
+        const text = `Venha colecionar cartas comigo! \n ${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`
+        await navigator.clipboard.writeText(text)
+        toast({ title: 'Link copiado!', description: 'Agora você pode compartilhar seu link com seus amigos e nas suas redes!' })
     }
     return (
-        <main className=" grid grid-cols-2 gap-4 px-[5%]">
-            <div>
+        <main className=" grid md:grid-cols-2 gap-4 px-[5%]">
+            <div className="">
                 {!data ? (
                     <div className=" mt-6 flex flex-col items-center">
                         <h2 className=" font-syne text-4xl text-right">

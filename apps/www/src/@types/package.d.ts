@@ -10,5 +10,7 @@ type UserPackage = {
   name: string;
   image_url: string;
   id: number;
+  tcg_id?: string;
+  description: string;
   quantity: number;
 };

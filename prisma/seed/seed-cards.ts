@@ -2,6 +2,19 @@ import { PrismaClient } from "@prisma/client";
 import { Worker } from "worker_threads";
 import TCGdex, { type Card, type SetResume } from "@tcgdex/sdk";
 const prisma = new PrismaClient();
+const map_types = {
+  Água: "WATER",
+  Planta: "GRASS",
+  Fogo: "FIRE",
+  Psíquico: "PSYCHIC",
+  Incolor: "NORMAL",
+  Elétrico: "ELECTRIC",
+  Sombrio: "DARK",
+  Dragão: "DRAGON",
+  Fada: "FAIRY",
+  Lutador: "FIGHTING",
+  Metal: "METAL",
+};
 const rarityMap = {
   "ACE SPEC Rare": 5,
   "Amazing Rare": 5,
@@ -77,12 +90,16 @@ async function main() {
       const rarity =
         rarityMap[card_detailed.rarity as keyof typeof rarityMap] ||
         normalizeRange(0, 300, card_detailed.hp);
+      const type = card_detailed.types?.[0];
+      if (!type) continue;
       await prisma.card.create({
         data: {
           image_url: card.image,
           rarity,
           card_id: card.id,
           name: card.name,
+          hp: card_detailed.hp,
+          type: map_types[type as keyof typeof map_types] || "none",
         },
       });
       count++;
