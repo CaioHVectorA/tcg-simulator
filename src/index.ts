@@ -23,8 +23,13 @@ import { specialController } from "./controller/special.controller";
 import { referralController } from "./controller/referral.controller";
 //@ts-ignore
 import { logger } from "@grotto/logysia";
+import { questsController } from "./controller/quests.controller";
 //@ts-ignore
-export const server: Elysia = new Elysia({})
+export const server: Elysia = new Elysia({
+  precompile: true,
+  //@ts-ignore
+  serve: { idleTimeout: 30 },
+})
   .use(staticPlugin())
   .use(helmet())
   .use(
@@ -55,6 +60,7 @@ export const server: Elysia = new Elysia({})
   .use(packageController)
   .use(tradeController)
   .use(cardController)
+  .use(questsController)
   .use(bannerController)
   .use(homeController)
   .use(rankingController)
