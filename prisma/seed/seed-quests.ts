@@ -100,8 +100,9 @@ const quests: Quest[] = [
   createQuest(
     20,
     [
-      1000, 2000, 3000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000,
-      200000, 250000, 300000, 350000, 400000, 450000, 500000, 550000, 600000,
+      1000, 2000, 3000, 5000, 10000, 20000, 30000, 50000, 75000, 100000,
+      150_000, 200000, 250000, 300000, 350000, 400000, 450000, 500000, 750000,
+      1_000_000,
     ],
     [
       10, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000,
@@ -133,14 +134,6 @@ const quests: Quest[] = [
     QUESTS.GET_N_CARDS
   ),
   // faça missões
-  createQuest(
-    3,
-    [10_000, 50_000, 1_000_000],
-    [1, 3, 10],
-    "Missão dada é missão cumprida",
-    ["Feche 1 missão", "Feche 3 missões", "Feche 10 missões"],
-    QUESTS.MAKE_QUESTS
-  ),
   // consiga cartas repetidas!
   createQuest(
     7,
@@ -267,6 +260,21 @@ const quests: Quest[] = [
     QUESTS.GET_PIKACHU
   ),
 ];
+quests.push(
+  createQuest(
+    3,
+    [10_000, 50_000, 1_000_000, 10_000_000],
+    [1, 3, 10, quests.length],
+    "Missão dada é missão cumprida",
+    [
+      "Feche 1 missão",
+      "Feche 3 missões",
+      "Feche 10 missões",
+      "Feche todas as missões.",
+    ],
+    QUESTS.MAKE_QUESTS
+  )
+);
 function runQuery(query: string, goal: number, user_id: number) {
   return query
     .replace("$GOAL", goal.toString())
