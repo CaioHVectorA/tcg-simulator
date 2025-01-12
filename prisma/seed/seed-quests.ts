@@ -218,22 +218,22 @@ const quests: Quest[] = [
     ],
     QUESTS.GET_N_CARDS_WITH_LESS_THAN_X_HP
   ),
-  createQuest(
-    1,
-    [1_000_000],
-    [1],
-    "Com o canil",
-    ["Consiga todos os cães lendários"],
-    QUESTS.GET_SUICUNE_ENTEI_RAIKOU
-  ),
-  createQuest(
-    1,
-    [1_000_000],
-    [1],
-    "O trio do tempo",
-    ["Consiga todos os dragões lendários"],
-    QUESTS.GET_PALKIA_GIRATINA_DIALGA
-  ),
+  // createQuest(
+  //   1,
+  //   [1_000_000],
+  //   [1],
+  //   "Com o canil",
+  //   ["Consiga todos os cães lendários"],
+  //   QUESTS.GET_SUICUNE_ENTEI_RAIKOU
+  // ),
+  // createQuest(
+  //   1,
+  //   [1_000_000],
+  //   [1],
+  //   "O trio do tempo",
+  //   ["Consiga todos os dragões lendários"],
+  //   QUESTS.GET_PALKIA_GIRATINA_DIALGA
+  // ),
   createQuest(
     1,
     [1_000_000],
@@ -244,7 +244,7 @@ const quests: Quest[] = [
   ),
   createQuest(
     1,
-    [1_000_000],
+    [50_000],
     [1],
     "Ao lado do fantasma",
     ["Consiga o gengar"],
@@ -263,7 +263,7 @@ const quests: Quest[] = [
     [10_000],
     [1],
     "Assim como Ash",
-    ["Consiga todos o pikachu"],
+    ["Consiga um pikachu"],
     QUESTS.GET_PIKACHU
   ),
 ];
