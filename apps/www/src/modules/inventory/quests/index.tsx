@@ -2,57 +2,98 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useApi } from "@/hooks/use-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 type Quest = {
     name: string;
     description: string;
-    progress: number;
+    id: number,
     total: number;
-    reward: string;
-    pokemonNeeded?: string[];
+    progress: number;
+    completed: boolean;
+    currentLevel: number;
+    fullCompleted: boolean;
+    actualReward: number;
 }
-export function QuestCard({ quest }: { quest: Quest }) {
+export function Quests() {
+    const { get, post, patch } = useApi()
+    const { data, isLoading, refetch } = useQuery<Quest[]>({
+        queryKey: ['quests'],
+        queryFn: async () => {
+            const res = await get('/quests')
+            if (res.data.data.length > 0) return res.data.data
+            const setup = await post('/quests/setup', {})
+            const newRes = await get('/quests')
+            return newRes.data.data
+        }
+    })
+    const qClient = useQueryClient()
+    const { mutateAsync, isPending: isMutating } = useMutation({
+        mutationKey: ['quests', 'claim'],
+        mutationFn: async (id: number) => {
+            if (isMutating) return
+            const res = await patch(`/quests/get-reward/${id}`, {})
+            refetch()
+            qClient.invalidateQueries({ queryKey: ['user'] })
+            qClient.refetchQueries({ queryKey: ['user'] })
+            return res.data.data
+        }
+    })
+    if (isLoading || !data) return <p>Carregando...</p>
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">{quest.name}</CardTitle>
-                <CardDescription>{quest.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Progress value={(quest.progress / quest.total) * 100} className="mb-2" />
-                <p className="text-sm text-muted-foreground">
-                    Progresso: {quest.progress} / {quest.total}
-                </p>
-                {quest.pokemonNeeded && (
-                    <div className="mt-4">
-                        <p className="text-sm font-semibold mb-2">Pokémon necessários:</p>
-                        <div className="grid grid-cols-3 gap-2">
-                            {quest.pokemonNeeded.map((pokemon, index) => (
-                                <div key={index} className="relative">
-                                    <img
-                                        src={`https://picsum.photos/seed/${pokemon}/100/140`}
-                                        alt={pokemon}
-                                        className={`w-full aspect-[1/1.4] object-cover rounded-md ${quest.progress > index ? 'opacity-100' : 'opacity-50 grayscale'}`}
-                                    />
-                                    <Badge
-                                        variant={quest.progress > index ? "default" : "secondary"}
-                                        className="absolute bottom-1 left-1 right-1 text-center"
-                                    >
-                                        {pokemon}
-                                    </Badge>
-                                </div>
-                            ))}
+        <>
+            {data.sort((a, b) => Number(a.fullCompleted) - Number(b.fullCompleted)).map((quest, index) => (
+                <Card key={quest.id}>
+                    <CardHeader>
+                        <div className=" justify-between flex">
+                            <CardTitle className="text-lg">{quest.name}</CardTitle>
+                            {quest.fullCompleted ? (
+                                <Badge variant={'default'} className=" rounded-full">
+                                    <Check />
+                                </Badge>
+                            ) : (
+                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel}</Badge>
+                            )}
                         </div>
-                    </div>
-                )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-                <Badge variant="secondary">Recompensa: {quest.reward}</Badge>
-                {quest.progress === quest.total ? (
-                    <Button>Coletar Recompensa</Button>
-                ) : (
-                    <Button variant="outline" disabled>Em Progresso</Button>
-                )}
-            </CardFooter>
-        </Card>
+                        <CardDescription>{quest.description}</CardDescription>
+                    </CardHeader>
+                    {quest.fullCompleted ? (
+                        <>
+                            <CardContent>
+                                <Progress value={100} className="mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Progresso: {quest.progress} / {quest.total}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button variant="outline" disabled>Recompensa Coletada</Button>
+                            </CardFooter>
+                        </>
+                    ) : (
+                        <>
+                            <CardContent>
+
+                                <Progress value={Math.min((quest.progress / quest.total) * 100, 100)} className="mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Progresso: {quest.progress} / {quest.total}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Badge variant="secondary">Recompensa: {quest.actualReward}</Badge>
+                                {quest.completed ? (
+                                    <Button onClick={() => {
+                                        if (isMutating) return
+                                        mutateAsync(quest.id)
+                                    }}>Coletar Recompensa</Button>
+                                ) : (
+                                    <Button variant="outline" disabled>Em Progresso</Button>
+                                )}
+                            </CardFooter>
+                        </>
+                    )}
+                </Card>
+            ))}
+        </>
     )
 }

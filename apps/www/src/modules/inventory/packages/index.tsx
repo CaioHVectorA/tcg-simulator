@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Quests } from "../quests";
 export function InventoryPage({
     data: initialData
 }: {
@@ -30,6 +31,10 @@ export function InventoryPage({
                         <Package className="mr-2 h-4 w-4" />
                         Pacotes
                     </TabsTrigger>
+                    <TabsTrigger value="quests">
+                        <Trophy className="mr-2 h-4 w-4" />
+                        Missões
+                    </TabsTrigger>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -46,23 +51,6 @@ export function InventoryPage({
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div>
-
-                                    <TabsTrigger disabled value="quests">
-                                        <Trophy className="mr-2 h-4 w-4" />
-                                        Missões
-                                    </TabsTrigger>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Em breve</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-
                 </TabsList>
                 <TabsContent value="packages">
                     <h2 className="text-2xl font-bold mb-4">Seus Pacotes</h2>
@@ -82,9 +70,7 @@ export function InventoryPage({
                 <TabsContent value="quests">
                     <h2 className="text-2xl font-bold mb-4">Missões Ativas</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* {quests.map((quest) => (
-                            <QuestCard key={quest.id} quest={quest} />
-                        ))} */}
+                        <Quests />
                     </div>
                 </TabsContent>
                 <TabsContent value="albums">

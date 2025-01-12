@@ -23,14 +23,19 @@ import { specialController } from "./controller/special.controller";
 import { referralController } from "./controller/referral.controller";
 //@ts-ignore
 import { logger } from "@grotto/logysia";
+import { questsController } from "./controller/quests.controller";
 //@ts-ignore
-export const server: Elysia = new Elysia({})
+export const server: Elysia = new Elysia({
+  precompile: false,
+  //@ts-ignore
+  serve: { idleTimeout: 30 },
+})
   .use(staticPlugin())
   .use(helmet())
   .use(
     cors({
       origin: process.env.CLIENT_URL || "*",
-      methods: ["GET", "POST", "PUT", "DELETE"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
       exposeHeaders: ["Content-Type", "Authorization"],
       credentials: true,
@@ -48,6 +53,7 @@ export const server: Elysia = new Elysia({})
     if (error.message == AUTH_ERROR) {
       set.status = 401;
     }
+    console.log({ error });
     return errorResponse(error.message, error.message);
   })
   .use(authController)
@@ -55,6 +61,7 @@ export const server: Elysia = new Elysia({})
   .use(packageController)
   .use(tradeController)
   .use(cardController)
+  .use(questsController)
   .use(bannerController)
   .use(homeController)
   .use(rankingController)
