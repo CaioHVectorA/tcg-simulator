@@ -106,7 +106,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           mission_complete: boolean;
           progress: number | bigint;
         }[];
-        questsResponse.push({
+        const response = {
           name: quest.Quest.name,
           description: quest.Quest.description[quest.currentLevel],
           id: quest.Quest.id,
@@ -114,7 +114,9 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           actualReward: quest.Quest.levelRewards[quest.currentLevel],
           completed: queryRes.mission_complete,
           progress: Number(queryRes.progress),
-        });
+          fullCompleted: quest.completed,
+        };
+        questsResponse.push(response);
       }
       return sucessResponse(questsResponse, "Suas missões foram atualizadas!");
     })
@@ -156,6 +158,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           completed: queryRes.mission_complete,
           total: quest.Quest.levelGoals[quest.currentLevel],
           progress: Number(queryRes.progress),
+          fullCompleted: quest.completed,
         };
         questsCache.set(`quest-${quest.Quest.id}`, [response, new Date()]);
         return response;

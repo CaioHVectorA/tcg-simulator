@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Progress } from "@/components/ui/progress";
 import { useApi } from "@/hooks/use-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 type Quest = {
     name: string;
     description: string;
@@ -12,6 +13,7 @@ type Quest = {
     progress: number;
     completed: boolean;
     currentLevel: number;
+    fullCompleted: boolean;
     actualReward: number;
 }
 export function Quests() {
@@ -22,7 +24,8 @@ export function Quests() {
             const res = await get('/quests')
             if (res.data.data.length > 0) return res.data.data
             const setup = await post('/quests/setup', {})
-            return setup.data.data
+            const newRes = await get('/quests')
+            return newRes.data.data
         }
     })
     const qClient = useQueryClient()
@@ -40,29 +43,55 @@ export function Quests() {
     if (isLoading || !data) return <p>Carregando...</p>
     return (
         <>
-            {data.map((quest, index) => (
-                <Card key={quest.id + index}>
+            {data.sort((a, b) => Number(a.fullCompleted) - Number(b.fullCompleted)).map((quest, index) => (
+                <Card key={quest.id}>
                     <CardHeader>
                         <div className=" justify-between flex">
                             <CardTitle className="text-lg">{quest.name}</CardTitle>
-                            <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel}</Badge>
+                            {quest.fullCompleted ? (
+                                <Badge variant={'default'} className=" rounded-full">
+                                    <Check />
+                                </Badge>
+                            ) : (
+                                <Badge variant={'outline'} className=" rounded-full">{quest.currentLevel}</Badge>
+                            )}
                         </div>
                         <CardDescription>{quest.description}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Progress value={Math.min((quest.progress / quest.total) * 100, 100)} className="mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                            Progresso: {quest.progress} / {quest.total}
-                        </p>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                        <Badge variant="secondary">Recompensa: {quest.actualReward}</Badge>
-                        {quest.completed ? (
-                            <Button onClick={() => mutateAsync(quest.id)}>Coletar Recompensa</Button>
-                        ) : (
-                            <Button variant="outline" disabled>Em Progresso</Button>
-                        )}
-                    </CardFooter>
+                    {quest.fullCompleted ? (
+                        <>
+                            <CardContent>
+                                <Progress value={100} className="mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Progresso: {quest.progress} / {quest.total}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button variant="outline" disabled>Recompensa Coletada</Button>
+                            </CardFooter>
+                        </>
+                    ) : (
+                        <>
+                            <CardContent>
+
+                                <Progress value={Math.min((quest.progress / quest.total) * 100, 100)} className="mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Progresso: {quest.progress} / {quest.total}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Badge variant="secondary">Recompensa: {quest.actualReward}</Badge>
+                                {quest.completed ? (
+                                    <Button onClick={() => {
+                                        if (isMutating) return
+                                        mutateAsync(quest.id)
+                                    }}>Coletar Recompensa</Button>
+                                ) : (
+                                    <Button variant="outline" disabled>Em Progresso</Button>
+                                )}
+                            </CardFooter>
+                        </>
+                    )}
                 </Card>
             ))}
         </>

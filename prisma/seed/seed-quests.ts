@@ -96,9 +96,12 @@ const quests: Quest[] = [
   ),
   // Consiga n cartas!
   createQuest(
-    7,
-    [3000, 6000, 15000, 30000, 50000, 75000, 100000],
-    [50, 100, 200, 500, 1000, 2000, 5000],
+    12,
+    [
+      3000, 6000, 15000, 30000, 50000, 75000, 100000, 150000, 200000, 250000,
+      300000, 500000,
+    ],
+    [50, 100, 200, 500, 1000, 2000, 5000, 10000, 15000, 20000, 25000, 50000],
     "Mestre colecionador",
     [
       "Consiga 50 cartas",
@@ -108,6 +111,10 @@ const quests: Quest[] = [
       "Consiga 1000 cartas",
       "Consiga 2000 cartas",
       "Consiga 5000 cartas",
+      "Consiga 10000 cartas",
+      "Consiga 15000 cartas",
+      "Consiga 20000 cartas",
+      "Consiga 25000 cartas",
     ],
     QUESTS.GET_N_CARDS
   ),
