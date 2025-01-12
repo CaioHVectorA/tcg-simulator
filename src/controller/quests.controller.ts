@@ -5,6 +5,7 @@ import { jwt } from "../middlewares/jwt/jwt";
 import { getUserUserMiddleware } from "../middlewares/jwt";
 import { sucessResponse, errorResponse } from "../lib/mount-response";
 import { runQuery } from "../lib/run-quests-query";
+import { cache, questsCache } from "../lib/cache";
 
 export const questsController = new Elysia({}).group("/quests", (app) => {
   return app
@@ -122,30 +123,42 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
       const questsUser = await prisma.questUser.findMany({
         where: { user_id: user.id },
         include: { Quest: true },
+        orderBy: { Quest: { id: "asc" } },
       });
 
       // Mapeia as queries em um array de Promises
       const queryPromises = questsUser.map(async (quest) => {
+        if (questsCache.has(`quest-${quest.quest_id}`)) {
+          //@ts-ignore
+          const [cachedQuest, lastUpdate] = questsCache.get(
+            `quest-${quest.quest_id}`
+          );
+          if (new Date().getTime() - lastUpdate.getTime() < 5000) {
+            // 5 minutes
+            return cachedQuest;
+          }
+        }
         const query = runQuery(
           quest.Quest.queryCheck,
           quest.Quest.levelGoals[quest.currentLevel],
           user.id
         );
-
         const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
           mission_complete: boolean;
           progress: number | bigint;
         }[];
-        console.log({ queryRes });
-        return {
+        const response = {
           name: quest.Quest.name,
           description: quest.Quest.description[quest.currentLevel],
           id: quest.Quest.id,
           currentLevel: quest.currentLevel,
           actualReward: quest.Quest.levelRewards[quest.currentLevel],
           completed: queryRes.mission_complete,
+          total: quest.Quest.levelGoals[quest.currentLevel],
           progress: Number(queryRes.progress),
         };
+        questsCache.set(`quest-${quest.Quest.id}`, [response, new Date()]);
+        return response;
       });
 
       // Espera todas as queries terminarem
@@ -202,7 +215,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           data: { completed: true },
         });
       }
-
+      questsCache.delete(`quest-${questUser.quest_id}`);
       return sucessResponse(null, "Recompensa recebida com sucesso!");
     });
 });
