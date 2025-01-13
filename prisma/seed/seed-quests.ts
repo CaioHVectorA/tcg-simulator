@@ -19,7 +19,7 @@ function createQuest(
 ): Quest {
   return {
     levelCount,
-    levelRewards: levelRewards.map((r) => Math.floor(r / 2)), // balancing rewards
+    levelRewards: levelRewards.map((r) => Math.floor(r / 5)), // balancing rewards
     levelGoals: levelGoals, // balancing goals
     name,
     description: Array.isArray(description)
