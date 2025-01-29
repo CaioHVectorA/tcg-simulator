@@ -8,13 +8,17 @@ import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 
 import React, { useState } from 'react';
 type Ranking = {
-    total_rarity: number;
-    position: number;
-    user: {
-        username: string;
-        picture: string;
-        id: string;
-    }
+    // total_rarity: number;
+    // position: number;
+    // user: {
+    //     username: string;
+    //     picture: string;
+    //     id: string;
+    // }
+    username: string,
+    picture: string,
+    id: number,
+    rarityPoints: number,
 }
 export function RankingView({
     data,
@@ -42,17 +46,17 @@ export function RankingView({
                 {ranking.map((ranking, index) => (
                     <Card key={index} className=' *:font-syne'>
                         <CardHeader className="flex flex-row items-center space-y-0">
-                            <CardTitle className="text-lg font-semibold">#{ranking.position}</CardTitle>
+                            <CardTitle className="text-lg font-semibold">#{++index}</CardTitle>
                             {/* <Avatar className="ml-4">
                                 <AvatarImage className=" object-cover" src={ranking.user.picture} alt={ranking.user.username} />
                                 <AvatarFallback>{ranking.user.username[0]}</AvatarFallback>
                             </Avatar> */}
-                            <NiceAvatar className='h-12 w-12 ml-4' {...genConfig(ranking.user.username)} />
+                            <NiceAvatar className='h-12 w-12 ml-4' {...genConfig(ranking.username)} />
                             <div className="ml-4 flex-grow w-4/12">
-                                <CardTitle className="text-lg truncate w-11/12">{ranking.user.username}</CardTitle>
+                                <CardTitle className="text-lg truncate w-11/12">{ranking.username}</CardTitle>
                             </div>
                             <div className="text-right">
-                                <CardTitle className="text-lg font-bold">{ranking.total_rarity}</CardTitle>
+                                <CardTitle className="text-lg font-bold">{ranking.rarityPoints}</CardTitle>
                                 <p className="text-sm text-muted-foreground">Pontos de raridade</p>
                             </div>
                         </CardHeader>
