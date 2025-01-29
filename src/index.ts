@@ -68,7 +68,7 @@ export const server: Elysia = new Elysia({
   .use(storeController)
   .use(referralController)
   .use(specialController)
-  .use(cron(RankingCron()))
+  // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(
     logger({
