@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { ArrowRight, RefreshCcw, Users, Star, Trophy, ExternalLink } from 'lucide-react'
+import { ArrowRight, RefreshCcw, Users, Star, Trophy, ExternalLink, Repeat, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Banner } from './banner'
@@ -13,6 +13,7 @@ import { useApi } from '@/hooks/use-api'
 import { Loader } from '@/components/loading-spinner'
 import { useRouter } from 'next/navigation'
 import { getCookie } from '@/lib/cookies'
+import { StarFilledIcon } from '@radix-ui/react-icons'
 type HomeData = {
     banners: {
         title: string
@@ -23,6 +24,11 @@ type HomeData = {
     ranking: {
         position: number,
         total_rarity: number,
+        count: number
+    }
+    rankingMoney: {
+        position: number,
+        total_money: number,
         count: number
     }
 }
@@ -127,29 +133,50 @@ export function HomePage() {
                     </>
                 )}
             </section >
-
-            {/* User Ranking */}
-            <section className="bg-primary text-primary-foreground rounded-lg p-8" >
-                <h2 className="text-2xl font-bold mb-4 flex items-center"><Trophy className="mr-2" /> Seu Ranking Atual</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p className="text-lg mb-2">Você é o <b>{data.ranking.position}°</b> melhor colecionador!</p>
-                        <p className="text-lg mb-4">Pontos de raridade: {data.ranking.total_rarity}</p>
-                        {/* {nextStep > 0 && <p>Falta pouco pra você chegar nos top {nextStep}%!</p>} */}
+            <section className=' grid grid-cols-2 gap-4'>
+                <div className="bg-primary border text-primary-foreground rounded-lg p-4 *:font-syne" >
+                    <h2 className="text-2xl font-bold mb-4 flex items-center"><Repeat className="mr-2" /> Ranking dos colecionadores</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p className="text-lg mb-2">Você é o <b>{data.ranking.position}°</b> melhor colecionador!</p>
+                            <p className="text-lg mb-4">Pontos de raridade: {data.ranking.total_rarity}</p>
+                            {/* {nextStep > 0 && <p>Falta pouco pra você chegar nos top {nextStep}%!</p>} */}
+                        </div>
+                        <div className="flex flex-col justify-center items-center">
+                            <StarFilledIcon style={{ opacity: (100 - Math.round((data.rankingMoney.position / data.rankingMoney.count) * 100)) / 100 }} className="w-16 text-yellow-600 h-16 mb-2" />
+                            <p className="text-xl text-center font-bold font-syne">Você faz parte dos melhores {Math.round((data.ranking.position / data.ranking.count) * 100)}%!</p>
+                        </div>
                     </div>
-                    <div className="flex flex-col justify-center items-center">
-                        <Star className="w-16 h-16 mb-2" />
-                        <p className="text-xl text-center font-bold font-syne">Você faz parte dos melhores {Math.round((data.ranking.position / data.ranking.count) * 100)}%!</p>
+                    <div className="mt-6 text-center">
+                        <Button asChild variant="secondary">
+                            <Link href="/ranking">
+                                Ver Classificação Completa
+                            </Link>
+                        </Button>
                     </div>
                 </div>
-                <div className="mt-6 text-center">
-                    <Button asChild variant="secondary">
-                        <Link href="/ranking">
-                            Ver Classificação Completa
-                        </Link>
-                    </Button>
+                <div className="bg-primary border text-primary-foreground rounded-lg p-4 *:font-syne" >
+                    <h2 className="text-2xl font-bold mb-4 flex items-center"><DollarSign className="mr-2" /> Ranking dos magnatas</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p className="text-lg mb-2">Você é o <b>{data.rankingMoney.position}°</b> mais rico!</p>
+                            <p className="text-lg mb-4">Total de riqueza acumulada: {data.rankingMoney.total_money}</p>
+                            {/* {nextStep > 0 && <p>Falta pouco pra você chegar nos top {nextStep}%!</p>} */}
+                        </div>
+                        <div className="flex flex-col justify-center items-center">
+                            <StarFilledIcon style={{ opacity: (100 - Math.round((data.rankingMoney.position / data.rankingMoney.count) * 100)) / 100 }} className="w-16 text-yellow-600 h-16 mb-2" />
+                            <p className="text-xl text-center font-bold font-syne">Você faz parte dos melhores {Math.round((data.rankingMoney.position / data.rankingMoney.count) * 100)}%!</p>
+                        </div>
+                    </div>
+                    <div className="mt-6 text-center">
+                        <Button asChild variant="secondary">
+                            <Link href="/ranking">
+                                Ver Classificação Completa
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
-            </section >
+            </section>
         </div >
     )
 }
