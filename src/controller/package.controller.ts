@@ -287,6 +287,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       async ({ user, prisma, body, set }) => {
         const { packagesId } = body;
         const quantities = {} as Record<number, number>;
+        let rarityPointsGain = 0;
         packagesId.forEach((id) => {
           quantities[id] = (quantities[id] || 0) + 1;
         });
@@ -311,6 +312,10 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         for await (const package_ of packages) {
           for (let i = 0; i < quantities[package_.id]; i++) {
             const cards = await OpenPackage(package_, prisma);
+            rarityPointsGain += cards.reduce(
+              (acc, curr) => acc + curr.rarity,
+              0
+            );
             allCards.push(...cards);
           }
           const packageUserId =
@@ -334,6 +339,14 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         }
         await prisma.cards_user.createMany({
           data: allCards.map((card) => ({ userId: user.id, cardId: card.id })),
+        });
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            rarityPoints: {
+              increment: rarityPointsGain,
+            },
+          },
         });
         return sucessResponse(allCards.sort((a, b) => a.rarity - b.rarity));
       },
