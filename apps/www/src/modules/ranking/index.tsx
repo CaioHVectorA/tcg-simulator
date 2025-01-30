@@ -41,7 +41,7 @@ export function RankingView({
     };
     return (
         <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-6">Top {ranking.length} Ranking</h1>
+            <h1 className="text-3xl font-bold mb-6 font-syne">Ranking dos Top {ranking.length}.</h1>
             <div className="space-y-4">
                 {ranking.map((ranking, index) => (
                     <Card key={index} className=' *:font-syne'>
