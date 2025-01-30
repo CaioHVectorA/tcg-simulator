@@ -135,11 +135,11 @@ export function HomePage() {
                     <div>
                         <p className="text-lg mb-2">Você é o <b>{data.ranking.position}°</b> melhor colecionador!</p>
                         <p className="text-lg mb-4">Pontos de raridade: {data.ranking.total_rarity}</p>
-                        {nextStep > 0 && <p>Falta pouco pra você chegar nos top {nextStep}%!</p>}
+                        {/* {nextStep > 0 && <p>Falta pouco pra você chegar nos top {nextStep}%!</p>} */}
                     </div>
                     <div className="flex flex-col justify-center items-center">
                         <Star className="w-16 h-16 mb-2" />
-                        <p className="text-2xl font-bold">Top {Math.round((data.ranking.position / data.ranking.count) * 100)}%</p>
+                        <p className="text-xl text-center font-bold font-syne">Você faz parte dos melhores {Math.round((data.ranking.position / data.ranking.count) * 100)}%!</p>
                     </div>
                 </div>
                 <div className="mt-6 text-center">
