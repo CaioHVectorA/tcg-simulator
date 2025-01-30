@@ -8,6 +8,7 @@ import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { balanceTranslate } from '@/lib/balance-translate';
 type Ranking = {
     // total_rarity: number;
     // position: number;
@@ -87,7 +88,7 @@ export function RankingView({
                                 </div>
                                 <div className="text-right">
                                     <CardTitle className="text-lg font-bold">
-                                        {'rarityPoints' in ranking ? ranking.rarityPoints : ranking.totalBudget || 0}
+                                        {'rarityPoints' in ranking ? ranking.rarityPoints : balanceTranslate(ranking.totalBudget) || 0}
                                     </CardTitle>
                                     <p className="text-sm text-muted-foreground">
                                         {tab === 'rarity' ? '🏆 Pontos de raridade' : '🪙 Riqueza total'}
