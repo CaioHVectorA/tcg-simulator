@@ -86,7 +86,9 @@ export function RankingView({
                                     <CardTitle className="text-lg truncate w-11/12">{ranking.username}</CardTitle>
                                 </div>
                                 <div className="text-right">
-                                    <CardTitle className="text-lg font-bold">{ranking.rarityPoints || ranking.totalBudget || 0}</CardTitle>
+                                    <CardTitle className="text-lg font-bold">
+                                        {'rarityPoints' in ranking ? ranking.rarityPoints : ranking.totalBudget || 0}
+                                    </CardTitle>
                                     <p className="text-sm text-muted-foreground">
                                         {tab === 'rarity' ? '🏆 Pontos de raridade' : '🪙 Riqueza total'}
                                     </p>
