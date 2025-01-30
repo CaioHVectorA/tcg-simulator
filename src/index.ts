@@ -83,6 +83,6 @@ export const server: Elysia = new Elysia({
   .listen(8080);
 console.log("Server running");
 //@ts-ignore
-RankingCron().run();
+// RankingCron().run();
 //@ts-ignore
 CardsCron().run();

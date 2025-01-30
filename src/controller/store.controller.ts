@@ -55,6 +55,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
       async ({ body, query, user, set }) => {
         const { items } = body;
         const { key } = query;
+        let rarityPointsGain = 0;
         let total = 0;
         const cardsId = [];
         const packagesId = [];
@@ -97,6 +98,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
               },
             });
             cardsId.push(promotional_card.card_id);
+            rarityPointsGain += promotional_card.card.rarity;
             total += promotional_card.price;
           }
         }
@@ -115,6 +117,14 @@ export const storeController = new Elysia({}).group("/store", (app) => {
               cardId: id,
               userId: user.id,
             })),
+          }),
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              rarityPoints: {
+                increment: rarityPointsGain,
+              },
+            },
           }),
           prisma.packages_User.createMany({
             data: packagesId.map((id) => ({
