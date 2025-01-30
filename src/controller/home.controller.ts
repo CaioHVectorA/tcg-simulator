@@ -28,6 +28,20 @@ export const homeController = new Elysia({}).group("/home", (app) => {
         )
     `
       )[0];
+      const rankingMoney = (
+        await prisma.$queryRaw<{ position: number }[]>`
+      SELECT 
+        COUNT(*)::int + 1 as position
+      FROM 
+        "users"
+      WHERE 
+        "totalBudget" > (SELECT "totalBudget" FROM "users" WHERE id = ${user.id})
+        OR (
+          "totalBudget" = (SELECT "totalBudget" FROM "users" WHERE id = ${user.id})
+          AND id < ${user.id}
+        )
+    `
+      )[0];
       const topCards = (
         await prisma.card.findMany({
           take: 3,
@@ -54,6 +68,11 @@ export const homeController = new Elysia({}).group("/home", (app) => {
           count,
           position: Number(ranking?.position || count + 1),
           total_rarity: Number(user.rarityPoints || 0),
+        },
+        rankingMoney: {
+          count,
+          position: Number(rankingMoney?.position || count + 1),
+          total_money: Number(user.totalBudget || 0),
         },
         topCards,
       };
