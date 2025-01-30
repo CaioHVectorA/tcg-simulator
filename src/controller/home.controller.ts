@@ -13,9 +13,21 @@ export const homeController = new Elysia({}).group("/home", (app) => {
     .onBeforeHandle(getUserUserMiddleware as any)
     .get("/", async ({ user, set }) => {
       const banners = await prisma.banner.findMany({ where: { active: true } });
-      const ranking = await prisma.user_Ranking.findUnique({
-        where: { user_id: user.id },
-      });
+      // get the index between rarityPoints asc, like a position in ranking
+      const ranking = (
+        await prisma.$queryRaw<{ position: number }[]>`
+      SELECT 
+        COUNT(*)::int + 1 as position
+      FROM 
+        "users"
+      WHERE 
+        "rarityPoints" > (SELECT "rarityPoints" FROM "users" WHERE id = ${user.id})
+        OR (
+          "rarityPoints" = (SELECT "rarityPoints" FROM "users" WHERE id = ${user.id})
+          AND id < ${user.id}
+        )
+    `
+      )[0];
       const topCards = (
         await prisma.card.findMany({
           take: 3,
@@ -36,13 +48,12 @@ export const homeController = new Elysia({}).group("/home", (app) => {
         [topCards[0], topCards[1]] = [topCards[1], topCards[0]];
       }
       const count = await prisma.user.count();
-      console.log({ ranking });
       const data = {
         banners,
         ranking: {
           count,
           position: Number(ranking?.position || count + 1),
-          total_rarity: Number(ranking?.total_rarity || 0),
+          total_rarity: Number(user.rarityPoints || 0),
         },
         topCards,
       };
