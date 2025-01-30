@@ -46,6 +46,20 @@ export const rankingController = new Elysia({}).group("/ranking", (app) => {
         const { page } = query;
         const limit = 10;
         const offset = (parseInt(page ?? "1") - 1) * limit;
+        const ranking = prisma.user.findMany({
+          take: Number(limit ?? 10),
+          skip: Number(offset ?? 0),
+          orderBy: {
+            totalBudget: "desc",
+          },
+          select: {
+            username: true,
+            picture: true,
+            id: true,
+            totalBudget: true,
+          },
+        });
+        return sucessResponse(ranking);
       },
       {
         query: t.Object({
