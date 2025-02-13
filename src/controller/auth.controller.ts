@@ -170,5 +170,43 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           200: baseResponse,
         },
       }
+    )
+    .post(
+      "/google",
+      async ({ body, jwt }) => {
+        const { name, image, email } = body;
+        const user = await prisma.user.findFirst({ where: { email } });
+        if (user) {
+          if (user.authProvider !== "google") {
+            return errorResponse("Usuário já existe", "Usuário já existe");
+          }
+          const token = await jwt.sign({ id: user.id });
+          return sucessResponse({ token });
+        }
+        const newUser = await prisma.user.create({
+          data: {
+            email,
+            username: name,
+            picture: image,
+            authProvider: "google",
+            isGuest: false,
+            password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
+          },
+          select: { id: true },
+        });
+        const token = await jwt.sign({ id: newUser.id });
+        return sucessResponse({ token });
+      },
+      {
+        body: t.Object({
+          name: t.String(),
+          image: t.String(),
+          email: t.String(),
+        }),
+        response: {
+          // 200: baseResponse,
+          // 400: baseResponse,
+        },
+      }
     );
 });
