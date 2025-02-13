@@ -78,7 +78,12 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
         }
         await prisma.user.update({
           where: { id: user.id },
-          data: { money: { increment: 2000 } },
+          data: {
+            money: { increment: 2000 },
+            totalBudget: {
+              increment: 2000,
+            },
+          },
         });
         await prisma.referred.update({
           where: { id: referred.id },

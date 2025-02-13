@@ -106,6 +106,8 @@ model User {
   ReferrerProtocol   ReferrerProtocol[]
   Referred           Referred[]
   QuestUser          QuestUser[]
+  rarityPoints       Int                @default(0)
+  totalBudget        Int                @default(500)
 
   @@map("users")
 }

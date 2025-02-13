@@ -354,7 +354,12 @@ export const userController = new Elysia({}).group("/user", (app) => {
           where: { id: user.id },
           data: {
             last_daily_bounty: now,
-            money: user.money + bountyAmount,
+            money: {
+              increment: bountyAmount,
+            },
+            totalBudget: {
+              increment: bountyAmount,
+            },
             daily_bounty_level: {
               increment: 1,
             },

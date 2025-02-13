@@ -203,6 +203,9 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           money: {
             increment: questUser.Quest.levelRewards[questUser.currentLevel],
           },
+          totalBudget: {
+            increment: questUser.Quest.levelRewards[questUser.currentLevel],
+          },
         },
       });
 

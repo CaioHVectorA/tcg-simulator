@@ -31,10 +31,10 @@ export function InventoryPage({
                         <Package className="mr-2 h-4 w-4" />
                         Pacotes
                     </TabsTrigger>
-                    <TabsTrigger value="quests">
+                    {/* <TabsTrigger value="quests">
                         <Trophy className="mr-2 h-4 w-4" />
                         Missões
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -67,12 +67,12 @@ export function InventoryPage({
                         </div>
                     )}
                 </TabsContent>
-                <TabsContent value="quests">
+                {/* <TabsContent value="quests">
                     <h2 className="text-2xl font-bold mb-4">Missões Ativas</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <Quests />
                     </div>
-                </TabsContent>
+                </TabsContent> */}
                 <TabsContent value="albums">
                     <h2 className="text-2xl font-bold mb-4">Seus Álbuns</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

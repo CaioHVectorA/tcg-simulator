@@ -68,7 +68,7 @@ export const server: Elysia = new Elysia({
   .use(storeController)
   .use(referralController)
   .use(specialController)
-  .use(cron(RankingCron()))
+  // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(
     logger({
@@ -83,6 +83,6 @@ export const server: Elysia = new Elysia({
   .listen(8080);
 console.log("Server running");
 //@ts-ignore
-RankingCron().run();
+// RankingCron().run();
 //@ts-ignore
 CardsCron().run();

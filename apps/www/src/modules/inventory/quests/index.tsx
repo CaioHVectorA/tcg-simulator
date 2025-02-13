@@ -1,3 +1,4 @@
+"use client"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useApi } from "@/hooks/use-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
+import { useMemo } from "react";
 type Quest = {
     name: string;
     description: string;
@@ -41,8 +43,15 @@ export function Quests() {
         }
     })
     if (isLoading || !data) return <p>Carregando...</p>
+    // const totalCompleted = useMemo(() => data.filter(quest => quest.fullCompleted).length, [data])
+    // const totalClaims = useMemo(() => data.reduce((acc, quest) => acc += quest.currentLevel, 0), [data])
     return (
         <>
+            <div className=" md:col-span-2 lg:col-span-3 font-syne">
+                <h2 className="text-3xl font-bold my-4">Missões Ativas</h2>
+                {/* <p className="text-sm text-muted-foreground">Missões Completadas: {totalCompleted} / {data.length}</p> */}
+                {/* <p className="text-sm text-muted-foreground">Recompensas Coletadas: {totalClaims} / {data.length}</p> */}
+            </div>
             {data.sort((a, b) => Number(a.fullCompleted) - Number(b.fullCompleted)).map((quest, index) => (
                 <Card key={quest.id}>
                     <CardHeader>
