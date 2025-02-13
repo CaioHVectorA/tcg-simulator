@@ -85,4 +85,4 @@ console.log("Server running");
 //@ts-ignore
 // RankingCron().run();
 //@ts-ignore
-CardsCron().run();
+// CardsCron().run();
