@@ -108,6 +108,7 @@ model User {
   QuestUser          QuestUser[]
   rarityPoints       Int                @default(0)
   totalBudget        Int                @default(500)
+  authProvider       String             @default("email") // email, google, github?
 
   @@map("users")
 }
