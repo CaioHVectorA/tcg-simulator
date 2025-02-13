@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
+import { SessionProvider, signIn, useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 import { Mail, User } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,6 +19,8 @@ import { useToast } from '@/hooks/use-toast'
 import { setCookie } from '@/lib/cookies'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderSimple, LoadingRing } from '@/components/loading-spinner'
+import { api } from '@/lib/api'
+import { useIsMutating, useMutation } from '@tanstack/react-query'
 
 const loginSchema = z.object({
     email: z.string().email({ message: "Endereço de e-mail inválido" }),
@@ -79,7 +82,39 @@ const LoginForm = ({ onSubmit, loading }: {
         </Form>
     )
 }
+const CheckAuth = () => {
+    const { status, update, data } = useSession();
+    const alreadyToast = React.useRef(false);
+    const { push } = useRouter()
+    const { toast } = useToast();
+    // const { }
+    useEffect(() => {
+        console.log({ status, update, data, alreadyToast: alreadyToast.current });
+        if (status === "authenticated" && !alreadyToast.current) {
+            toast({
+                title: "Conectando a sua conta google...",
+                description: "Aguarde um momento",
+            });
+            alreadyToast.current = true;
+            const loginGoogle = async () => {
+                const response = await api.post('/auth/google', { name: data.user?.name, email: data.user?.email, image: data.user?.image });
+                if (response.data.ok) {
+                    const token = response.data.data.token;
+                    setCookie('token', token, 7);
+                    push('/home');
+                } else {
+                    toast({
+                        title: "Erro ao conectar a sua conta google",
+                        description: "Tente novamente mais tarde",
+                    });
+                }
+            }
+            loginGoogle()
+        }
+    }, [status]);
 
+    return null;
+}
 const RegisterForm = ({ onSubmit, referrer }: {
     onSubmit: (values: z.infer<typeof registerSchema>) => void,
     referrer?: string
@@ -210,6 +245,9 @@ export default function LoginRegisterPage() {
             push('/home')
         }
     }
+
+
+
     return (
         <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
@@ -218,6 +256,9 @@ export default function LoginRegisterPage() {
                     <h1 className="text-7xl font-bold mb-2 text-white">SimTCG</h1>
                     <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
+                <SessionProvider>
+                    <CheckAuth />
+                </SessionProvider>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
                         <CardDescription className="text-center">
@@ -249,7 +290,7 @@ export default function LoginRegisterPage() {
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <Button variant="outline">
+                                <Button variant="outline" onClick={() => signIn('google')}>
                                     <Mail className="mr-2 h-4 w-4" />
                                     Google
                                 </Button>
