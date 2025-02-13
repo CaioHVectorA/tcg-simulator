@@ -141,6 +141,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
             password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
             isGuest: true,
+            authProvider: "guest",
             last_daily_bounty: yesterday,
           },
           select: { id: true },
