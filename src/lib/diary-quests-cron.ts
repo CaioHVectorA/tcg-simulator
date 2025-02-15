@@ -10,7 +10,7 @@ export function DiaryQuestsCron(): CronConfig {
         where: { isDiary: true, isDiaryActive: false },
       });
       await prisma.quest.updateMany({
-        where: { isDiaryActive: true },
+        where: { isDiaryActive: true, isDiary: true },
         data: {
           isDiaryActive: false,
         },
@@ -25,9 +25,16 @@ export function DiaryQuestsCron(): CronConfig {
           },
         });
       }
-
+      // console.log({
+      //   activeDiary: await prisma.quest.findMany({
+      //     where: { isDiaryActive: true },
+      //   }),
+      // });
       console.table({
         message: "Diary Quests updated",
+        length: (
+          await prisma.quest.findMany({ where: { isDiaryActive: true } })
+        ).length,
         date: new Date().toLocaleString(),
       });
     },
