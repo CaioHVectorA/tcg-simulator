@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { DIARY_QUESTS, QUESTS } from "./quests";
+import { DiaryQuestsCron } from "../../src/lib/diary-quests-cron";
 interface Quest {
   levelCount: number;
   levelRewards: number[];
@@ -21,7 +22,9 @@ function createQuest(
 ): Quest {
   return {
     levelCount,
-    levelRewards: levelRewards.map((r) => Math.floor(r / 5)), // balancing rewards
+    levelRewards: levelRewards.map(
+      (r) => Math.floor(r / 5) * (isDiary ? 5 : 1)
+    ), // balancing rewards
     levelGoals: levelGoals, // balancing goals
     name,
     isDiary: isDiary || false,
@@ -280,189 +283,170 @@ quests.push(
 );
 const diaryQuests = [
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Primeira do dia",
-    ["Abra um pacote hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Tentando a sorte",
+    ["Abra um pacote hoje", "Abra 3 pacotes hoje", "Abra 10 pacotes hoje"],
     DIARY_QUESTS.OPEN_PACKAGES_TODAY,
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Coleção do dia",
-    ["Consiga uma carta hoje"],
+    3,
+    [3000, 6000, 15000],
+    [10, 50, 100],
+    "Aumentando a coleção",
+    [
+      "Consiga 10 cartas hoje",
+      "Consiga 50 cartas hoje",
+      "Consiga 100 cartas hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_TODAY,
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Fogo do dia",
-    ["Consiga uma carta de fogo hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Flamejante",
+    [
+      "Consiga uma carta de fogo hoje",
+      "Consiga 3 cartas de fogo hoje",
+      "Consiga 10 cartas de fogo hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FIRE"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Água do dia",
-    ["Consiga uma carta de água hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Aquático",
+    [
+      "Consiga uma carta de água hoje",
+      "Consiga 3 cartas de água hoje",
+      "Consiga 10 cartas de água hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("WATER"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Planta do dia",
-    ["Consiga uma carta de planta hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GRASS"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Elétrico do dia",
-    ["Consiga uma carta elétrica hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Voltáico",
+    [
+      "Consiga uma carta elétrica hoje",
+      "Consiga 3 cartas elétricas hoje",
+      "Consiga 10 cartas elétricas hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ELECTRIC"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Psíquico do dia",
-    ["Consiga uma carta psíquica hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Telecinético",
+    [
+      "Consiga uma carta psíquica hoje",
+      "Consiga 3 cartas psíquicas hoje",
+      "Consiga 10 cartas psíquicas hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("PSYCHIC"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Lutador do dia",
-    ["Consiga uma carta de lutador hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Artista Marcial",
+    [
+      "Consiga uma carta de lutador hoje",
+      "Consiga 3 cartas de lutador hoje",
+      "Consiga 10 cartas de lutador hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FIGHTING"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Noturno do dia",
-    ["Consiga uma carta noturna hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Adepto das sombras",
+    [
+      "Consiga uma carta noturna hoje",
+      "Consiga 3 cartas noturnas hoje",
+      "Consiga 10 cartas noturnas hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("DARK"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Metálico do dia",
-    ["Consiga uma carta metálica hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Metálico",
+    [
+      "Consiga uma carta metálica hoje",
+      "Consiga 3 cartas metálicas hoje",
+      "Consiga 10 cartas metálicas hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("METAL"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Fada do dia",
-    ["Consiga uma carta de fada hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Fada-Madrinha",
+    [
+      "Consiga uma carta de fada hoje",
+      "Consiga 3 cartas de fada hoje",
+      "Consiga 10 cartas de fada hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FAIRY"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Dragão do dia",
-    ["Consiga uma carta de dragão hoje"],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Discípulo de Rayquaza",
+    [
+      "Consiga uma carta de dragão hoje",
+      "Consiga 3 cartas de dragão hoje",
+      "Consiga 10 cartas de dragão hoje",
+    ],
     DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("DRAGON"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Inseto do dia",
-    ["Consiga uma carta de inseto hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("BUG"),
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
+    "Apreciando a natureza",
+    [
+      "Consiga uma carta de inseto ou grama hoje",
+      "Consiga 3 cartas de inseto ou grama hoje",
+      "Consiga 10 cartas de inseto ou grama hoje",
+    ],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GRASS"),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Pedra do dia",
-    ["Consiga uma carta de pedra hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ROCK"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Terra do dia",
-    ["Consiga uma carta de terra hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GROUND"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Venenoso do dia",
-    ["Consiga uma carta venenosa hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("POISON"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Fantasma do dia",
-    ["Consiga uma carta fantasma hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GHOST"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Gelo do dia",
-    ["Consiga uma carta de gelo hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ICE"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Voador do dia",
-    ["Consiga uma carta voadora hoje"],
-    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FLYING"),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
+    3,
+    [3000, 6000, 15000],
+    [1, 3, 10],
     "Criando a base",
     ["Consiga uma carta com menos de 70 hp hoje"],
     DIARY_QUESTS.GET_N_CARDS_WITH_LESS_THAN_X_HP_TODAY(70),
     true
   ),
   createQuest(
-    1,
-    [5000],
-    [1],
+    3,
+    [5000, 10000, 22000],
+    [1, 3, 10],
     "Colecionando insetos",
     ["Consiga uma carta com menos de 50 hp hoje"],
     DIARY_QUESTS.GET_N_CARDS_WITH_LESS_THAN_X_HP_TODAY(50),
@@ -470,7 +454,7 @@ const diaryQuests = [
   ),
   createQuest(
     1,
-    [3000],
+    [9000],
     [1],
     "Pikachu do dia",
     ["Consiga um pikachu hoje"],
@@ -478,29 +462,36 @@ const diaryQuests = [
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
+    3,
+    [5000, 10000, 22000],
+    [1, 3, 10],
     "Criando gigantes",
-    ["Consiga uma carta com mais de 150 hp hoje"],
+    [
+      "Consiga uma carta com mais de 100 hp hoje",
+      "Consiga 3 cartas com mais de 100 hp hoje",
+      "Consiga 10 cartas com mais de 100 hp hoje",
+    ],
+    DIARY_QUESTS.GET_N_CARDS_WITH_MORE_THAN_X_HP_TODAY(100),
+    true
+  ),
+  createQuest(
+    2,
+    [8000, 25000],
+    [1, 3],
+    "Um megazord!",
+    [
+      "Consiga uma carta com mais de 150 hp hoje",
+      "Consiga 3 cartas com mais de 150 hp hoje",
+    ],
     DIARY_QUESTS.GET_N_CARDS_WITH_MORE_THAN_X_HP_TODAY(150),
     true
   ),
   createQuest(
-    1,
-    [3000],
-    [1],
-    "Um megazord!",
-    ["Consiga uma carta com mais de 180 hp hoje"],
-    DIARY_QUESTS.GET_N_CARDS_WITH_MORE_THAN_X_HP_TODAY(180),
-    true
-  ),
-  createQuest(
-    1,
-    [3000],
-    [1],
-    "Duplicatas do dia",
-    ["Consiga uma carta duplicada hoje"],
+    2,
+    [5000, 10000],
+    [1, 3],
+    "Um é bom, dois é melhor!",
+    ["Consiga uma carta duplicada hoje", "Consiga 3 cartas duplicadas hoje"],
     DIARY_QUESTS.GET_DUPLICATES_TODAY,
     true
   ),

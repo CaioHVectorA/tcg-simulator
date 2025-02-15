@@ -15,6 +15,7 @@ export function DiaryQuestsCron(): CronConfig {
           isDiaryActive: false,
         },
       });
+      console.log({ candidates: candidates.length });
       for (let i = 0; i < 3; i++) {
         const randomIndex = Math.floor(Math.random() * candidates.length);
         const quest = candidates[randomIndex];
