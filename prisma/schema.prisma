@@ -239,18 +239,20 @@ model Referred {
 }
 
 model Quest {
-  id           Int         @id @default(autoincrement())
-  levelCount   Int
-  levelRewards Int[]
-  levelGoals   Int[]
-  createdAt    DateTime    @default(now())
-  name         String
-  description  String[] // can be unique description to each level or the same for all levels
+  id            Int         @id @default(autoincrement())
+  levelCount    Int
+  levelRewards  Int[]
+  levelGoals    Int[]
+  createdAt     DateTime    @default(now())
+  name          String
+  isDiary       Boolean     @default(false)
+  isDiaryActive Boolean?    @default(false)
+  description   String[] // can be unique description to each level or the same for all levels
   // model     String // Cards_user+Card, Package+Package_User, Referrer, Purchase
   // key       String // Cards_user.count, Cards_user.Card.hp, count(Cards_user.Card.type), count(Cards_user.Card.rarity); Etc
   // value     String // 1, 200, Fire
-  QuestUser    QuestUser[]
-  queryCheck   String
+  QuestUser     QuestUser[]
+  queryCheck    String
 
   @@map("quests")
 }

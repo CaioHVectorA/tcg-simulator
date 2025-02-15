@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { QUESTS } from "./quests";
+import { DIARY_QUESTS, QUESTS } from "./quests";
 interface Quest {
   levelCount: number;
   levelRewards: number[];
@@ -7,6 +7,7 @@ interface Quest {
   name: string;
   description: string[];
   queryCheck: string;
+  isDiary: boolean;
 }
 
 function createQuest(
@@ -15,13 +16,15 @@ function createQuest(
   levelGoals: number[],
   name: string,
   description: string | string[],
-  queryCheck: string
+  queryCheck: string,
+  isDiary?: boolean
 ): Quest {
   return {
     levelCount,
     levelRewards: levelRewards.map((r) => Math.floor(r / 5)), // balancing rewards
     levelGoals: levelGoals, // balancing goals
     name,
+    isDiary: isDiary || false,
     description: Array.isArray(description)
       ? description
       : Array.from({ length: levelCount }, (_, i) => `description`),
@@ -275,6 +278,234 @@ quests.push(
     QUESTS.MAKE_QUESTS
   )
 );
+const diaryQuests = [
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Primeira do dia",
+    ["Abra um pacote hoje"],
+    DIARY_QUESTS.OPEN_PACKAGES_TODAY,
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Coleção do dia",
+    ["Consiga uma carta hoje"],
+    DIARY_QUESTS.GET_CARDS_TODAY,
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Fogo do dia",
+    ["Consiga uma carta de fogo hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FIRE"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Água do dia",
+    ["Consiga uma carta de água hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("WATER"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Planta do dia",
+    ["Consiga uma carta de planta hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GRASS"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Elétrico do dia",
+    ["Consiga uma carta elétrica hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ELECTRIC"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Psíquico do dia",
+    ["Consiga uma carta psíquica hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("PSYCHIC"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Lutador do dia",
+    ["Consiga uma carta de lutador hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FIGHTING"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Noturno do dia",
+    ["Consiga uma carta noturna hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("DARK"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Metálico do dia",
+    ["Consiga uma carta metálica hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("METAL"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Fada do dia",
+    ["Consiga uma carta de fada hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FAIRY"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Dragão do dia",
+    ["Consiga uma carta de dragão hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("DRAGON"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Inseto do dia",
+    ["Consiga uma carta de inseto hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("BUG"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Pedra do dia",
+    ["Consiga uma carta de pedra hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ROCK"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Terra do dia",
+    ["Consiga uma carta de terra hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GROUND"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Venenoso do dia",
+    ["Consiga uma carta venenosa hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("POISON"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Fantasma do dia",
+    ["Consiga uma carta fantasma hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("GHOST"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Gelo do dia",
+    ["Consiga uma carta de gelo hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("ICE"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Voador do dia",
+    ["Consiga uma carta voadora hoje"],
+    DIARY_QUESTS.GET_CARDS_FROM_X_TYPE_TODAY("FLYING"),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Criando a base",
+    ["Consiga uma carta com menos de 70 hp hoje"],
+    DIARY_QUESTS.GET_N_CARDS_WITH_LESS_THAN_X_HP_TODAY(70),
+    true
+  ),
+  createQuest(
+    1,
+    [5000],
+    [1],
+    "Colecionando insetos",
+    ["Consiga uma carta com menos de 50 hp hoje"],
+    DIARY_QUESTS.GET_N_CARDS_WITH_LESS_THAN_X_HP_TODAY(50),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Pikachu do dia",
+    ["Consiga um pikachu hoje"],
+    DIARY_QUESTS.GET_PIKACHU_TODAY,
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Criando gigantes",
+    ["Consiga uma carta com mais de 150 hp hoje"],
+    DIARY_QUESTS.GET_N_CARDS_WITH_MORE_THAN_X_HP_TODAY(150),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Um megazord!",
+    ["Consiga uma carta com mais de 180 hp hoje"],
+    DIARY_QUESTS.GET_N_CARDS_WITH_MORE_THAN_X_HP_TODAY(180),
+    true
+  ),
+  createQuest(
+    1,
+    [3000],
+    [1],
+    "Duplicatas do dia",
+    ["Consiga uma carta duplicada hoje"],
+    DIARY_QUESTS.GET_DUPLICATES_TODAY,
+    true
+  ),
+];
+
 function runQuery(query: string, goal: number, user_id: number) {
   return query
     .replace("$GOAL", goal.toString())
@@ -285,6 +516,9 @@ async function main(userId: number) {
   await prisma.quest.deleteMany();
   const questsCreated = await prisma.quest.createManyAndReturn({
     data: quests,
+  });
+  const diaryQuestsCreated = await prisma.quest.createManyAndReturn({
+    data: diaryQuests,
   });
   if (userId == -1) return console.log("Quests created!");
   for (const quest of questsCreated) {
@@ -307,6 +541,7 @@ async function main(userId: number) {
     //   const queryRes = await prisma.$queryRaw`${qu.Quest.queryCheck}`;
     const query = runQuery(
       qu.Quest.queryCheck,
+
       qu.Quest.levelGoals[qu.currentLevel],
       userId
     );
