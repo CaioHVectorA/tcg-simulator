@@ -57,6 +57,7 @@ export const server: Elysia = new Elysia({
     console.log({ error });
     return errorResponse(error.message, error.message);
   })
+  .get("/ping", () => "pong")
   .use(authController)
   .use(userController)
   .use(packageController)
