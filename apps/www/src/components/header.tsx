@@ -33,6 +33,7 @@ import { useUser } from '@/context/UserContext'
 import { balanceTranslate } from '@/lib/balance-translate'
 import { Wip } from './wip'
 import { Avatar } from './avatar'
+import { Social } from './social'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
@@ -111,7 +112,7 @@ export function HeaderMenu() {
                                     {item.name}
                                 </Link>
                             ))}
-                            <Link href="/friends" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
+                            <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
                                 <Users className="w-4 h-4 mr-2" />
                                 Social
                             </Link>
@@ -174,10 +175,10 @@ export function HeaderMenu() {
                             </SheetTrigger>
                             <SheetContent side="right">
                                 <SheetHeader>
-                                    <SheetTitle>Social</SheetTitle>
+                                    <SheetTitle className=' sr-only'>Social</SheetTitle>
                                 </SheetHeader>
                                 {/* Conteúdo de amizade aqui */}
-                                <Wip />
+                                <Social maxLg />
                             </SheetContent>
                         </Sheet>
                     </div>
