@@ -175,7 +175,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/google",
       async ({ body, jwt }) => {
-        const { name, image, email } = body;
+        const { name, image, email, referrer } = body;
         const user = await prisma.user.findFirst({ where: { email } });
         if (user) {
           if (user.authProvider !== "google") {
@@ -195,6 +195,20 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           },
           select: { id: true },
         });
+        console.log({ referrer });
+        if (referrer) {
+          const referralProtocol = await prisma.referrerProtocol.findFirst({
+            where: { hash: referrer },
+          });
+          if (referralProtocol) {
+            await prisma.referred.create({
+              data: {
+                referrerProtocolId: referralProtocol.id,
+                referredId: newUser.id,
+              },
+            });
+          }
+        }
         const token = await jwt.sign({ id: newUser.id });
         return sucessResponse({ token });
       },
@@ -202,6 +216,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         body: t.Object({
           name: t.String(),
           image: t.String(),
+          referrer: t.Nullable(t.String()),
           email: t.String(),
         }),
         response: {
