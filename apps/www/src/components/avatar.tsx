@@ -9,8 +9,8 @@ export function Avatar({
     username: string,
     className?: string
 }) {
+    return <ReactNiceAvatar className={cn('h-12 min-w-12', className)} {...genConfig(username)} />
     if (!src || src == '/wallpaper.jpg') {
-        return <ReactNiceAvatar className={cn('h-12 min-w-12', className)} {...genConfig(username)} />
     }
     return <img src={src} alt={username} className={cn('h-12 min-w-12 rounded-full object-cover', className)} />
 }
