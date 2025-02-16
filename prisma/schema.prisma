@@ -109,6 +109,8 @@ model User {
   rarityPoints       Int                @default(0)
   totalBudget        Int                @default(500)
   authProvider       String             @default("email") // email, google, github?
+  online             Boolean            @default(false)
+  last_online        DateTime           @default(now())
 
   @@map("users")
 }
