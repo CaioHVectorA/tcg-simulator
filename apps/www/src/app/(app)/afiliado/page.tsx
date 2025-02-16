@@ -1,12 +1,12 @@
 "use client"
 
+import { Avatar } from "@/components/avatar"
 import { LoadingRing } from "@/components/loading-spinner"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useApi } from "@/hooks/use-api"
 import { useToast } from "@/hooks/use-toast"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import ReactNiceAvatar, { genConfig } from "react-nice-avatar"
 type Referral = {
     hash: string;
     referrals: {
@@ -19,6 +19,7 @@ type Referral = {
         referredDate: string;
         referredRarity: number;
         redeemed: boolean;
+        picture?: string
     }[];
 }
 
@@ -57,7 +58,8 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
                         <tr className=" snap-start" key={index}>
                             {/* <td className="px-6 py-4 whitespace-nowrap"> */}
                             <td className="px-6 py-4 gap-2 flex items-center whitespace-nowrap">
-                                <ReactNiceAvatar className='h-12 w-12' {...genConfig(referral.username)} />
+                                {/* <ReactNiceAvatar className='h-12 w-12' {...genConfig(referral.username)} /> */}
+                                <Avatar username={referral.username} src={referral.picture} />
                                 {/* </td> */}
                                 <div className="text-lg font-syne font-medium text-gray-900">{referral.username}</div>
                             </td>
