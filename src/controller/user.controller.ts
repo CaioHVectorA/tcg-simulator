@@ -447,51 +447,45 @@ export const userController = new Elysia({}).group("/user", (app) => {
           },
         },
       });
-      const allFriends = (
-        await prisma.friend_User.findMany({
-          where: {
-            OR: [
-              { user_id: user.id, accepted: true },
-              { friend_id: user.id, accepted: true },
-            ],
-          },
-          select: {
-            id: true,
-            user_id: true,
-            friend_id: true,
-            User: {
-              select: {
-                username: true,
-                email: true,
-                id: true,
-                picture: true,
-                last_entry: true,
-                online: true,
-              },
-            },
-            Friend: {
-              select: {
-                username: true,
-                email: true,
-                id: true,
-                picture: true,
-                last_entry: true,
-                online: true,
-              },
+      const allFriends = await prisma.friend_User.findMany({
+        where: {
+          OR: [
+            { user_id: user.id, accepted: true },
+            { friend_id: user.id, accepted: true },
+          ],
+        },
+        select: {
+          id: true,
+          user_id: true,
+          friend_id: true,
+          User: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
             },
           },
-        })
-      ).map((f) => {
-        if (f.user_id === user.id) return f.Friend;
-        return f.User;
+          Friend: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
+            },
+          },
+        },
       });
 
-      const res = {
+      return {
         sent,
         received,
-        online: allFriends.filter((f) => f.online),
-        offline: allFriends.filter((f) => !f.online),
+        online: allFriends.filter((f) => f.User.online || f.Friend.online),
+        offline: allFriends.filter((f) => !f.User.online && !f.Friend.online),
       };
-      return res;
     });
 });
