@@ -179,16 +179,37 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
               return cachedQuest;
             }
           }
-
-          const query = runQuery(
-            quest.Quest.queryCheck,
-            quest.Quest.levelGoals[quest.currentLevel],
-            user.id
-          );
-          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
+          let queryRes: {
             mission_complete: boolean;
             progress: number | bigint;
-          }[];
+          };
+          // in a mission, same if user completed all levels, isnt completed in DB. We will check if the user completed all levels
+          // go horse way to fix a bug, TODO: Refactor this
+          let isFullCompleted = false;
+          if (!quest.Quest.levelGoals[quest.currentLevel]) {
+            console.log(
+              "entrou",
+              quest.Quest,
+              quest.currentLevel,
+              quest.completed
+            );
+            isFullCompleted = true;
+            queryRes = {
+              mission_complete: true,
+              progress: quest.Quest.levelGoals[quest.currentLevel - 1],
+            };
+            console.log({ queryRes });
+          } else {
+            const query = runQuery(
+              quest.Quest.queryCheck,
+              quest.Quest.levelGoals[quest.currentLevel],
+              user.id
+            );
+            [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
+              mission_complete: boolean;
+              progress: number | bigint;
+            }[];
+          }
 
           const response = {
             name: quest.Quest.name,
@@ -197,9 +218,10 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             currentLevel: quest.currentLevel,
             actualReward: quest.Quest.levelRewards[quest.currentLevel],
             completed: queryRes.mission_complete,
-            total: quest.Quest.levelGoals[quest.currentLevel],
+            total:
+              quest.Quest.levelGoals[quest.currentLevel] || queryRes.progress,
             progress: Number(queryRes.progress),
-            fullCompleted: quest.completed,
+            fullCompleted: isFullCompleted || quest.completed,
             isDiary: quest.Quest.isDiary,
           };
 
