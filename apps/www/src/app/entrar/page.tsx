@@ -82,7 +82,7 @@ const LoginForm = ({ onSubmit, loading }: {
         </Form>
     )
 }
-const CheckAuth = () => {
+const CheckAuth = ({ referrer }: { referrer: string | null }) => {
     const { status, update, data } = useSession();
     const alreadyToast = React.useRef(false);
     const { push } = useRouter()
@@ -97,7 +97,8 @@ const CheckAuth = () => {
             });
             alreadyToast.current = true;
             const loginGoogle = async () => {
-                const response = await api.post('/auth/google', { name: data.user?.name, email: data.user?.email, image: data.user?.image });
+                console.log({ data })
+                const response = await api.post('/auth/google', { name: data.user?.name, email: data.user?.email, image: data.user?.image, referrer });
                 if (response.data.ok) {
                     const token = response.data.data.token;
                     setCookie('token', token, 7);
@@ -257,7 +258,7 @@ export default function LoginRegisterPage() {
                     <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
                 <SessionProvider>
-                    <CheckAuth />
+                    <CheckAuth referrer={referrerCode} />
                 </SessionProvider>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
