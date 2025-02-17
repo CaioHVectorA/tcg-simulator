@@ -33,7 +33,7 @@ import { useUser } from '@/context/UserContext'
 import { balanceTranslate } from '@/lib/balance-translate'
 import { Wip } from './wip'
 import { Avatar } from './avatar'
-import { Social } from './social'
+import { Social } from '../modules/social'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
