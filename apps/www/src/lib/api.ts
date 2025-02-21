@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { redirect } from "next/navigation";
-const baseURL = "http://localhost:8080";
-// const baseURL = "https://poke-tcg-center.fly.dev";
+// const baseURL = "http://localhost:8080";
+const baseURL = "https://poke-tcg-center.fly.dev";
 
 export const api = axios.create({
   baseURL,
