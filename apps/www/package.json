@@ -3,9 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4333",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 4333",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -36,6 +36,7 @@
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.460.0",
     "next": "15.0.2",
+    "next-auth": "^4.24.11",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

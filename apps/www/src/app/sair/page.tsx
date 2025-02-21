@@ -3,13 +3,19 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteCookie } from '@/lib/cookies'
+import { signOut } from 'next-auth/react';
 export default function Sair() {
-    const router = useRouter();
 
     useEffect(() => {
-        deleteCookie('token');
-        router.push('/entrar');
-    }, [router]);
+        async function exit() {
+            await signOut()
+            deleteCookie('token');
+            deleteCookie('next-auth.session-token');
+            // router.push('/entrar');
+            window.location.href = '/entrar'
+        }
+        exit();
+    }, []);
 
     return null;
 }

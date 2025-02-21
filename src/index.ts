@@ -24,6 +24,7 @@ import { referralController } from "./controller/referral.controller";
 //@ts-ignore
 import { logger } from "@grotto/logysia";
 import { questsController } from "./controller/quests.controller";
+import { DiaryQuestsCron } from "./lib/diary-quests-cron";
 //@ts-ignore
 export const server: Elysia = new Elysia({
   precompile: false,
@@ -70,6 +71,7 @@ export const server: Elysia = new Elysia({
   .use(specialController)
   // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
+  .use(cron(DiaryQuestsCron()))
   .use(
     logger({
       logIP: false,
@@ -86,3 +88,4 @@ console.log("Server running");
 // RankingCron().run();
 //@ts-ignore
 // CardsCron().run();
+// DiaryQuestsCron().run();

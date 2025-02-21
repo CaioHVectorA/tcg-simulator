@@ -5,6 +5,7 @@ import { Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next';
 import { Suspense } from "react";
 import { Loader } from "@/components/loading-spinner";
+import { SessionProvider } from "next-auth/react";
 const syne = Syne({
   weight: ['400', '600', '700', '800', '500'],
   subsets: ['latin'],

@@ -1,5 +1,4 @@
 'use client'
-import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -31,9 +30,9 @@ import {
 } from '@/components/ui/sheet'
 import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { balanceTranslate } from '@/lib/balance-translate'
 import { Wip } from './wip'
+import { Avatar } from './avatar'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
@@ -54,7 +53,6 @@ export function HeaderMenu() {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = React.useState(false)
     const { picture, username, money, email } = useUser()
-    const config = React.useMemo(() => genConfig(username), [])
     return (
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
@@ -90,11 +88,7 @@ export function HeaderMenu() {
                     <SheetContent side="right" className=' !z-[9999]'>
                         <SheetHeader className=' flex flex-col items-center'>
                             <SheetTitle className=' sr-only'>Menu</SheetTitle>
-                            {/* <Avatar className=' w-3/12 h-full'>
-                                <AvatarImage src={picture} className=' object-cover' alt="Sua foto de perfil" />
-                                <AvatarFallback>{picture.substring(0, 1)}</AvatarFallback>
-                            </Avatar> */}
-                            <NiceAvatar className=' w-3/12 h-full' {...config} />
+                            <Avatar username={username} src={picture} />
                             <h3 className=' text-2xl font-syne'>{username}</h3>
                             <div className=' flex gap-1 items-center'>
                                 <p className='text-xl font-syne'>{balanceTranslate(money)}</p>
@@ -148,8 +142,9 @@ export function HeaderMenu() {
                                     <AvatarImage className=' object-cover' src={picture} alt="Sua foto de perfil" />
                                     <AvatarFallback>{username.substring(0, 1)}</AvatarFallback>
                                 </Avatar> */
-                                    <NiceAvatar className='h-full aspect-square' {...config} />
+                                    // <NiceAvatar className='h-full aspect-square' {...config} />
                                 }
+                                <Avatar username={username} src={picture} />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-52" align="center" forceMount>

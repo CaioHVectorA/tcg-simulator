@@ -50,6 +50,7 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
           referredDate: referral.createdAt,
           referredRarity: referral.referred.User_Ranking?.total_rarity || 0,
           redeemed: referral.bountyRedeemed,
+          picture: referral.referred.picture,
         })),
       };
       return sucessResponse(response);

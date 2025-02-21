@@ -141,6 +141,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
             password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
             isGuest: true,
+            authProvider: "guest",
             last_daily_bounty: yesterday,
           },
           select: { id: true },
@@ -168,6 +169,59 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         body: t.Object({ referrer: t.Optional(t.Nullable(t.String())) }),
         response: {
           200: baseResponse,
+        },
+      }
+    )
+    .post(
+      "/google",
+      async ({ body, jwt }) => {
+        const { name, image, email, referrer } = body;
+        const user = await prisma.user.findFirst({ where: { email } });
+        if (user) {
+          if (user.authProvider !== "google") {
+            return errorResponse("Usuário já existe", "Usuário já existe");
+          }
+          const token = await jwt.sign({ id: user.id });
+          return sucessResponse({ token });
+        }
+        const newUser = await prisma.user.create({
+          data: {
+            email,
+            username: name,
+            picture: image,
+            authProvider: "google",
+            isGuest: false,
+            password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
+          },
+          select: { id: true },
+        });
+        console.log({ referrer });
+        if (referrer) {
+          const referralProtocol = await prisma.referrerProtocol.findFirst({
+            where: { hash: referrer },
+          });
+          if (referralProtocol) {
+            await prisma.referred.create({
+              data: {
+                referrerProtocolId: referralProtocol.id,
+                referredId: newUser.id,
+              },
+            });
+          }
+        }
+        const token = await jwt.sign({ id: newUser.id });
+        return sucessResponse({ token });
+      },
+      {
+        body: t.Object({
+          name: t.String(),
+          image: t.String(),
+          referrer: t.Nullable(t.String()),
+          email: t.String(),
+        }),
+        response: {
+          // 200: baseResponse,
+          // 400: baseResponse,
         },
       }
     );
