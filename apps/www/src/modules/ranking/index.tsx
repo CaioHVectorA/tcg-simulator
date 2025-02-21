@@ -1,14 +1,13 @@
 "use client"
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import InfiniteScroll from '@/components/ui/infinite-scroll';
 import { useApi } from '@/hooks/use-api';
 import { Loader2 } from 'lucide-react';
-import { default as NiceAvatar, genConfig } from 'react-nice-avatar'
 
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { balanceTranslate } from '@/lib/balance-translate';
+import { Avatar } from '@/components/avatar';
 type Ranking = {
     // total_rarity: number;
     // position: number;
@@ -66,7 +65,7 @@ export function RankingView({
                 <div className=' w-full flex justify-between'>
                     <div>
                         <h1 className="text-3xl font-bold">Ranking</h1>
-                        <p className=' mb-6'> dos Top {ranking.length} colecionadores </p>
+                        {ranking.length > 0 && <p className=' mb-6'> dos Top {ranking.length} {tab == 'rarity' ? 'Colecionadores' : 'Magnatas'} </p>}
                     </div>
                     <TabsList>
                         <TabsTrigger value='rarity'>Colecionadores</TabsTrigger>
@@ -78,11 +77,8 @@ export function RankingView({
                         <Card key={index} className=' *:font-syne'>
                             <CardHeader className="flex flex-row items-center space-y-0">
                                 <CardTitle className="text-lg font-semibold">#{++index}</CardTitle>
-                                {/* <Avatar className="ml-4">
-                                <AvatarImage className=" object-cover" src={ranking.user.picture} alt={ranking.user.username} />
-                                <AvatarFallback>{ranking.user.username[0]}</AvatarFallback>
-                            </Avatar> */}
-                                <NiceAvatar className='h-12 w-12 ml-4' {...genConfig(ranking.username)} />
+                                <Avatar username={ranking.username} src={ranking.picture} className=' ml-4' />
+                                {/* <NiceAvatar className='h-12 w-12 ml-4' {...genConfig(ranking.username)} /> */}
                                 <div className="ml-4 flex-grow w-4/12">
                                     <CardTitle className="text-lg truncate w-11/12">{ranking.username}</CardTitle>
                                 </div>

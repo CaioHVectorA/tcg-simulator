@@ -94,12 +94,13 @@ export default async function LandingPage(data: any) {
           <Card className="flex flex-col">
             <CardHeader className=' flex gap-2 flex-row justify-between'>
               <CardTitle className="text-3xl font-syne">Batalhe</CardTitle>
-              <Badge className="">muito em breve</Badge>
+              <Badge className="">Em breve</Badge>
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-lg xl">Teste suas habilidades em emocionantes duelos contra outros treinadores e prove seu valor! Participe de torneios, suba no ranking e torne-se uma lenda do TCG.</p>
             </CardContent>
           </Card>
+
         </section>
 
         <section className="bg-accent rounded-lg p-12 border">

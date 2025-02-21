@@ -3,7 +3,7 @@ import { jwt } from "../middlewares/jwt/jwt";
 import { getUserInterceptor, getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
-import type { User } from "@prisma/client";
+import type { Prisma, User } from "@prisma/client";
 const baseResponse = t.Object({
   ok: t.Boolean(),
   toast: t.Union([t.String(), t.Null()]),
@@ -23,7 +23,9 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-        const where = search ? { name: { startsWith: search } } : {};
+        const where = (
+          search ? { name: { contains: search, mode: "insensitive" } } : {}
+        ) as Prisma.CardWhereInput;
         const cards = await prisma.card.findMany({
           where,
           skip,
@@ -75,7 +77,9 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         const limit = 32;
         const { page, search } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-        const where = search ? { name: { startsWith: search } } : {};
+        const where: Prisma.CardWhereInput = search
+          ? { name: { contains: search, mode: "insensitive" } }
+          : {};
         const count = await prisma.card.count({
           where: { ...where, Cards_user: { some: { userId: user.id } } },
         });
