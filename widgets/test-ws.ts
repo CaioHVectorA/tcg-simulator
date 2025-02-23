@@ -1,95 +1,241 @@
-// test-chat-cli.ts
+// chat-cli.ts
 import WebSocket from "ws";
 import readline from "readline";
+import { WSEvent, type WSMessage } from "../src/lib/ws/types";
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-// Configurações
 const SERVER_URL = "ws://localhost:8080/ws";
 
+const COMMANDS = {
+  MESSAGE: "/msg",
+  FRIEND: "/friend",
+  TRADE: "/trade",
+  HELP: "/help",
+  EXIT: "/exit",
+};
+
 async function main() {
-  // Solicitar ID do usuário
   const userId = await new Promise<string>((resolve) => {
     rl.question("Digite seu ID de usuário: ", resolve);
   });
 
-  // Conectar ao WebSocket
   const ws = new WebSocket(`${SERVER_URL}?userId=${userId}`);
-
-  // Configurar handlers
-  setupWebSocket(ws, userId);
-  setupInputHandler(ws, userId);
+  setupClient(ws, userId);
 }
 
-function setupWebSocket(ws: WebSocket, userId: string) {
-  // Evento de conexão aberta
+function setupClient(ws: WebSocket, userId: string) {
+  // Configurar cores para melhor visualização
+  const colors = {
+    reset: "\x1b[0m",
+    cyan: "\x1b[36m",
+    yellow: "\x1b[33m",
+    green: "\x1b[32m",
+    red: "\x1b[31m",
+  };
+
   ws.on("open", () => {
-    console.log(`\n✅ Conectado como ${userId}`);
-    console.log('Digite mensagens no formato: "destinatario mensagem"');
-    console.log('Exemplo: "B Olá! Como vai?"\n');
+    console.log(`\n${colors.green}✅ Conectado como ${userId}${colors.reset}`);
+    console.log(`${colors.cyan}Comandos disponíveis:`);
+    console.log(`  ${COMMANDS.MESSAGE} <destinatário> <mensagem>`);
+    console.log(`  ${COMMANDS.FRIEND} <usuário>`);
+    console.log(`  ${COMMANDS.TRADE} <destinatário> <item1,item2,...>`);
+    console.log(`  ${COMMANDS.HELP} - Mostrar ajuda`);
+    console.log(`  ${COMMANDS.EXIT} - Sair\n${colors.reset}`);
   });
 
-  // Receber mensagens
   ws.on("message", (data) => {
     try {
-      const message = JSON.parse(data.toString());
+      const message = JSON.parse(data.toString()) as WSMessage;
 
-      if (message.error) {
-        console.log(`\n❌ Erro: ${message.error}`);
-      } else if (message.status === "sent") {
+      // Debug: Mostrar mensagem bruta
+      // console.log('Raw message:', message);
+
+      if ("error" in message) {
+        console.log(`\n${colors.red}❌ Erro: ${message.error}${colors.reset}`);
+        return;
+      }
+
+      if ("status" in message) {
         console.log(
-          `\n✓ Mensagem enviada (${new Date(message.timestamp).toLocaleTimeString()})`
+          `${colors.green}✓ Evento processado (${message.eventId})${colors.reset}`
         );
-      } else {
-        console.log(`\n📩 Nova mensagem de ${message.from}:`);
-        console.log(`   ${message.message}`);
-        console.log(
-          `   [${new Date(message.timestamp).toLocaleTimeString()}]\n`
-        );
+        return;
+      }
+
+      // Formatar saída conforme o tipo de evento
+      const timestamp = new Date(message.timestamp).toLocaleTimeString();
+      switch (message.event) {
+        case WSEvent.Message:
+          console.log({ message });
+          console.log(
+            `\n${colors.yellow}📨 Mensagem de [${message.content.from}]:`
+          );
+          console.log(`   ${message.content.text}`);
+          console.log(`   ${colors.cyan}[${timestamp}]${colors.reset}`);
+          break;
+
+        case WSEvent.FriendRequest:
+          console.log(
+            `\n${colors.yellow}🤝 Solicitação de amizade de [${message.content.from}]`
+          );
+          console.log(
+            `   Digite: ${colors.cyan}/friend ${message.content.from}${colors.reset} para aceitar`
+          );
+          console.log(`   ${colors.cyan}[${timestamp}]${colors.reset}`);
+          break;
+
+        case WSEvent.TradeRequest:
+          console.log(
+            `\n${colors.yellow}🛒 Solicitação de troca de [${message.content.initiator}]`
+          );
+          console.log(
+            `   Itens: ${colors.cyan}${message.content.items.join(", ")}${colors.reset}`
+          );
+          console.log(`   ${colors.cyan}[${timestamp}]${colors.reset}`);
+          break;
+
+        default:
+          console.log(
+            `\n${colors.red}⚠️ Evento desconhecido:`,
+            message,
+            colors.reset
+          );
       }
     } catch (error) {
-      console.log("\n⚠️ Mensagem inválida recebida:", data.toString());
+      console.log(
+        `\n${colors.red}⚠️ Erro ao processar mensagem:`,
+        data.toString(),
+        colors.reset
+      );
     }
   });
 
-  // Erros e desconexões
   ws.on("error", (error) => {
-    console.log("\n❌ Erro na conexão:", error.message);
+    console.log(
+      `\n${colors.red}❌ Erro na conexão:`,
+      error.message,
+      colors.reset
+    );
   });
 
   ws.on("close", () => {
-    console.log("\n🔌 Conexão fechada");
+    console.log(`\n${colors.cyan}🔌 Conexão encerrada${colors.reset}`);
     process.exit(0);
   });
-}
 
-function setupInputHandler(ws: WebSocket, userId: string) {
-  rl.on("line", async (input) => {
-    if (!input.trim()) return;
+  rl.on("line", (input) => {
+    const [command, ...args] = input.trim().split(" ");
 
-    // Parse da mensagem
-    const [to, ...messageParts] = input.trim().split(" ");
-    const message = messageParts.join(" ");
-    console.log({ input, to, message });
-
-    if (!to || !message) {
-      console.log('Formato inválido. Use: "destinatario mensagem"');
+    if (command === COMMANDS.EXIT) {
+      ws.close();
+      rl.close();
       return;
     }
 
-    // Enviar mensagem via WebSocket
-    const payload = JSON.stringify({ to, message });
-    ws.send(payload);
-  });
+    try {
+      switch (command) {
+        case COMMANDS.MESSAGE:
+          sendMessage(ws, args);
+          break;
 
-  // Fechar conexão ao sair
-  rl.on("close", () => {
-    ws.close();
+        case COMMANDS.FRIEND:
+          sendFriendRequest(ws, userId, args);
+          break;
+
+        case COMMANDS.TRADE:
+          sendTradeRequest(ws, userId, args);
+          break;
+
+        case COMMANDS.HELP:
+          printHelp(colors);
+          break;
+
+        default:
+          console.log(
+            `${colors.red}Comando desconhecido. Digite ${COMMANDS.HELP} para ajuda${colors.reset}`
+          );
+      }
+    } catch (error) {
+      console.log(`${colors.red}Erro: ${error.message}${colors.reset}`);
+    }
   });
 }
 
-// Iniciar aplicação
+// Funções auxiliares
+function sendMessage(ws: WebSocket, args: string[]) {
+  const [to, ...messageParts] = args;
+  const text = messageParts.join(" ");
+
+  if (!to || !text)
+    throw new Error(
+      `Formato inválido. Use: ${COMMANDS.MESSAGE} <destinatário> <mensagem>`
+    );
+
+  const payload: WSMessage = {
+    event: WSEvent.Message,
+    content: { to, text },
+    timestamp: Date.now(),
+  };
+
+  ws.send(JSON.stringify(payload));
+}
+
+function sendFriendRequest(ws: WebSocket, userId: string, args: string[]) {
+  const [target] = args;
+  if (!target)
+    throw new Error(`Formato inválido. Use: ${COMMANDS.FRIEND} <usuário>`);
+
+  const payload: WSMessage = {
+    event: WSEvent.FriendRequest,
+    content: { to: target },
+    timestamp: Date.now(),
+  };
+
+  ws.send(JSON.stringify(payload));
+}
+
+function sendTradeRequest(ws: WebSocket, userId: string, args: string[]) {
+  const [recipient, items] = args;
+  if (!recipient || !items)
+    throw new Error(
+      `Formato inválido. Use: ${COMMANDS.TRADE} <destinatário> <item1,item2,...>`
+    );
+
+  const payload: WSMessage = {
+    event: WSEvent.TradeRequest,
+    content: {
+      recipient,
+      items: items.split(","),
+      initiator: userId,
+    },
+    timestamp: Date.now(),
+  };
+
+  ws.send(JSON.stringify(payload));
+}
+
+function printHelp(colors: any) {
+  console.log(`
+${colors.cyan}Modo de uso:
+  Enviar mensagem:
+    ${COMMANDS.MESSAGE} <destinatário> <mensagem>
+    Exemplo: ${COMMANDS.MESSAGE} B Olá, vamos trocar itens?
+
+  Solicitar amizade:
+    ${COMMANDS.FRIEND} <usuário-alvo>
+    Exemplo: ${COMMANDS.FRIEND} C
+
+  Solicitar troca:
+    ${COMMANDS.TRADE} <destinatário> <lista-de-itens>
+    Exemplo: ${COMMANDS.TRADE} D espada,escudo,poção
+
+  Sair:
+    ${COMMANDS.EXIT}
+${colors.reset}`);
+}
+
 main().catch(console.error);
