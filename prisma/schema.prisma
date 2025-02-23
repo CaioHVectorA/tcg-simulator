@@ -112,6 +112,9 @@ model User {
   online             Boolean            @default(false)
   last_online        DateTime           @default(now())
 
+  receivedMessages Message[] @relation("UserReceived")
+  sentMessages     Message[] @relation("UserSender")
+
   @@map("users")
 }
 
@@ -271,4 +274,16 @@ model QuestUser {
   completed    Boolean  @default(false)
 
   @@map("quest_user")
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  sender_id   Int
+  receiver_id Int
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  Sender   User @relation("UserSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  Receiver User @relation("UserReceived", fields: [receiver_id], references: [id], onDelete: Cascade)
 }

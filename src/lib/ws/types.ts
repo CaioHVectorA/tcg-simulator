@@ -12,18 +12,18 @@ export interface WSMessage<T = any> {
 }
 
 export type MessageContent = {
-  to: string;
+  to: number;
   text: string;
-  from: string;
+  from: number;
 };
 
 export type FriendRequestContent = {
-  from: string;
-  to: string;
+  from: number;
+  to: number;
 };
 
 export type TradeRequestContent = {
-  initiator: string;
-  recipient: string;
+  initiator: number;
+  recipient: number;
   items: string[];
 };

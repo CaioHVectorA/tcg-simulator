@@ -9,29 +9,30 @@ import {
 } from "./types";
 import type { ServerWebSocket } from "bun";
 import type { ElysiaWS } from "elysia/ws";
+import { prisma } from "../../helpers/prisma.client";
 
 type Connection = {
   ws: ElysiaWS<ServerWebSocket<any>>;
-  userId: string;
+  userId: number;
 };
 
-const connections = new Map<string, Connection>();
+const connections = new Map<number, Connection>();
 const events: WSMessage[] = [];
 
 export const ws = new Elysia().ws("/ws", {
   open(ws) {
-    const userId = ws.data.query.userId!;
+    const userId = Number(ws.data.query.userId!);
     if (!userId) {
       ws.close();
       return;
     }
-
+    //@ts-ignore
     connections.set(userId, { ws, userId });
     console.log(`User ${userId} connected`);
   },
 
   async message(ws, rawMessage) {
-    const senderId = ws.data.query.userId!;
+    const senderId = Number(ws.data.query.userId!);
     console.log({ senderId, rawMessage });
     try {
       const message = (
@@ -95,7 +96,7 @@ export const ws = new Elysia().ws("/ws", {
   },
 
   close(ws) {
-    const userId = ws.data.query.userId!;
+    const userId = Number(ws.data.query.userId!);
     if (connections.get(userId)?.ws === ws) {
       connections.delete(userId);
       console.log(`User ${userId} disconnected`);
@@ -104,7 +105,7 @@ export const ws = new Elysia().ws("/ws", {
 });
 
 // Handlers para diferentes tipos de eventos
-async function handleMessage(senderId: string, content: MessageContent) {
+async function handleMessage(senderId: number, content: MessageContent) {
   const recipient = connections.get(content.to);
   if (!recipient) return;
 
@@ -117,12 +118,18 @@ async function handleMessage(senderId: string, content: MessageContent) {
     },
     timestamp: Date.now(),
   };
-
+  await prisma.message.create({
+    data: {
+      receiver_id: content.to,
+      sender_id: senderId,
+      content: content.text,
+    },
+  });
   recipient.ws.send(JSON.stringify(message));
 }
 
 async function handleFriendRequest(
-  senderId: string,
+  senderId: number,
   content: FriendRequestContent
 ) {
   const recipient = connections.get(content.to);
@@ -141,7 +148,7 @@ async function handleFriendRequest(
 }
 
 async function handleTradeRequest(
-  senderId: string,
+  senderId: number,
   content: TradeRequestContent
 ) {
   const recipient = connections.get(content.recipient);
