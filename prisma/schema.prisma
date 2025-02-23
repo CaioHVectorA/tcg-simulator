@@ -120,6 +120,7 @@ model User {
 
   receivedTradeRequests TradeRequest[] @relation("UserTradeRequestReceiver")
   sentTradeRequests     TradeRequest[] @relation("UserTradeRequestSender")
+  Notification          Notification[]
 
   @@map("users")
 }
@@ -294,6 +295,8 @@ model Message {
   Sender   User @relation("UserMessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
   Receiver User @relation("UserMessageReceived", fields: [receiver_id], references: [id], onDelete: Cascade)
 
+  viewed Boolean @default(false)
+
   @@map("messages")
 }
 
@@ -323,6 +326,21 @@ model TradeRequest {
   Trade    Trade @relation(fields: [trade_id], references: [id], onDelete: Cascade)
 
   accepted Boolean @default(false)
+  revoked  Boolean @default(false)
 
   @@map("trade_requests")
+}
+
+// used to store notifications when user is offline when friend requests, messages, trade and donation requests   
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  type      String
+  content   String
+  thumbnail String? // url of images (one for trade, one for donation, one for message, one for friend request)
+  createdAt DateTime @default(now())
+  viewed    Boolean  @default(false)
+  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
