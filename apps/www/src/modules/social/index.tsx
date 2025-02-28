@@ -9,6 +9,9 @@ import { Avatar } from "@/components/avatar";
 import { useWebSocket } from "@/context/WebSocketContext";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { useUser } from "@/context/UserContext";
+
 export type Friend = {
     id: number
     username: string
@@ -46,10 +49,10 @@ export function Social({
             return res.data
         },
     })
-
-    const { sendMessage, sendFriendRequest, sendTradeRequest } = useWebSocket();
+    const { id } = useUser()
     const { handleFriendAction: { mutate } } = useFriendActions();
     const [onlineFriends, setOnlineFriends] = useState<Friend[]>([]);
+    const [friendId, setFriendId] = useState('');
 
     useEffect(() => {
         if (data) {
@@ -70,7 +73,25 @@ export function Social({
     }
     return (
         <div className="px-4">
-            <h1 className="text-3xl font-bold font-syne">Social</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold font-syne">Social</h1>
+                <p className="text-sm text-gray-500">Seu ID: #{id}</p>
+            </div>
+            <div className="flex items-center my-4">
+                <Input
+                    type="text"
+                    placeholder="ID do amigo"
+                    value={friendId}
+                    onChange={(e) => setFriendId(e.target.value)}
+                    className="mr-2"
+                />
+                <Button onClick={() => {
+                    mutate({ action: FriendAction.SendRequest, id: Number(friendId) });
+                    setFriendId('');
+                }}>
+                    Enviar Pedido
+                </Button>
+            </div>
             <Accordion type="single" collapsible>
                 <AccordionItem value="online">
                     <AccordionTrigger>Amigos Online ({onlineFriends.length})</AccordionTrigger>
@@ -146,6 +167,7 @@ export function Social({
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
+
         </div>
     )
 }

@@ -140,6 +140,30 @@ export const userController = new Elysia({}).group("/user", (app) => {
         const friend = await prisma.user.findFirst({
           where: { id: Number(id) },
         });
+        const alreadyFriend = await prisma.friend_User.findFirst({
+          where: {
+            OR: [
+              { user_id: user.id, friend_id: Number(id) },
+              { user_id: Number(id), friend_id: user.id },
+            ],
+          },
+        });
+        if (alreadyFriend) {
+          if (alreadyFriend.accepted) {
+            return sucessResponse(null, "Você já é amigo desse usuário");
+          }
+          return sucessResponse(
+            null,
+            "Você já enviou um pedido de amizade para esse usuário"
+          );
+        }
+        if (friend?.id === user.id) {
+          set.status = 400;
+          return errorResponse(
+            "É sério? Você quer ser amigo de você mesmo?",
+            "É sério? Você quer ser amigo de você mesmo?"
+          );
+        }
         if (!friend) {
           set.status = 404;
           return errorResponse(

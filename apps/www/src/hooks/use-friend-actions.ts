@@ -38,7 +38,7 @@ export function useFriendActions() {
           return await del(`/user/remove-sent/${id}`);
         case FriendAction.SendRequest:
           sendFriendRequest(id);
-          return { data: "Friend request sent via WebSocket" };
+          return await post(`/user/send/${id}`, {});
         default:
           throw new Error("Ação inválida");
       }
