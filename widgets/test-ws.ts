@@ -2,6 +2,7 @@
 import WebSocket from "ws";
 import readline from "readline";
 import { WSEvent, type WSMessage } from "../src/lib/ws/types";
+import { prisma } from "../src/helpers/prisma.client";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -18,25 +19,37 @@ const COMMANDS = {
   EXIT: "/exit",
 };
 
+// Mover a definição de cores para um escopo mais amplo
+const colors = {
+  reset: "\x1b[0m",
+  cyan: "\x1b[36m",
+  yellow: "\x1b[33m",
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+};
+
 async function main() {
   const userId = await new Promise<string>((resolve) => {
     rl.question("Digite seu ID de usuário: ", resolve);
   });
+
+  // Verificar se o usuário existe no banco de dados
+  const userExists = await prisma.user.findUnique({
+    where: { id: Number(userId) },
+  });
+
+  if (!userExists) {
+    console.log(
+      `\n${colors.red}❌ Usuário com ID ${userId} não existe.${colors.reset}`
+    );
+    process.exit(1);
+  }
 
   const ws = new WebSocket(`${SERVER_URL}?userId=${userId}`);
   setupClient(ws, userId);
 }
 
 function setupClient(ws: WebSocket, userId: string) {
-  // Configurar cores para melhor visualização
-  const colors = {
-    reset: "\x1b[0m",
-    cyan: "\x1b[36m",
-    yellow: "\x1b[33m",
-    green: "\x1b[32m",
-    red: "\x1b[31m",
-  };
-
   ws.on("open", () => {
     console.log(`\n${colors.green}✅ Conectado como ${userId}${colors.reset}`);
     console.log(`${colors.cyan}Comandos disponíveis:`);
@@ -61,7 +74,7 @@ function setupClient(ws: WebSocket, userId: string) {
 
       if ("status" in message) {
         console.log(
-          `${colors.green}✓ Evento processado (${message.eventId})${colors.reset}`
+          `${colors.green}✓ Evento processado (${message.timestamp})${colors.reset}`
         );
         return;
       }
@@ -160,7 +173,9 @@ function setupClient(ws: WebSocket, userId: string) {
           );
       }
     } catch (error) {
-      console.log(`${colors.red}Erro: ${error.message}${colors.reset}`);
+      console.log(
+        `${colors.red}Erro: ${(error as Error).message}${colors.reset}`
+      );
     }
   });
 }

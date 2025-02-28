@@ -14,10 +14,33 @@ import { prisma } from "../../helpers/prisma.client";
 type Connection = {
   ws: ElysiaWS<ServerWebSocket<any>>;
   userId: number;
+  lastHeartbeat: number;
 };
 
 const connections = new Map<number, Connection>();
 const events: WSMessage[] = [];
+
+// Adicionar um intervalo para verificar o estado online
+const HEARTBEAT_INTERVAL = 30000; // 30 segundos
+const TIMEOUT_INTERVAL = 60000; // 60 segundos
+
+// Função para verificar o estado online
+function checkOnlineStatus() {
+  const now = Date.now();
+  connections.forEach((connection, userId) => {
+    if (now - connection.lastHeartbeat > TIMEOUT_INTERVAL) {
+      connections.delete(userId);
+      console.log(`User ${userId} timed out`);
+      return prisma.user.update({
+        where: { id: Number(userId) },
+        data: { online: false },
+      });
+    }
+  });
+}
+
+// Iniciar o intervalo para verificar o estado online
+setInterval(checkOnlineStatus, HEARTBEAT_INTERVAL);
 
 export const ws = new Elysia().ws("/ws", {
   open(ws) {
@@ -27,7 +50,7 @@ export const ws = new Elysia().ws("/ws", {
       return;
     }
     //@ts-ignore
-    connections.set(userId, { ws, userId });
+    connections.set(userId, { ws, userId, lastHeartbeat: Date.now() });
     console.log(`User ${userId} connected`);
   },
 
@@ -52,7 +75,6 @@ export const ws = new Elysia().ws("/ws", {
         ...message,
         timestamp: serverTimestamp,
       };
-
       // Armazenar evento
       events.push(fullEvent);
 
@@ -75,6 +97,17 @@ export const ws = new Elysia().ws("/ws", {
             message.content as TradeRequestContent
           );
           break;
+
+        case WSEvent.Heartbeat:
+          const connection = connections.get(senderId);
+          if (connection) {
+            connection.lastHeartbeat = Date.now();
+            prisma.user.update({
+              where: { id: senderId },
+              data: { online: true },
+            });
+          }
+          break;
       }
 
       // Confirmar recebimento
@@ -95,18 +128,27 @@ export const ws = new Elysia().ws("/ws", {
     }
   },
 
-  close(ws) {
+  async close(ws) {
     const userId = Number(ws.data.query.userId!);
     if (connections.get(userId)?.ws === ws) {
       connections.delete(userId);
       console.log(`User ${userId} disconnected`);
     }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { online: false },
+    });
   },
 });
 
 // Handlers para diferentes tipos de eventos
 async function handleMessage(senderId: number, content: MessageContent) {
-  const recipient = connections.get(content.to);
+  console.log({ connections: Array.from(connections.keys()) });
+  const recipient = connections.get(Number(content.to));
+  console.log({
+    recipientInHandleMessage: recipient,
+    contentInHandleMessage: content,
+  });
   if (!recipient) return;
 
   const message: WSMessage<MessageContent> = {
@@ -118,9 +160,10 @@ async function handleMessage(senderId: number, content: MessageContent) {
     },
     timestamp: Date.now(),
   };
+  console.log({ messageInHandleMessage: message });
   await prisma.message.create({
     data: {
-      receiver_id: content.to,
+      receiver_id: Number(content.to),
       sender_id: senderId,
       content: content.text,
     },
@@ -132,7 +175,7 @@ async function handleFriendRequest(
   senderId: number,
   content: FriendRequestContent
 ) {
-  const recipient = connections.get(content.to);
+  const recipient = connections.get(Number(content.to));
   if (!recipient) return;
 
   const request: WSMessage<FriendRequestContent> = {
@@ -151,7 +194,7 @@ async function handleTradeRequest(
   senderId: number,
   content: TradeRequestContent
 ) {
-  const recipient = connections.get(content.recipient);
+  const recipient = connections.get(Number(content.recipient));
   if (!recipient) return;
 
   const request: WSMessage<TradeRequestContent> = {

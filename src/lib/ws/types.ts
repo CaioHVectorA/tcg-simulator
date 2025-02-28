@@ -3,6 +3,7 @@ export enum WSEvent {
   Message = "MESSAGE",
   FriendRequest = "FRIEND_REQUEST",
   TradeRequest = "TRADE_REQUEST",
+  Heartbeat = "HEARTBEAT",
 }
 
 export interface WSMessage<T = any> {
