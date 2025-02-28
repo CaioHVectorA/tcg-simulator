@@ -21,7 +21,8 @@ const connections = new Map<number, Connection>();
 const events: WSMessage[] = [];
 
 // Adicionar um intervalo para verificar o estado online
-const HEARTBEAT_INTERVAL = 30000; // 30 segundos
+const HEARTBEAT_INTERVAL =
+  process.env.NODE_ENV === "development" ? 3000 : 30000; // 30 segundos
 const TIMEOUT_INTERVAL = 60000; // 60 segundos
 
 // Função para verificar o estado online
@@ -100,6 +101,7 @@ export const ws = new Elysia().ws("/ws", {
 
         case WSEvent.Heartbeat:
           const connection = connections.get(senderId);
+          console.log(`User ${senderId} is online!`);
           if (connection) {
             connection.lastHeartbeat = Date.now();
             prisma.user.update({
