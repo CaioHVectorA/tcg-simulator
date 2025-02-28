@@ -3,10 +3,10 @@ import { useApi } from "@/hooks/use-api"
 import { Loader } from "@/components/loading-spinner"
 import { useQuery } from "@tanstack/react-query"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { useWebSocket } from '@/hooks/use-socket';
 import { useState, useEffect } from 'react';
 import { useFriendActions } from "@/hooks/use-friend-actions";
 import { Avatar } from "@/components/avatar";
+import { useWebSocket } from "@/context/WebSocketContext";
 export type Friend = {
     id: number
     username: string

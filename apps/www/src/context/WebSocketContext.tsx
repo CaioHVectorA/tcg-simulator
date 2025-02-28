@@ -1,8 +1,9 @@
+"use client"
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 
 const WebSocketContext = createContext<any>(null);
-
+const HEARTBEAT_INTERVAL = process.env.NEXT_PUBLIC_APP_ENV === "development" ? 3000 : 30000;
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const socketRef = useRef<WebSocket | null>(null);
     const heartbeatRef = useRef<number | null>(null);
