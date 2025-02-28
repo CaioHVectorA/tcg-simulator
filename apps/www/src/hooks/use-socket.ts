@@ -1,11 +1,12 @@
+import { useUser } from "@/context/UserContext";
 import { useEffect, useRef } from "react";
 
 const HEARTBEAT_INTERVAL = 30000; // 30 segundos
-
-export function useWebSocket(url: string, userId: number) {
+const URL = process.env.NEXT_PUBLIC_WS_URL;
+export function useWebSocket() {
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatRef = useRef<number | null>(null);
-
+  const { id } = useUser();
   useEffect(() => {
     // Função para enviar um Heartbeat
     const sendHeartbeat = () => {
@@ -18,7 +19,7 @@ export function useWebSocket(url: string, userId: number) {
     };
 
     // Conectar ao WebSocket
-    socketRef.current = new WebSocket(`${url}?userId=${userId}`);
+    socketRef.current = new WebSocket(`${URL}?userId=${id}`);
 
     socketRef.current.onopen = () => {
       console.log("Conectado ao WebSocket");
@@ -49,7 +50,7 @@ export function useWebSocket(url: string, userId: number) {
         clearInterval(heartbeatRef.current);
       }
     };
-  }, [url, userId]);
+  }, [id]);
 
   const sendMessage = (to: number, text: string) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {

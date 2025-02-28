@@ -1,8 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { redirect } from "next/navigation";
-// const baseURL = "http://localhost:8080";
-const baseURL = "https://poke-tcg-center.fly.dev";
-
+const baseURL = process.env.NEXT_PUBLIC_API_URL;
 export const api = axios.create({
   baseURL,
   validateStatus: (status) => {
