@@ -484,8 +484,12 @@ export const userController = new Elysia({}).group("/user", (app) => {
       return {
         sent,
         received,
-        online: allFriends.filter((f) => f.User.online || f.Friend.online),
-        offline: allFriends.filter((f) => !f.User.online && !f.Friend.online),
+        online: allFriends
+          .filter((f) => f.User.online || f.Friend.online)
+          .map((i) => (i.User.id === user.id ? i.Friend : i.User)),
+        offline: allFriends
+          .filter((f) => !f.User.online && !f.Friend.online)
+          .map((i) => (i.User.id === user.id ? i.Friend : i.User)),
       };
     });
 });
