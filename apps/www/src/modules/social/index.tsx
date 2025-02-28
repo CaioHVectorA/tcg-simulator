@@ -2,8 +2,11 @@
 import { useApi } from "@/hooks/use-api"
 import { Loader } from "@/components/loading-spinner"
 import { useQuery } from "@tanstack/react-query"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { useWebSocket } from '@/hooks/use-socket';
+import { useState, useEffect } from 'react';
+import { useFriendActions } from "@/hooks/use-friend-actions";
+import { Avatar } from "@/components/avatar";
 export type Friend = {
     id: number
     username: string
@@ -42,6 +45,16 @@ export function Social({
         },
     })
 
+    const { sendMessage, sendFriendRequest, sendTradeRequest } = useWebSocket();
+    const { mutate: handleFriendAction } = useFriendActions();
+    const [onlineFriends, setOnlineFriends] = useState<Friend[]>([]);
+
+    useEffect(() => {
+        if (data) {
+            setOnlineFriends(data.online);
+        }
+    }, [data]);
+
     if (isLoading) {
         return <Loader />
     }
@@ -53,12 +66,79 @@ export function Social({
     if (!data) {
         return <div>No data available</div>
     }
-
     return (
-        <>
-            <h1>Should</h1>
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-        </>
+        <div className="px-4">
+            <h1 className="text-3xl font-bold font-syne">Social</h1>
+            <Accordion type="single" collapsible>
+                <AccordionItem value="online">
+                    <AccordionTrigger>Amigos Online ({onlineFriends.length})</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="grid grid-cols-1 gap-4">
+                            {onlineFriends.map((friend) => (
+                                <div key={friend.id} className="flex items-center space-x-4">
+                                    <Avatar src={friend.picture} username={friend.username} />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">{friend.username}</h2>
+                                        <p className="text-sm text-gray-500">Online</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="offline">
+                    <AccordionTrigger>Amigos Offline ({data.offline.length})</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="grid grid-cols-1 gap-4">
+                            {data.offline.map((friend) => (
+                                <div key={friend.id} className="flex items-center space-x-4">
+                                    <Avatar src={friend.picture} username={friend.username} />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">{friend.username}</h2>
+                                        <p className="text-sm text-gray-500">Offline</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="received">
+                    <AccordionTrigger>Solicitações Recebidas ({data.received.length})</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="grid grid-cols-1 gap-4">
+                            {data.received.map((request) => (
+                                <div key={request.id} className="flex items-center space-x-4">
+                                    <Avatar src={request.User.picture} username={request.User.username} />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">{request.User.username}</h2>
+                                        <button onClick={() => sendFriendRequest(request.user_id)} className="text-blue-500">Aceitar</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="sent">
+                    <AccordionTrigger>Solicitações Enviadas ({data.sent.length})</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="grid grid-cols-1 gap-4">
+                            {data.sent.map((request) => (
+                                <div key={request.id} className="flex items-center space-x-4">
+                                    <Avatar src={request.Friend.picture} username={request.Friend.username} />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">{request.Friend.username}</h2>
+                                        <p className="text-sm text-gray-500">Solicitação Enviada</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </div>
     )
 }
 
