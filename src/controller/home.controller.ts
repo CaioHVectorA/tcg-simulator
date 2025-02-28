@@ -76,7 +76,6 @@ export const homeController = new Elysia({}).group("/home", (app) => {
         },
         topCards,
       };
-      console.log(data);
       return sucessResponse(data);
     });
 });
