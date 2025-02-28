@@ -155,12 +155,17 @@ export function Social({
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.sent.map((request) => (
-                                <div key={request.id} className="flex items-center space-x-4">
-                                    <Avatar src={request.Friend.picture} username={request.Friend.username} />
-                                    <div>
-                                        <h2 className="text-lg font-semibold line-clamp-1">{request.Friend.username}</h2>
-                                        <p className="text-sm text-gray-500">Solicitação Enviada</p>
+                                <div className="flex items-center justify-between">
+                                    <div key={request.id} className="flex items-center space-x-4">
+                                        <Avatar src={request.Friend.picture} username={request.Friend.username} />
+                                        <div>
+                                            <h2 className="text-lg font-semibold line-clamp-1">{request.Friend.username}</h2>
+                                            <p className="text-sm text-gray-500">Solicitação Enviada</p>
+                                        </div>
                                     </div>
+                                    <Button size={'icon'} variant="outline" onClick={() => mutate({ action: FriendAction.CancelRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
+                                        <X />
+                                    </Button>
                                 </div>
                             ))}
                         </div>
