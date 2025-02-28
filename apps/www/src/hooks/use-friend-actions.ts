@@ -1,18 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
 import { AxiosResponse } from "axios";
+import { useWebSocket } from "@/context/WebSocketContext";
 
 export enum FriendAction {
   Accept = "accept",
   RemoveRequest = "reject",
   RemoveFriend = "remove",
   CancelRequest = "remove-sent",
+  SendRequest = "send",
 }
 
 export function useFriendActions() {
   const { post, delete: del } = useApi();
   const queryClient = useQueryClient();
 
+  const { sendFriendRequest, sendTradeRequest, acceptFriendRequest } =
+    useWebSocket();
   const handleFriendAction = useMutation({
     mutationFn: async ({
       action,
@@ -21,8 +25,10 @@ export function useFriendActions() {
       action: FriendAction;
       id: number;
     }) => {
+      console.log({ action, id });
       switch (action) {
         case FriendAction.Accept:
+          acceptFriendRequest(id);
           return await post(`/user/accept/${id}`, {});
         case FriendAction.RemoveRequest:
           return await del(`/user/reject/${id}`);
@@ -30,6 +36,9 @@ export function useFriendActions() {
           return await del(`/user/remove/${id}`);
         case FriendAction.CancelRequest:
           return await del(`/user/remove-sent/${id}`);
+        case FriendAction.SendRequest:
+          sendFriendRequest(id);
+          return { data: "Friend request sent via WebSocket" };
         default:
           throw new Error("Ação inválida");
       }

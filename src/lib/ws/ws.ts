@@ -110,15 +110,22 @@ export const ws = new Elysia().ws("/ws", {
             });
           }
           break;
+
+        case WSEvent.FriendRequestAccepted:
+          await handleFriendRequestAccepted(
+            senderId,
+            message.content as FriendRequestContent
+          );
+          break;
       }
 
       // Confirmar recebimento
-      ws.send(
-        JSON.stringify({
-          status: "EVENT_RECEIVED",
-          eventId: fullEvent.timestamp,
-        })
-      );
+      // ws.send(
+      //   JSON.stringify({
+      //     status: "EVENT_RECEIVED",
+      //     eventId: fullEvent.timestamp,
+      //   })
+      // );
     } catch (error) {
       console.error("Erro no processamento:", error);
       ws.send(
@@ -204,6 +211,26 @@ async function handleTradeRequest(
     content: {
       initiator: senderId,
       recipient: content.recipient,
+    },
+    timestamp: Date.now(),
+  };
+
+  recipient.ws.send(JSON.stringify(request));
+}
+
+async function handleFriendRequestAccepted(
+  senderId: number,
+  content: FriendRequestContent
+) {
+  const recipient = connections.get(Number(content.to));
+  console.log({ recipientInHandleFriendRequestAccepted: recipient });
+  if (!recipient) return;
+
+  const request: WSMessage<FriendRequestContent> = {
+    event: WSEvent.FriendRequestAccepted,
+    content: {
+      from: senderId,
+      to: content.to,
     },
     timestamp: Date.now(),
   };

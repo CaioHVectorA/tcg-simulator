@@ -4,9 +4,11 @@ import { Loader } from "@/components/loading-spinner"
 import { useQuery } from "@tanstack/react-query"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { useState, useEffect } from 'react';
-import { useFriendActions } from "@/hooks/use-friend-actions";
+import { FriendAction, useFriendActions } from "@/hooks/use-friend-actions";
 import { Avatar } from "@/components/avatar";
 import { useWebSocket } from "@/context/WebSocketContext";
+import { Button } from "@/components/ui/button";
+import { Check, X } from "lucide-react";
 export type Friend = {
     id: number
     username: string
@@ -46,7 +48,7 @@ export function Social({
     })
 
     const { sendMessage, sendFriendRequest, sendTradeRequest } = useWebSocket();
-    const { mutate: handleFriendAction } = useFriendActions();
+    const { handleFriendAction: { mutate } } = useFriendActions();
     const [onlineFriends, setOnlineFriends] = useState<Friend[]>([]);
 
     useEffect(() => {
@@ -113,7 +115,13 @@ export function Social({
                                     <Avatar src={request.User.picture} username={request.User.username} />
                                     <div>
                                         <h2 className="text-lg font-semibold">{request.User.username}</h2>
-                                        <button onClick={() => sendFriendRequest(request.user_id)} className="text-blue-500">Aceitar</button>
+
+                                        <Button size={'icon'} onClick={() => mutate({ action: FriendAction.Accept, id: request.id })} className="bg-green-500 rounded-full text-white size-6 mr-1">
+                                            <Check />
+                                        </Button>
+                                        <Button size={'icon'} variant="outline" onClick={() => mutate({ action: FriendAction.RemoveRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
+                                            <X />
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -129,7 +137,7 @@ export function Social({
                                 <div key={request.id} className="flex items-center space-x-4">
                                     <Avatar src={request.Friend.picture} username={request.Friend.username} />
                                     <div>
-                                        <h2 className="text-lg font-semibold">{request.Friend.username}</h2>
+                                        <h2 className="text-lg font-semibold line-clamp-1">{request.Friend.username}</h2>
                                         <p className="text-sm text-gray-500">Solicitação Enviada</p>
                                     </div>
                                 </div>
