@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { useUser } from "@/context/UserContext";
+import { People } from "./people";
 
 export type Friend = {
     id: number
@@ -51,14 +52,7 @@ export function Social({
     })
     const { id } = useUser()
     const { handleFriendAction: { mutate } } = useFriendActions();
-    const [onlineFriends, setOnlineFriends] = useState<Friend[]>([]);
     const [friendId, setFriendId] = useState('');
-
-    useEffect(() => {
-        if (data) {
-            setOnlineFriends(data.online);
-        }
-    }, [data]);
 
     if (isLoading) {
         return <Loader />
@@ -94,17 +88,11 @@ export function Social({
             </div>
             <Accordion type="single" collapsible>
                 <AccordionItem value="online">
-                    <AccordionTrigger>Amigos Online ({onlineFriends.length})</AccordionTrigger>
+                    <AccordionTrigger>Amigos Online ({data.online.length})</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
-                            {onlineFriends.map((friend) => (
-                                <div key={friend.id} className="flex items-center space-x-4">
-                                    <Avatar src={friend.picture} username={friend.username} />
-                                    <div>
-                                        <h2 className="text-lg font-semibold">{friend.username}</h2>
-                                        <p className="text-sm text-gray-500">Online</p>
-                                    </div>
-                                </div>
+                            {data.online.map((friend) => (
+                                <People key={friend.id} friend={friend} />
                             ))}
                         </div>
                     </AccordionContent>
@@ -115,13 +103,7 @@ export function Social({
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.offline.map((friend) => (
-                                <div key={friend.id} className="flex items-center space-x-4">
-                                    <Avatar src={friend.picture} username={friend.username} />
-                                    <div>
-                                        <h2 className="text-lg font-semibold">{friend.username}</h2>
-                                        <p className="text-sm text-gray-500">Offline</p>
-                                    </div>
-                                </div>
+                                <People key={friend.id} friend={friend} />
                             ))}
                         </div>
                     </AccordionContent>
@@ -155,7 +137,7 @@ export function Social({
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.sent.map((request) => (
-                                <div className="flex items-center justify-between">
+                                <div key={request.id} className="flex items-center justify-between">
                                     <div key={request.id} className="flex items-center space-x-4">
                                         <Avatar src={request.Friend.picture} username={request.Friend.username} />
                                         <div>

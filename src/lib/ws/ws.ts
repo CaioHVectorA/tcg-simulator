@@ -104,7 +104,7 @@ export const ws = new Elysia().ws("/ws", {
           console.log(`User ${senderId} is online!`);
           if (connection) {
             connection.lastHeartbeat = Date.now();
-            prisma.user.update({
+            await prisma.user.update({
               where: { id: senderId },
               data: { online: true },
             });
