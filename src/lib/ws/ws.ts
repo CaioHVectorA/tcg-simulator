@@ -202,7 +202,6 @@ async function handleTradeRequest(
     content: {
       initiator: senderId,
       recipient: content.recipient,
-      items: content.items,
     },
     timestamp: Date.now(),
   };

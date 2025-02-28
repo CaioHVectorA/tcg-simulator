@@ -26,5 +26,4 @@ export type FriendRequestContent = {
 export type TradeRequestContent = {
   initiator: number;
   recipient: number;
-  items: string[];
 };
