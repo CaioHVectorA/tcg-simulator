@@ -30,6 +30,7 @@ model Card {
   User_Purchase     User_Purchase[]
   hp                Int                 @default(0)
   type              String              @default("none")
+  Trade_Offer_Cards Trade_Offer_Cards[]
 
   @@map("cards")
 }
@@ -121,19 +122,58 @@ model User {
   receivedTradeRequests TradeRequest[] @relation("UserTradeRequestReceiver")
   sentTradeRequests     TradeRequest[] @relation("UserTradeRequestSender")
   Notification          Notification[]
+  Trade_Offers          Trade_Offer[]
 
   @@map("users")
 }
 
 model Trade {
-  id           Int            @id @default(autoincrement())
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @default(now()) @updatedAt
-  cards        Trade_Card[]
-  userTrades   User_Trade[] // max 2 - 1 sender, 2? receiver
-  TradeRequest TradeRequest[]
+  name           String
+  description    String        @default("")
+  id             Int           @id @default(autoincrement())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  cards          Trade_Card[] // the number of cards should be based on the protocol
+  userTrades     User_Trade[] // max 2 - 1 sender, 2? receiver
+  protocol       String        @default("1x1") // NxN where N is the number of cards on both sides, first number is the sender, second is the receiver
+  public         Boolean       @default(true)
+  hash           String        @unique @default(cuid())
+  tradeRequest   TradeRequest?
+  acceptOffers   Boolean
+  acceptMoney    Boolean
+  minRarity      Int           @default(1)
+  maxRarity      Int           @default(6)
+  moneyReceiving Int           @default(0)
+  moneySending   Int           @default(0)
+  expiresAt      DateTime?
+  Trade_Offers   Trade_Offer[]
 
   @@map("trades")
+}
+
+model Trade_Offer {
+  id       Int   @id @default(autoincrement())
+  trade_id Int
+  user_id  Int
+  money    Int
+  Trade    Trade @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  User     User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  cards Trade_Offer_Cards[]
+
+  @@map("trade_offers")
+}
+
+model Trade_Offer_Cards {
+  id        Int         @id @default(autoincrement())
+  card_id   Int
+  trade_id  Int
+  Trade     Trade_Offer @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  Card      Card        @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  @@map("trade_offer_cards")
 }
 
 model User_Trade {
@@ -314,7 +354,7 @@ model MoneyDonate {
 }
 
 model TradeRequest {
-  id          Int      @id @default(autoincrement())
+  id          Int      @id @unique @default(autoincrement())
   receiver_id Int
   sender_id   Int
   createdAt   DateTime @default(now())
@@ -322,9 +362,8 @@ model TradeRequest {
   Sender      User     @relation("UserTradeRequestSender", fields: [sender_id], references: [id], onDelete: Cascade)
   Receiver    User     @relation("UserTradeRequestReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
 
-  trade_id Int
-  Trade    Trade @relation(fields: [trade_id], references: [id], onDelete: Cascade)
-
+  tradeId  Int     @unique
+  Trade    Trade   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
   accepted Boolean @default(false)
   revoked  Boolean @default(false)
 
