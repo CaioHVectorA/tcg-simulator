@@ -109,16 +109,29 @@ model User {
   rarityPoints       Int                @default(0)
   totalBudget        Int                @default(500)
   authProvider       String             @default("email") // email, google, github?
+  online             Boolean            @default(false)
+  last_online        DateTime           @default(now())
+
+  receivedMessages Message[] @relation("UserMessageReceived")
+  sentMessages     Message[] @relation("UserMessageSender")
+
+  sentDonations     MoneyDonate[] @relation("UserDonateSender")
+  receivedDonations MoneyDonate[] @relation("UserDonateReceiver")
+
+  receivedTradeRequests TradeRequest[] @relation("UserTradeRequestReceiver")
+  sentTradeRequests     TradeRequest[] @relation("UserTradeRequestSender")
+  Notification          Notification[]
 
   @@map("users")
 }
 
 model Trade {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now()) @updatedAt
-  cards      Trade_Card[]
-  userTrades User_Trade[] // max 2 - 1 sender, 2? receiver
+  id           Int            @id @default(autoincrement())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  cards        Trade_Card[]
+  userTrades   User_Trade[] // max 2 - 1 sender, 2? receiver
+  TradeRequest TradeRequest[]
 
   @@map("trades")
 }
@@ -269,4 +282,65 @@ model QuestUser {
   completed    Boolean  @default(false)
 
   @@map("quest_user")
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  sender_id   Int
+  receiver_id Int
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  Sender   User @relation("UserMessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  Receiver User @relation("UserMessageReceived", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  viewed Boolean @default(false)
+
+  @@map("messages")
+}
+
+model MoneyDonate {
+  id          Int      @id @default(autoincrement())
+  receiver_id Int
+  sender_id   Int
+  amount      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  Sender      User     @relation("UserDonateSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  Receiver    User     @relation("UserDonateReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  @@map("money_donate")
+}
+
+model TradeRequest {
+  id          Int      @id @default(autoincrement())
+  receiver_id Int
+  sender_id   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  Sender      User     @relation("UserTradeRequestSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  Receiver    User     @relation("UserTradeRequestReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  trade_id Int
+  Trade    Trade @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+
+  accepted Boolean @default(false)
+  revoked  Boolean @default(false)
+
+  @@map("trade_requests")
+}
+
+// used to store notifications when user is offline when friend requests, messages, trade and donation requests   
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  type      String
+  content   String
+  thumbnail String? // url of images (one for trade, one for donation, one for message, one for friend request)
+  createdAt DateTime @default(now())
+  viewed    Boolean  @default(false)
+  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
