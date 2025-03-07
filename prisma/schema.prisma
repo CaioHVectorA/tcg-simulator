@@ -135,7 +135,7 @@ model Trade {
   updatedAt      DateTime      @default(now()) @updatedAt
   cards          Trade_Card[] // the number of cards should be based on the protocol
   userTrades     User_Trade[] // max 2 - 1 sender, 2? receiver
-  protocol       String        @default("1x1") // NxN where N is the number of cards on both sides, first number is the sender, second is the receiver
+  protocol       String        @default("NxN") // NxN where N is the number of cards on both sides, first number is the sender, second is the receiver
   public         Boolean       @default(true)
   hash           String        @unique @default(cuid())
   tradeRequest   TradeRequest?
@@ -152,14 +152,14 @@ model Trade {
 }
 
 model Trade_Offer {
-  id       Int   @id @default(autoincrement())
-  trade_id Int
-  user_id  Int
-  money    Int
-  Trade    Trade @relation(fields: [trade_id], references: [id], onDelete: Cascade)
-  User     User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  cards Trade_Offer_Cards[]
+  id        Int                 @id @default(autoincrement())
+  trade_id  Int
+  user_id   Int
+  money     Int
+  Trade     Trade               @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  User      User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+  cards     Trade_Offer_Cards[]
 
   @@map("trade_offers")
 }
