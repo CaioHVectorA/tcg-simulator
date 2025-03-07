@@ -32,16 +32,77 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
             take: 16,
             where: {
               OR: [
-                { cards: { some: { Card: { name: { contains: search } } } } },
+                {
+                  cards: {
+                    some: {
+                      Card: {
+                        name: { startsWith: search, mode: "insensitive" },
+                      },
+                    },
+                  },
+                },
+                { name: { startsWith: search, mode: "insensitive" } },
               ],
+              expiresAt: { gte: new Date() },
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              hash: true,
+              cards: {
+                select: {
+                  Card: {
+                    select: { image_url: true, name: true, card_id: true },
+                  },
+                  is_sender: true,
+                },
+              },
+              userTrades: {
+                select: { user_id: true, User: { select: { username: true } } },
+              },
+              _count: {
+                select: { Trade_Offers: true },
+              },
             },
           });
-          return sucessResponse(trades);
+          const formatted = trades.map((t) => {
+            const senderCards = t.cards
+              .filter((c) => c.is_sender)
+              .map((c) => ({
+                name: c.Card.name,
+                card_id: c.Card.card_id,
+                image_url: c.Card.image_url,
+              }));
+            const receiverCards = t.cards
+              .filter((c) => !c.is_sender)
+              .map((c) => ({
+                name: c.Card.name,
+                card_id: c.Card.card_id,
+                image_url: c.Card.image_url,
+              }));
+            const cards = { senderCards, receiverCards };
+            return {
+              ...cards,
+              users: t.userTrades,
+              offers: t._count.Trade_Offers,
+              id: t.id,
+              hash: t.hash,
+            };
+          });
+          return sucessResponse(formatted);
         }
         const trades = await prisma.trade.findMany({
+          orderBy: {
+            createdAt: "desc",
+          },
           skip: (Number(page) - 1) * 16,
           take: 16,
+          where: { expiresAt: { gte: new Date() } },
           select: {
+            id: true,
+            hash: true,
             cards: {
               select: {
                 Card: {
@@ -53,19 +114,37 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
             userTrades: {
               select: { user_id: true, User: { select: { username: true } } },
             },
+            _count: {
+              select: { Trade_Offers: true },
+            },
           },
         });
         // formatted should is a obj[] without subobjects
         const formatted = trades.map((t) => {
-          const cards = t.cards.map((c) => ({
-            is_sender: c.is_sender,
-            name: c.Card.name,
-            card_id: c.Card.card_id,
-            image_url: c.Card.image_url,
-          }));
-          return { cards, users: t.userTrades };
+          const senderCards = t.cards
+            .filter((c) => c.is_sender)
+            .map((c) => ({
+              name: c.Card.name,
+              card_id: c.Card.card_id,
+              image_url: c.Card.image_url,
+            }));
+          const receiverCards = t.cards
+            .filter((c) => !c.is_sender)
+            .map((c) => ({
+              name: c.Card.name,
+              card_id: c.Card.card_id,
+              image_url: c.Card.image_url,
+            }));
+          const cards = { senderCards, receiverCards };
+          return {
+            ...cards,
+            users: t.userTrades,
+            offers: t._count.Trade_Offers,
+            id: t.id,
+            hash: t.hash,
+          };
         });
-        return sucessResponse(trades);
+        return sucessResponse(formatted);
       },
       {
         query: t.Object({
@@ -87,7 +166,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         }
         const trade = await prisma.trade.findFirst({
           where: { id: Number(id) },
-          include: { cards: true, userTrades: true },
+          include: { cards: true, userTrades: true, Trade_Offers: true },
         });
         if (!trade) {
           return errorResponse("Troca não encontrada", "Troca não encontrada");
@@ -120,8 +199,53 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .post(
       "/",
       async ({ body, user, prisma, set }) => {
-        const { receiver_cards, sender_cards } = body;
-        const trade = await prisma.trade.create({});
+        const {
+          receiver_cards,
+          sender_cards,
+          acceptMoney,
+          acceptOffers,
+          daysCount,
+          name,
+          maxRarity,
+          minRarity,
+          moneyOffering,
+          moneyReceiving,
+          protocol,
+          isPublic,
+        } = body;
+        const expiresAt = (() => {
+          const date = new Date();
+          date.setDate(date.getDate() + daysCount);
+          return date;
+        })();
+        let debit = 1000 * daysCount;
+        if (daysCount > 3) {
+          debit = 2000 * daysCount;
+        }
+        if (user.money < debit) {
+          return errorResponse("Saldo insuficiente", "Saldo insuficiente");
+        }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { money: { decrement: debit } },
+        });
+        const trade = await prisma.trade.create({
+          data: {
+            acceptMoney,
+            acceptOffers,
+            maxRarity,
+            expiresAt,
+            minRarity,
+            moneySending: moneyOffering,
+            moneyReceiving,
+            protocol,
+            public: isPublic,
+            userTrades: {
+              create: { user_id: user.id, is_sender: true },
+            },
+            name,
+          },
+        });
         const formatted_receiver_cards = receiver_cards.map((i) => ({
           card_id: i,
           is_sender: false,
@@ -135,12 +259,88 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         await prisma.trade_Card.createMany({
           data: [...formatted_receiver_cards, ...formatted_sender_cards],
         });
-        return sucessResponse(trade.id);
+        return sucessResponse({
+          id: trade.id,
+          hash: trade.hash,
+        });
       },
       {
         body: t.Object({
           receiver_cards: t.Array(t.Number()),
           sender_cards: t.Array(t.Number()),
+          protocol: t.String(),
+          isPublic: t.Boolean(),
+          acceptOffers: t.Boolean(),
+          acceptMoney: t.Boolean(),
+          minRarity: t.Number(),
+          maxRarity: t.Number(),
+          name: t.String(),
+          moneyReceiving: t.Number(),
+          moneyOffering: t.Number(),
+          daysCount: t.Number(),
+        }),
+        detail: { tags: ["Trade"], responses: baseResponse },
+      }
+    )
+    .post(
+      "/:id/offer",
+      async ({ body, user, prisma, params }) => {
+        const { id } = params;
+        if (isNaN(Number(id))) {
+          return errorResponse("ID inválido", "ID inválido");
+        }
+        const myAlreadyOffered = await prisma.trade_Offer.findFirst({
+          where: { trade_id: Number(id), user_id: user.id },
+        });
+
+        if (
+          myAlreadyOffered &&
+          myAlreadyOffered.createdAt > new Date(Date.now() - 1000 * 60 * 60)
+        ) {
+          return errorResponse(
+            "Espere 1 hora para enviar outra oferta",
+            "Espere 1 hora para enviar outra oferta"
+          );
+        }
+        const trade = await prisma.trade.findFirst({
+          where: { id: Number(id) },
+          include: { cards: true, userTrades: true },
+        });
+        if (!trade) {
+          return errorResponse("Troca não encontrada", "Troca não encontrada");
+        }
+        if (!trade.acceptOffers) {
+          return errorResponse(
+            "Esta troca não aceita ofertas",
+            "Esta troca não aceita ofertas"
+          );
+        }
+        if (trade.userTrades.some((t) => t.user_id === user.id)) {
+          return errorResponse(
+            "Você já aceitou esta troca",
+            "Você já aceitou esta troca"
+          );
+        }
+        const { cards, money } = body;
+        const tradeOffer = await prisma.trade_Offer.create({
+          data: {
+            money: money,
+            user_id: user.id,
+            trade_id: trade.id,
+          },
+        });
+        const offerCards = await prisma.trade_Offer_Cards.createMany({
+          data: cards.map((c) => ({ card_id: c, trade_id: tradeOffer.id })),
+        });
+        return sucessResponse(null, "Oferta enviada com sucesso!");
+      },
+      {
+        body: t.Object({
+          cards: t.Array(t.Number()),
+          money: t.Number(),
+        }),
+        params: t.Object({
+          id: t.String(),
         }),
         detail: { tags: ["Trade"], responses: baseResponse },
       }
