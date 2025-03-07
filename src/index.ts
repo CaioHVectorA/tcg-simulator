@@ -55,6 +55,9 @@ export const server: Elysia = new Elysia({
     if (error.message == AUTH_ERROR) {
       set.status = 401;
     }
+    if (error.message.includes("validation")) {
+      return error.message;
+    }
     console.log({ error });
     return errorResponse(error.message, error.message);
   })
