@@ -1,16 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
-
-// generator erd {
-//   provider = "prisma-erd-generator"
-// }
 
 datasource db {
   provider  = "postgresql"
@@ -23,13 +13,14 @@ model Card {
   id                Int                 @id @default(autoincrement())
   card_id           String              @unique
   image_url         String
-  rarity            Int // 1: common, 2: rare, 3: epic, 4: legendary, 5: full legendary
-  Cards_user        Cards_user[]
-  Trade_Card        Trade_Card[]
-  Promotional_Cards Promotional_Cards[]
-  User_Purchase     User_Purchase[]
+  rarity            Int
   hp                Int                 @default(0)
   type              String              @default("none")
+  Promotional_Cards Promotional_Cards[]
+  Cards_user        Cards_user[]
+  Trade_Card        Trade_Card[]
+  trade_offer_cards trade_offer_cards[]
+  User_Purchase     User_Purchase[]
 
   @@map("cards")
 }
@@ -42,14 +33,14 @@ model Package {
   epic_rarity           Float
   legendary_rarity      Float
   full_legendary_rarity Float
-  description           String?
   name                  String
   image_url             String
   cards_quantity        Int
-  Packages_User         Packages_User[]
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @default(now()) @updatedAt
   tcg_id                String?
+  description           String?
+  Packages_User         Packages_User[]
   User_Purchase         User_Purchase[]
 
   @@map("packages")
@@ -57,68 +48,92 @@ model Package {
 
 model Packages_User {
   id        Int      @id @default(autoincrement())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  Package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
   packageId Int
   opened    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  Package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("packages_user")
 }
 
 model Cards_user {
   id        Int      @id @default(autoincrement())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  Card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   cardId    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  Card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("cards_user")
 }
 
 model User {
-  id                 Int                @id @default(autoincrement())
-  username           String
-  password           String
-  email              String
-  isAdmin            Boolean            @default(false)
-  Packages_User      Packages_User[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @default(now()) @updatedAt
-  money              Int                @default(500)
-  Cards_user         Cards_user[]
-  Trade_User         User_Trade[]
-  picture            String             @default("/wallpaper.jpg")
-  friendships        Friend_User[]      @relation("UserFriends")
-  friendOf           Friend_User[]      @relation("UserIsFriendOf")
-  last_daily_bounty  DateTime?          @default(now()) // some date in the past
-  daily_bounty_level Int                @default(1) // 1 to n
-  last_entry         DateTime           @default(now())
-  User_Ranking       User_Ranking?
-  isGuest            Boolean            @default(false)
-  Transaction        Transaction[]
-  User_Purchase      User_Purchase[]
-  fromReferralId     Int?
-  ReferrerProtocol   ReferrerProtocol[]
-  Referred           Referred[]
-  QuestUser          QuestUser[]
-  rarityPoints       Int                @default(0)
-  totalBudget        Int                @default(500)
-  authProvider       String             @default("email") // email, google, github?
+  id                                               Int                @id @default(autoincrement())
+  username                                         String
+  password                                         String
+  email                                            String
+  createdAt                                        DateTime           @default(now())
+  updatedAt                                        DateTime           @default(now()) @updatedAt
+  money                                            Int                @default(500)
+  last_daily_bounty                                DateTime?          @default(now())
+  last_entry                                       DateTime           @default(now())
+  isAdmin                                          Boolean            @default(false)
+  isGuest                                          Boolean            @default(false)
+  picture                                          String             @default("/wallpaper.jpg")
+  daily_bounty_level                               Int                @default(1)
+  fromReferralId                                   Int?
+  rarityPoints                                     Int                @default(0)
+  totalBudget                                      Int                @default(500)
+  authProvider                                     String             @default("email")
+  last_online                                      DateTime           @default(now())
+  online                                           Boolean            @default(false)
+  Referred                                         Referred[]
+  ReferrerProtocol                                 ReferrerProtocol[]
+  Transaction                                      Transaction[]
+  Cards_user                                       Cards_user[]
+  friendOf                                         Friend_User[]      @relation("UserIsFriendOf")
+  friendships                                      Friend_User[]      @relation("UserFriends")
+  messages_messages_receiver_idTousers             messages[]         @relation("messages_receiver_idTousers")
+  messages_messages_sender_idTousers               messages[]         @relation("messages_sender_idTousers")
+  money_donate_money_donate_receiver_idTousers     money_donate[]     @relation("money_donate_receiver_idTousers")
+  money_donate_money_donate_sender_idTousers       money_donate[]     @relation("money_donate_sender_idTousers")
+  notifications                                    notifications[]
+  Packages_User                                    Packages_User[]
+  QuestUser                                        QuestUser[]
+  trade_offers                                     trade_offers[]
+  trade_requests_trade_requests_receiver_idTousers trade_requests[]   @relation("trade_requests_receiver_idTousers")
+  trade_requests_trade_requests_sender_idTousers   trade_requests[]   @relation("trade_requests_sender_idTousers")
+  User_Purchase                                    User_Purchase[]
+  User_Ranking                                     User_Ranking?
+  Trade_User                                       User_Trade[]
 
   @@map("users")
 }
 
 model Trade {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now()) @updatedAt
-  cards      Trade_Card[]
-  userTrades User_Trade[] // max 2 - 1 sender, 2? receiver
+  id             Int             @id @default(autoincrement())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  acceptMoney    Boolean
+  acceptOffers   Boolean
+  description    String          @default("")
+  expiresAt      DateTime?
+  hash           String          @unique
+  maxRarity      Int             @default(6)
+  minRarity      Int             @default(1)
+  moneyReceiving Int             @default(0)
+  moneySending   Int             @default(0)
+  name           String
+  protocol       String          @default("1x1")
+  public         Boolean         @default(true)
+  cards          Trade_Card[]
+  trade_offers   trade_offers[]
+  trade_requests trade_requests?
+  userTrades     User_Trade[]
 
   @@map("trades")
 }
@@ -128,10 +143,10 @@ model User_Trade {
   user_id   Int
   trade_id  Int
   is_sender Boolean
-  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_trade")
 }
@@ -141,10 +156,10 @@ model Trade_Card {
   card_id   Int
   is_sender Boolean
   trade_id  Int
-  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
-  Card      Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  Card      Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
 
   @@map("trade_card")
 }
@@ -154,10 +169,10 @@ model Friend_User {
   user_id   Int
   accepted  Boolean  @default(false)
   friend_id Int
-  User      User     @relation("UserFriends", fields: [user_id], references: [id], onDelete: Cascade)
-  Friend    User     @relation("UserIsFriendOf", fields: [friend_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  Friend    User     @relation("UserIsFriendOf", fields: [friend_id], references: [id], onDelete: Cascade)
+  User      User     @relation("UserFriends", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("friend_user")
 }
@@ -200,8 +215,8 @@ model Transaction {
   createdAt      DateTime @default(now())
   status         String
   user_id        Int
-  User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   error          String?
+  User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model User_Purchase {
@@ -210,11 +225,11 @@ model User_Purchase {
   package_id Int?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
-  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  Package    Package? @relation(fields: [package_id], references: [id], onDelete: Cascade)
   quantity   Int      @default(1)
   card_id    Int?
   Card       Card?    @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  Package    Package? @relation(fields: [package_id], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_purchase")
 }
@@ -222,37 +237,34 @@ model User_Purchase {
 model ReferrerProtocol {
   id                Int        @id @default(autoincrement())
   referrerCreatorId Int
-  referrerCreator   User       @relation(fields: [referrerCreatorId], references: [id], onDelete: Cascade)
-  referreds         Referred[]
   hash              String     @unique
+  referreds         Referred[]
+  referrerCreator   User       @relation(fields: [referrerCreatorId], references: [id], onDelete: Cascade)
 }
 
 model Referred {
   id                 Int              @id @default(autoincrement())
   referredId         Int
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now()) @updatedAt
-  bountyRedeemed     Boolean          @default(false)
-  referred           User             @relation(fields: [referredId], references: [id], onDelete: Cascade)
   referrerProtocolId Int
+  createdAt          DateTime         @default(now())
+  bountyRedeemed     Boolean          @default(false)
+  updatedAt          DateTime         @default(now()) @updatedAt
+  referred           User             @relation(fields: [referredId], references: [id], onDelete: Cascade)
   referrerProtocol   ReferrerProtocol @relation(fields: [referrerProtocolId], references: [id], onDelete: Cascade)
 }
 
 model Quest {
   id            Int         @id @default(autoincrement())
-  levelCount    Int
-  levelRewards  Int[]
-  levelGoals    Int[]
   createdAt     DateTime    @default(now())
+  levelCount    Int
+  levelGoals    Int[]
+  levelRewards  Int[]
   name          String
+  queryCheck    String
+  description   String[]
   isDiary       Boolean     @default(false)
   isDiaryActive Boolean?    @default(false)
-  description   String[] // can be unique description to each level or the same for all levels
-  // model     String // Cards_user+Card, Package+Package_User, Referrer, Purchase
-  // key       String // Cards_user.count, Cards_user.Card.hp, count(Cards_user.Card.type), count(Cards_user.Card.rarity); Etc
-  // value     String // 1, 200, Fire
   QuestUser     QuestUser[]
-  queryCheck    String
 
   @@map("quests")
 }
@@ -263,10 +275,79 @@ model QuestUser {
   quest_id     Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
-  User         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  Quest        Quest    @relation(fields: [quest_id], references: [id], onDelete: Cascade)
-  currentLevel Int      @default(0)
   completed    Boolean  @default(false)
+  currentLevel Int      @default(0)
+  Quest        Quest    @relation(fields: [quest_id], references: [id], onDelete: Cascade)
+  User         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("quest_user")
+}
+
+model messages {
+  id                                Int      @id @default(autoincrement())
+  sender_id                         Int
+  receiver_id                       Int
+  content                           String
+  createdAt                         DateTime @default(now())
+  updatedAt                         DateTime @default(now())
+  viewed                            Boolean  @default(false)
+  users_messages_receiver_idTousers User     @relation("messages_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
+  users_messages_sender_idTousers   User     @relation("messages_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+}
+
+model money_donate {
+  id                                    Int      @id @default(autoincrement())
+  receiver_id                           Int
+  sender_id                             Int
+  amount                                Int
+  createdAt                             DateTime @default(now())
+  updatedAt                             DateTime @default(now())
+  users_money_donate_receiver_idTousers User     @relation("money_donate_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
+  users_money_donate_sender_idTousers   User     @relation("money_donate_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+}
+
+model notifications {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  type      String
+  content   String
+  thumbnail String?
+  createdAt DateTime @default(now())
+  viewed    Boolean  @default(false)
+  users     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model trade_offer_cards {
+  id           Int          @id @default(autoincrement())
+  card_id      Int
+  trade_id     Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now())
+  cards        Card         @relation(fields: [card_id], references: [id], onDelete: Cascade)
+  trade_offers trade_offers @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+}
+
+model trade_offers {
+  id                Int                 @id @default(autoincrement())
+  trade_id          Int
+  user_id           Int
+  money             Int
+  createdAt         DateTime            @default(now())
+  trade_offer_cards trade_offer_cards[]
+  trades            Trade               @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  users             User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model trade_requests {
+  id                                      Int      @id @unique @default(autoincrement())
+  receiver_id                             Int
+  sender_id                               Int
+  createdAt                               DateTime @default(now())
+  updatedAt                               DateTime @default(now())
+  accepted                                Boolean  @default(false)
+  revoked                                 Boolean  @default(false)
+  tradeId                                 Int      @unique
+  users_trade_requests_receiver_idTousers User     @relation("trade_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
+  users_trade_requests_sender_idTousers   User     @relation("trade_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+  trades                                  Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 }

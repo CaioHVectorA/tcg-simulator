@@ -1,45 +1,33 @@
-# Use a imagem oficial do Bun
+# Usa a imagem oficial do Bun (leve e rápida)
 FROM oven/bun:1 AS base
-
-# Instalar dependências adicionais
-RUN apt-get update && apt-get install -y fuse3 openssl sqlite3 ca-certificates curl
-
-# Instalar Node.js 20.8
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-  && apt-get install -y nodejs
-
-FROM base AS deps
-
 WORKDIR /myapp
 
-# Adicionar arquivos de dependências e instalar pacotes
-ADD package.json package-lock.json bun.lockb ./
+# Instala apenas o openssl (obrigatório para o Query Engine do Prisma rodar no Linux)
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# ---- Passo 1: Instalação e Geração do Prisma ----
+# Copia os arquivos de pacotes
+COPY package.json bun.lockb ./
+
+# Copia a pasta prisma INTEIRA para dentro de ./prisma (evita o bug de caminhos)
+COPY prisma ./prisma/
+
+# Instala as dependências travadas pelo lockfile
 RUN bun install
 
-FROM base AS production-deps
+# Gera o Prisma Client usando o Bun
+RUN bunx prisma generate
 
-WORKDIR /myapp
+# ---- Passo 2: Código Fonte e Execução ----
+# Copia o restante do seu projeto
+COPY . .
 
-# Copiar as dependências instaladas na camada de deps
-COPY --from=deps /myapp/node_modules /myapp/node_modules
+# Garante que o app vai rodar na porta que o Fly.io espera
+ENV PORT=8080
+EXPOSE 8080
 
-# Adicionar arquivos de dependências para produção
-ADD package.json bun.lockb ./
-
-# Instalar o Prisma CLI
-ADD prisma .
-
-
-# Gerar os arquivos do Prisma
-RUN npx prisma generate --generator client
-
-# Adicionar o restante do código-fonte
-ADD . .
-
-# Configurar o usuário e expor a porta da aplicação
+# Muda para o usuário seguro do Bun (boas práticas de Docker)
 USER bun
-EXPOSE 3000/tcp
 
-
-# Executar a aplicação
+# Inicializa o Elysia
 CMD ["bun", "run", "src/index.ts"]

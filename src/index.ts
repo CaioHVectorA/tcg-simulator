@@ -82,7 +82,10 @@ export const server: Elysia = new Elysia({
       },
     })
   )
-  .listen(8080);
+  .listen({
+    port: process.env.PORT || 8080,
+    hostname: '0.0.0.0'
+  });
 console.log("Server running");
 //@ts-ignore
 // RankingCron().run();
