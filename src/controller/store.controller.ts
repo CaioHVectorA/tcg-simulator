@@ -152,6 +152,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
       const cards = await prisma.user_Purchase.findMany({
         where: {
           card_id: { not: null },
+          user_id: user.id,
         },
         select: {
           card_id: true,
