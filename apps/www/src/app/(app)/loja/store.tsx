@@ -70,7 +70,7 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
     const isInPurchased = (id: number) => data.includes(id)
     return (
         <KartProvider setData={setData}>
-            <div className="container mx-auto px-4 py-8 *:font-syne">
+            <div className="container mx-auto px-4 py-8 *:font-syne max-md:text-center">
                 <Navigation />
                 <h1 className="text-5xl font-bold mb-8">Loja</h1>
                 <h2 className="text-2xl font-bold mb-4">Resgate sua recompensa diária</h2>
