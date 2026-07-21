@@ -7,8 +7,7 @@
     "@faker-js/faker": "^8.4.1",
     "@mermaid-js/mermaid-cli": "^11.4.2",
     "@types/bun": "latest",
-    "prisma": "^5.18.0",
-    "prisma-erd-generator": "^1.11.2"
+    "prisma": "^7.2.0"
   },
   "private": true,
   "workspaces": [
@@ -35,12 +34,13 @@
     "@elysiajs/stream": "^1.1.0",
     "@elysiajs/swagger": "^1.1.1",
     "@grotto/logysia": "^0.1.4",
-    "@prisma/client": "^5.18.0",
+    "@prisma/client": "6.16.2",
     "@tcgdex/sdk": "^2.5.1",
     "@types/bcrypt": "^5.0.2",
     "aws-sdk": "^2.1691.0",
     "bcrypt": "^5.1.1",
     "bun": "^1.1.38",
+    "dotenv": "^17.2.3",
     "elysia": "^1.1.5",
     "elysia-helmet": "^2.0.0",
     "mock-aws-s3": "^4.0.2",

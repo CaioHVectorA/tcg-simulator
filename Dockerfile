@@ -31,8 +31,7 @@ ADD prisma .
 
 
 # Gerar os arquivos do Prisma
-RUN npx prisma generate --generator client
-
+RUN npx prisma generate
 # Adicionar o restante do código-fonte
 ADD . .
 
