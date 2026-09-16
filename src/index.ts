@@ -30,7 +30,6 @@ import { notificationController } from "./controller/notification.controller";
 import { areaController } from "./controller/area.controller";
 import { wsManager } from "./lib/ws-manager";
 import { jwt } from "./middlewares/jwt/jwt";
-
 //@ts-ignore
 export const server: Elysia = new Elysia({
   precompile: false,
@@ -100,6 +99,7 @@ export const server: Elysia = new Elysia({
     console.log({ error });
     return errorResponse(error.message, error.message);
   })
+  .get("/ping", () => "pong")
   .use(authController)
   .use(userController)
   .use(packageController)
@@ -128,7 +128,10 @@ export const server: Elysia = new Elysia({
       },
     })
   )
-  .listen(8080);
+  .listen({
+    port: process.env.PORT || 8080,
+    hostname: '0.0.0.0'
+  });
 console.log("Server running");
 //@ts-ignore
 // RankingCron().run();

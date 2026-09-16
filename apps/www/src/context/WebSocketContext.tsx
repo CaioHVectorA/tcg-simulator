@@ -19,6 +19,11 @@ interface WebSocketContextType {
   send: (type: string, payload?: any) => void;
   lastMessage: WsMessage | null;
   subscribe: (type: string, handler: (payload: any) => void) => () => void;
+  socket: WebSocket | null;
+  sendMessage: (to: number, text: string) => void;
+  sendFriendRequest: (to: number) => void;
+  sendTradeRequest: (recipient: number) => void;
+  acceptFriendRequest: (from: number) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType>({
@@ -26,6 +31,11 @@ const WebSocketContext = createContext<WebSocketContextType>({
   send: () => {},
   lastMessage: null,
   subscribe: () => () => {},
+  socket: null,
+  sendMessage: () => {},
+  sendFriendRequest: () => {},
+  sendTradeRequest: () => {},
+  acceptFriendRequest: () => {},
 });
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -195,8 +205,36 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, []);
 
+  const sendMessage = useCallback((to: number, text: string) => {
+    send("MESSAGE", { to, text });
+  }, [send]);
+
+  const sendFriendRequest = useCallback((to: number) => {
+    send("FRIEND_REQUEST", { to });
+  }, [send]);
+
+  const sendTradeRequest = useCallback((recipient: number) => {
+    send("TRADE_REQUEST", { recipient });
+  }, [send]);
+
+  const acceptFriendRequest = useCallback((from: number) => {
+    send("FRIEND_REQUEST_ACCEPTED", { from });
+  }, [send]);
+
   return (
-    <WebSocketContext.Provider value={{ isConnected, send, lastMessage, subscribe }}>
+    <WebSocketContext.Provider
+      value={{
+        isConnected,
+        send,
+        lastMessage,
+        subscribe,
+        socket: socketRef.current,
+        sendMessage,
+        sendFriendRequest,
+        sendTradeRequest,
+        acceptFriendRequest,
+      }}
+    >
       {children}
     </WebSocketContext.Provider>
   );

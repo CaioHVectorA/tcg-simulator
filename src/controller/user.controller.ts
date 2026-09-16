@@ -225,7 +225,23 @@ export const userController = new Elysia({}).group("/user", (app) => {
         const friend = await prisma.user.findFirst({
           where: { id: targetId },
         });
-
+        const alreadyFriend = await prisma.friend_User.findFirst({
+          where: {
+            OR: [
+              { user_id: user.id, friend_id: targetId },
+              { user_id: targetId, friend_id: user.id },
+            ],
+          },
+        });
+        if (alreadyFriend) {
+          if (alreadyFriend.accepted) {
+            return sucessResponse(null, "Você já é amigo desse usuário");
+          }
+          return sucessResponse(
+            null,
+            "Você já enviou um pedido de amizade para esse usuário"
+          );
+        }
         if (!friend) {
           set.status = 404;
           return errorResponse(
@@ -834,6 +850,86 @@ export const userController = new Elysia({}).group("/user", (app) => {
         detail: { tags: ["User"], description: "Atualiza dados de perfil do usuário" },
         response: baseResponse,
       }
-    );
-});
+    )
+    .get("/friendship-data", async ({ user, prisma, set }) => {
+      // return all data - sent, received, online
+      const sent = await prisma.friend_User.findMany({
+        where: { user_id: user.id, accepted: false },
+        select: {
+          id: true,
+          friend_id: true,
+          Friend: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
+            },
+          },
+        },
+      });
+      const received = await prisma.friend_User.findMany({
+        where: { friend_id: user.id, accepted: false },
+        select: {
+          id: true,
+          user_id: true,
+          User: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
+            },
+          },
+        },
+      });
+      const allFriends = await prisma.friend_User.findMany({
+        where: {
+          OR: [
+            { user_id: user.id, accepted: true },
+            { friend_id: user.id, accepted: true },
+          ],
+        },
+        select: {
+          id: true,
+          user_id: true,
+          friend_id: true,
+          User: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
+            },
+          },
+          Friend: {
+            select: {
+              username: true,
+              email: true,
+              id: true,
+              picture: true,
+              last_entry: true,
+              online: true,
+            },
+          },
+        },
+      });
 
+      return {
+        sent,
+        received,
+        online: allFriends
+          .filter((f) => f.User.online || f.Friend.online)
+          .map((i) => (i.User.id === user.id ? i.Friend : i.User)),
+        offline: allFriends
+          .filter((f) => !f.User.online && !f.Friend.online)
+          .map((i) => (i.User.id === user.id ? i.Friend : i.User)),
+      };
+    });
+});

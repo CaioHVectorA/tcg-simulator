@@ -114,7 +114,7 @@ export function HeaderMenu() {
                                     {item.name}
                                 </Link>
                             ))}
-                            <Link href="/friends" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
+                            <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
                                 <Users className="w-4 h-4 mr-2" />
                                 Social
                             </Link>
