@@ -49,7 +49,7 @@ export const server: Elysia = new Elysia({
     })
   )
   .ws("/ws", {
-    async open(ws) {
+    async open(ws: any) {
       try {
         const token = (ws.data.query as any)?.token;
         if (!token) {
@@ -72,12 +72,12 @@ export const server: Elysia = new Elysia({
         ws.close(4003, "Auth error");
       }
     },
-    async message(ws, message) {
+    async message(ws: any, message: any) {
       if (message === "ping" || (typeof message === "object" && (message as any)?.type === "ping")) {
         ws.send(JSON.stringify({ type: "PONG", timestamp: new Date().toISOString() }));
       }
     },
-    async close(ws) {
+    async close(ws: any) {
       const userId = (ws as any).userId;
       if (userId) {
         await wsManager.unregister(userId, ws);

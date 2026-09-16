@@ -90,7 +90,14 @@ async function seedUsers() {
       console.log("Trade iteration", i);
       const _user =
         prisma_users[Math.floor(Math.random() * prisma_users.length)];
-      const _trade = await prisma.trade.create({});
+      const _trade = await prisma.trade.create({
+        data: {
+          acceptMoney: true,
+          acceptOffers: true,
+          name: `Trade ${user.username} #${i}`,
+          hash: crypto.randomUUID(),
+        },
+      });
       const user_cards = await prisma.cards_user.findMany({
         take: 12,
         where: { userId: user.id },

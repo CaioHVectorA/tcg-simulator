@@ -137,9 +137,9 @@ export const ws = new Elysia().ws("/ws", {
     }
   },
 
-  async close(ws) {
+  async close(ws: any) {
     const userId = Number(ws.data.query.userId!);
-    if (connections.get(userId)?.ws === ws) {
+    if ((connections.get(userId)?.ws as any) === (ws as any)) {
       connections.delete(userId);
       console.log(`User ${userId} disconnected`);
     }
@@ -170,7 +170,7 @@ async function handleMessage(senderId: number, content: MessageContent) {
     timestamp: Date.now(),
   };
   console.log({ messageInHandleMessage: message });
-  await prisma.message.create({
+  await prisma.messages.create({
     data: {
       receiver_id: Number(content.to),
       sender_id: senderId,
