@@ -191,69 +191,145 @@ const RegisterForm = ({ onSubmit, referrer }: {
     )
 }
 
-const GuestLoginDialog = ({ isOpen, onClose, onConfirm }: {
-    isOpen: boolean
-    onClose: () => void
-    onConfirm: () => void
-}) => (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Entrar como Convidado</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Você está prestes a entrar como convidado. Suas atividades serão limitadas e não serão salvas. Deseja continuar? Nenhum bônus será aplicado!
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={onConfirm}>Continuar</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-)
+const guestRandomNames = [
+    "TreinadorRed", "MestreCharizard", "PikachuFan", "GengarMaster",
+    "LucarioAce", "MewtwoChamp", "EeveeCollector", "DragoniteHero"
+];
+
+const GuestForm = ({ onSubmit, loading }: {
+    onSubmit: (values: { nickname: string }) => void,
+    loading: boolean,
+}) => {
+    const [nickname, setNickname] = React.useState("")
+
+    const generateRandomNick = () => {
+        const base = guestRandomNames[Math.floor(Math.random() * guestRandomNames.length)];
+        const num = Math.floor(Math.random() * 900 + 100);
+        setNickname(`${base}_${num}`);
+    }
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const chosen = nickname.trim() || `Treinador_${Math.floor(Math.random() * 9000 + 1000)}`;
+        onSubmit({ nickname: chosen });
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 font-syne">
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Nickname de Treinador</label>
+                <div className="flex gap-2">
+                    <Input 
+                        placeholder="Ex: MestreRed" 
+                        value={nickname} 
+                        onChange={(e) => setNickname(e.target.value)} 
+                        className="font-syne"
+                    />
+                    <Button type="button" variant="outline" onClick={generateRandomNick} title="Gerar nome aleatório">
+                        🎲
+                    </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground font-sans">
+                    Escolha como deseja ser identificado no simulador.
+                </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 font-sans leading-relaxed">
+                ⚡ <strong>Modo Convidado:</strong> Abra pacotes, colecione cartas e ganhe moedas instantaneamente! Recursos sociais (amigos e trocas) são reservados para contas registradas, mas você pode salvar todo seu progresso a qualquer momento sem perder nenhuma carta.
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black">
+                {loading ? <LoaderSimple /> : "Começar a Jogar"}
+            </Button>
+        </form>
+    )
+}
 
 export default function LoginRegisterPage() {
     const [activeTab, setActiveTab] = useState('login')
-    const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
     const { post, loading } = useApi()
     const { toast } = useToast()
     const { push } = useRouter()
     const searchParams = useSearchParams()
     const referrerCode = searchParams.get("referrer")
     const withBonus = !!searchParams.get("with_bonus")
+
     async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
-        const response = await post('/auth/login', values)
-        if (response.data.ok) {
-            const token = response.data.data.token
-            setCookie('token', token, 7)
-            push('/home')
+        try {
+            const response = await post('/auth/login', values)
+            if (response?.data?.ok) {
+                const token = response.data.data.token
+                setCookie('token', token, 7)
+                push('/home')
+            } else if (response?.data?.toast || response?.data?.error) {
+                toast({
+                    title: "Erro ao entrar",
+                    description: response.data.toast || response.data.error,
+                    variant: "destructive"
+                })
+            }
+        } catch (err: any) {
+            toast({
+                title: "Falha na conexão",
+                description: err?.response?.data?.error || err?.response?.data?.toast || "Não foi possível conectar ao backend ou ao banco de dados.",
+                variant: "destructive"
+            })
         }
     }
 
     async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-        const response = await post('/auth/register', { ...values, withBonus })
-        if (response.data.ok) {
-            const token = response.data.data.token
-            setCookie('token', token, 7)
-            push('/home')
-        }
-    }
-    async function onGuestSubmit() {
-        const response = await post('/auth/guest', { referrer: referrerCode })
-        if (response.data.ok) {
-            const token = response.data.data.token
-            setCookie('token', token, 7)
-            push('/home')
+        try {
+            const response = await post('/auth/register', { ...values, withBonus })
+            if (response?.data?.ok) {
+                const token = response.data.data.token
+                setCookie('token', token, 7)
+                push('/home')
+            } else if (response?.data?.toast || response?.data?.error) {
+                toast({
+                    title: "Erro no cadastro",
+                    description: response.data.toast || response.data.error,
+                    variant: "destructive"
+                })
+            }
+        } catch (err: any) {
+            toast({
+                title: "Falha na conexão",
+                description: err?.response?.data?.error || err?.response?.data?.toast || "Não foi possível conectar ao backend ou ao banco de dados.",
+                variant: "destructive"
+            })
         }
     }
 
-
+    async function onGuestSubmit(data?: { nickname: string }) {
+        try {
+            const response = await post('/auth/guest', {
+                referrer: referrerCode,
+                nickname: data?.nickname
+            })
+            if (response?.data?.ok) {
+                const token = response.data.data.token
+                setCookie('token', token, 7)
+                push('/home')
+            } else if (response?.data?.toast || response?.data?.error) {
+                toast({
+                    title: "Erro ao entrar como convidado",
+                    description: response.data.toast || response.data.error,
+                    variant: "destructive"
+                })
+            }
+        } catch (err: any) {
+            toast({
+                title: "Falha na conexão",
+                description: err?.response?.data?.error || err?.response?.data?.toast || "Não foi possível conectar ao backend ou ao banco de dados.",
+                variant: "destructive"
+            })
+        }
+    }
 
     return (
         <div className="min-h-screen bg-cover bg-center flex items-center justify-center bg-blend-darken bg-[linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)),url(/wallpaper.jpg)]">
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-background/80 backdrop-blur-none rounded-lg p-8">
                 <div className="flex flex-col font-syne max-md:hidden justify-center items-center bg-primary text-primary-foreground p-8 rounded-lg">
-                    {/* <img src="/logo.png" alt="TCG Logo" className="w-64 h-64 mb-4" /> */}
                     <h1 className="text-7xl font-bold mb-2 text-white">SimTCG</h1>
                     <p className="text-center text-3xl text-white"><Typewriter /> seus cards Pokémon favoritos!</p>
                 </div>
@@ -262,21 +338,25 @@ export default function LoginRegisterPage() {
                 </SessionProvider>
                 <Card className="w-full">
                     <CardHeader className="space-y-1">
-                        <CardDescription className="text-center">
-                            {!withBonus && activeTab === 'login' ? 'Entre na sua conta' : 'Crie uma nova conta'}
+                        <CardDescription className="text-center font-syne">
+                            {activeTab === 'login' ? 'Entre na sua conta' : activeTab === 'register' ? 'Crie uma nova conta' : 'Acesse rápido sem cadastro'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={withBonus ? 'register' : activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList style={{ display: withBonus ? 'none' : 'grid' }} className="w-full grid-cols-2">
+                        <Tabs value={withBonus ? 'register' : activeTab} onValueChange={setActiveTab} className="w-full font-syne">
+                            <TabsList style={{ display: withBonus ? 'none' : 'grid' }} className="w-full grid-cols-3">
                                 <TabsTrigger value="login">Entrar</TabsTrigger>
                                 <TabsTrigger value="register">Registrar</TabsTrigger>
+                                <TabsTrigger value="guest">Convidado</TabsTrigger>
                             </TabsList>
                             <TabsContent value="login">
                                 <LoginForm loading={loading} onSubmit={onLoginSubmit} />
                             </TabsContent>
                             <TabsContent value="register">
                                 <RegisterForm onSubmit={onRegisterSubmit} referrer={referrerCode!} />
+                            </TabsContent>
+                            <TabsContent value="guest">
+                                <GuestForm loading={loading} onSubmit={onGuestSubmit} />
                             </TabsContent>
                         </Tabs>
                     </CardContent>
@@ -286,19 +366,18 @@ export default function LoginRegisterPage() {
                                 <div className="absolute inset-0 flex items-center">
                                     <span className="w-full border-t" />
                                 </div>
-                                <div className="relative flex justify-center text-xs uppercase">
+                                <div className="relative flex justify-center text-xs uppercase font-syne">
                                     <span className="bg-background px-2 text-muted-foreground">Ou continue com</span>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Button variant="outline" onClick={() => signIn('google')}>
-                                    {/* <Mail className="mr-2 h-4 w-4" /> */}
                                     <svg xmlns="http://www.w3.org/2000/svg" className=' h-4 w-4 mr-2' x="0px" y="0px" width="100" height="100" viewBox="0 0 30 30">
                                         <path d="M 15.003906 3 C 8.3749062 3 3 8.373 3 15 C 3 21.627 8.3749062 27 15.003906 27 C 25.013906 27 27.269078 17.707 26.330078 13 L 25 13 L 22.732422 13 L 15 13 L 15 17 L 22.738281 17 C 21.848702 20.448251 18.725955 23 15 23 C 10.582 23 7 19.418 7 15 C 7 10.582 10.582 7 15 7 C 17.009 7 18.839141 7.74575 20.244141 8.96875 L 23.085938 6.1289062 C 20.951937 4.1849063 18.116906 3 15.003906 3 z"></path>
                                     </svg>
                                     Google
                                 </Button>
-                                <Button variant="outline" onClick={() => setIsGuestDialogOpen(true)}>
+                                <Button variant="outline" onClick={() => setActiveTab('guest')}>
                                     <User className="mr-2 h-4 w-4" />
                                     Convidado
                                 </Button>
@@ -307,7 +386,6 @@ export default function LoginRegisterPage() {
                     </CardFooter>
                 </Card>
             </div>
-            <GuestLoginDialog onConfirm={onGuestSubmit} isOpen={isGuestDialogOpen} onClose={() => setIsGuestDialogOpen(false)} />
         </div>
     )
 }

@@ -16,8 +16,9 @@ type User = {
     money: number,
     last_daily_bounty: string,
     last_entry: string,
-    picture: string
-    // Outras propriedades que você precisar
+    picture: string;
+    isGuest?: boolean;
+    authProvider?: string;
 };
 
 const UserContext = createContext<{ user: User | null } | null>(null);

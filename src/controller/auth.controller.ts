@@ -1,5 +1,6 @@
 import Elysia, { t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
+import { receiveUser } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 import { compare, hash } from "bcrypt";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
@@ -121,31 +122,55 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/guest",
       async ({ body, jwt }) => {
-        let count = await prisma.user.count({
-          where: { username: { startsWith: "Convidado" } },
-        });
-        const { referrer } = body;
-        let name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
-        while (true) {
-          const user = await prisma.user.findFirst({
-            where: { username: name },
+        const { referrer, nickname, picture } = body as {
+          referrer?: string | null;
+          nickname?: string;
+          picture?: string;
+        };
+
+        let finalName = "";
+        if (nickname && nickname.trim().length >= 2) {
+          const clean = nickname.trim();
+          const existing = await prisma.user.findFirst({
+            where: { username: clean },
           });
-          if (!user) break;
-          name = `Convidado ${Math.floor(Math.random() * 1000 + count)}`;
+          if (existing) {
+            finalName = `${clean}_${Math.floor(Math.random() * 900 + 100)}`;
+          } else {
+            finalName = clean;
+          }
+        } else {
+          let count = await prisma.user.count({
+            where: { username: { startsWith: "Treinador" } },
+          });
+          finalName = `Treinador_${Math.floor(Math.random() * 1000 + count + 1)}`;
+          while (true) {
+            const user = await prisma.user.findFirst({
+              where: { username: finalName },
+            });
+            if (!user) break;
+            finalName = `Treinador_${Math.floor(Math.random() * 9000 + 1000)}`;
+          }
         }
+
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
+        const randomPass = await hash((Math.random() * 100_000_000).toFixed(6), 10);
+        const emailSlug = finalName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
         const newUser = await prisma.user.create({
           data: {
-            username: name,
-            email: `${name.replace(" ", "").toLowerCase()}@simtcg.com`,
-            password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
+            username: finalName,
+            email: `${emailSlug}_${Date.now()}@guest.simtcg.com`,
+            password: randomPass,
             isGuest: true,
             authProvider: "guest",
+            picture: picture || "/wallpaper.jpg",
             last_daily_bounty: yesterday,
           },
-          select: { id: true },
+          select: { id: true, username: true, isGuest: true },
         });
+
         if (referrer) {
           const referralProtocol = await prisma.referrerProtocol.findFirst({
             where: { hash: referrer },
@@ -159,16 +184,107 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             });
           }
         }
+
         const token = await jwt.sign({ id: newUser.id });
         return sucessResponse(
-          { token },
-          "Usuário convidado criado com sucesso!"
+          { token, user: newUser },
+          `Bem-vindo(a), ${newUser.username}! Modo Convidado iniciado.`
         );
       },
       {
-        body: t.Object({ referrer: t.Optional(t.Nullable(t.String())) }),
+        body: t.Object({
+          referrer: t.Optional(t.Nullable(t.String())),
+          nickname: t.Optional(t.String({ minLength: 2, maxLength: 30 })),
+          picture: t.Optional(t.String()),
+        }),
         response: {
           200: baseResponse,
+        },
+      }
+    )
+    .post(
+      "/upgrade-guest",
+      async ({ headers, set, jwt, body }) => {
+        const auth = headers["authorization"];
+        if (!auth || !auth.includes("Bearer")) {
+          set.status = 401;
+          return errorResponse("Não autenticado", "Faça login antes de aprimorar sua conta.");
+        }
+        const token = auth.replace("Bearer ", "");
+        const user = await receiveUser(token, jwt as any);
+        if (!user) {
+          set.status = 401;
+          return errorResponse("Usuário não encontrado", "Sessão expirada.");
+        }
+        if (!user.isGuest) {
+          set.status = 400;
+          return errorResponse("Conta já permanente", "Esta conta já é permanente e registrada.");
+        }
+
+        const { email, password, username } = body;
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Verificar se email já existe
+        const existingEmail = await prisma.user.findFirst({
+          where: { email: cleanEmail, id: { not: user.id } },
+        });
+        if (existingEmail) {
+          set.status = 400;
+          return errorResponse("Email já cadastrado", "Este email já pertence a outro treinador.");
+        }
+
+        let newUsername = user.username;
+        if (username && username.trim().length >= 3) {
+          const cleanName = username.trim();
+          const existingName = await prisma.user.findFirst({
+            where: { username: cleanName, id: { not: user.id } },
+          });
+          if (existingName) {
+            set.status = 400;
+            return errorResponse("Nome já em uso", "Este nome de treinador já está em uso.");
+          }
+          newUsername = cleanName;
+        }
+
+        const hashedPassword = await hash(password, 10);
+
+        const updatedUser = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: cleanEmail,
+            password: hashedPassword,
+            username: newUsername,
+            isGuest: false,
+            authProvider: "email",
+          },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            picture: true,
+            money: true,
+            isGuest: true,
+          },
+        });
+
+        const newToken = await jwt.sign({ id: user.id });
+
+        return sucessResponse(
+          { user: updatedUser, token: newToken },
+          "Parabéns! Sua conta foi aprimorada com sucesso. Todas as suas cartas e moedas foram preservadas!"
+        );
+      },
+      {
+        body: t.Object({
+          email: t.String(),
+          password: t.String({ minLength: 6 }),
+          username: t.Optional(t.String({ minLength: 3, maxLength: 30 })),
+        }),
+        detail: { tags: ["Auth"], description: "Aprimora conta de convidado para permanente sem perda de dados" },
+        response: {
+          200: baseResponse,
+          400: baseResponse,
+          401: baseResponse,
         },
       }
     )

@@ -3,4 +3,10 @@ Dockerfile
 .dockerignore
 node_modules
 .git
-/apps
+apps/www/.next
+apps/www/node_modules
+apps/www/src
+apps/www/public
+.gemini
+tests
+*.log

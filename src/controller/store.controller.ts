@@ -153,6 +153,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
         where: {
           user_id: user.id,
           card_id: { not: null },
+          user_id: user.id,
         },
         select: {
           card_id: true,

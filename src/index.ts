@@ -25,6 +25,11 @@ import { referralController } from "./controller/referral.controller";
 import { logger } from "@grotto/logysia";
 import { questsController } from "./controller/quests.controller";
 import { DiaryQuestsCron } from "./lib/diary-quests-cron";
+import { messageController } from "./controller/message.controller";
+import { notificationController } from "./controller/notification.controller";
+import { areaController } from "./controller/area.controller";
+import { wsManager } from "./lib/ws-manager";
+import { jwt } from "./middlewares/jwt/jwt";
 //@ts-ignore
 export const server: Elysia = new Elysia({
   precompile: false,
@@ -33,15 +38,52 @@ export const server: Elysia = new Elysia({
 })
   .use(staticPlugin())
   .use(helmet())
+  .use(jwt)
   .use(
     cors({
-      origin: process.env.CLIENT_URL || "*",
+      origin: process.env.CLIENT_URL || true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
       exposeHeaders: ["Content-Type", "Authorization"],
       credentials: true,
     })
   )
+  .ws("/ws", {
+    async open(ws: any) {
+      try {
+        const token = (ws.data.query as any)?.token;
+        if (!token) {
+          ws.send(JSON.stringify({ type: "ERROR", message: "Token não fornecido" }));
+          ws.close(4001, "No token");
+          return;
+        }
+        const payload: any = await (ws.data as any).jwt.verify(token);
+        if (!payload || !payload.id) {
+          ws.send(JSON.stringify({ type: "ERROR", message: "Token inválido" }));
+          ws.close(4002, "Invalid token");
+          return;
+        }
+        const userId = Number(payload.id);
+        (ws as any).userId = userId;
+        await wsManager.register(userId, ws);
+        ws.send(JSON.stringify({ type: "CONNECTED", payload: { userId } }));
+      } catch (err) {
+        console.error("[WS] Connection auth error:", err);
+        ws.close(4003, "Auth error");
+      }
+    },
+    async message(ws: any, message: any) {
+      if (message === "ping" || (typeof message === "object" && (message as any)?.type === "ping")) {
+        ws.send(JSON.stringify({ type: "PONG", timestamp: new Date().toISOString() }));
+      }
+    },
+    async close(ws: any) {
+      const userId = (ws as any).userId;
+      if (userId) {
+        await wsManager.unregister(userId, ws);
+      }
+    },
+  })
   .onError(({ code, error, set }) => {
     console.log({ code, error });
     if (error.message === "Invalid token") {
@@ -57,6 +99,7 @@ export const server: Elysia = new Elysia({
     console.log({ error });
     return errorResponse(error.message, error.message);
   })
+  .get("/ping", () => "pong")
   .use(authController)
   .use(userController)
   .use(packageController)
@@ -69,6 +112,9 @@ export const server: Elysia = new Elysia({
   .use(storeController)
   .use(referralController)
   .use(specialController)
+  .use(messageController)
+  .use(notificationController)
+  .use(areaController)
   // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(cron(DiaryQuestsCron()))

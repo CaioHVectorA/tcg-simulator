@@ -170,11 +170,10 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
 
         // Mapeia as queries em um array de Promises
         const queryPromises = questsUser.map(async (quest) => {
-          if (questsCache.has(`quest-${quest.quest_id}`)) {
+          const cacheKey = `quest-${user.id}-${quest.quest_id}`;
+          if (questsCache.has(cacheKey)) {
             //@ts-ignore
-            const [cachedQuest, lastUpdate] = questsCache.get(
-              `quest-${quest.quest_id}`
-            );
+            const [cachedQuest, lastUpdate] = questsCache.get(cacheKey);
             if (new Date().getTime() - lastUpdate.getTime() < 5000) {
               return cachedQuest;
             }
@@ -184,21 +183,13 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             progress: number | bigint;
           };
           // in a mission, same if user completed all levels, isnt completed in DB. We will check if the user completed all levels
-          // go horse way to fix a bug, TODO: Refactor this
           let isFullCompleted = false;
           if (!quest.Quest.levelGoals[quest.currentLevel]) {
-            console.log(
-              "entrou",
-              quest.Quest,
-              quest.currentLevel,
-              quest.completed
-            );
             isFullCompleted = true;
             queryRes = {
               mission_complete: true,
               progress: quest.Quest.levelGoals[quest.currentLevel - 1],
             };
-            console.log({ queryRes });
           } else {
             const query = runQuery(
               quest.Quest.queryCheck,
@@ -217,7 +208,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             id: quest.Quest.id,
             currentLevel: quest.currentLevel,
             actualReward: quest.Quest.levelRewards[quest.currentLevel],
-            completed: queryRes.mission_complete,
+            completed: Boolean(queryRes.mission_complete),
             total:
               quest.Quest.levelGoals[quest.currentLevel] || queryRes.progress,
             progress: Number(queryRes.progress),
@@ -225,7 +216,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             isDiary: quest.Quest.isDiary,
           };
 
-          questsCache.set(`quest-${quest.Quest.id}`, [response, new Date()]);
+          questsCache.set(cacheKey, [response, new Date()]);
           return response;
         });
 
@@ -235,9 +226,6 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
         );
         return sucessResponse(questsResponse);
       })
-      // .get("/diary", async ({ user }) => {
-
-      // })
       .patch("/get-reward/:id", async ({ user, params }) => {
         // Get the quest for the user
         const questUser = await prisma.questUser.findFirst({
@@ -265,32 +253,30 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           return errorResponse("A missão ainda não foi completada.");
         }
 
-        // Update the user's reward
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            money: {
-              increment: questUser.Quest.levelRewards[questUser.currentLevel],
-            },
-            totalBudget: {
-              increment: questUser.Quest.levelRewards[questUser.currentLevel],
-            },
-          },
-        });
+        const reward = questUser.Quest.levelRewards[questUser.currentLevel];
+        const hasNextLevel = questUser.currentLevel < questUser.Quest.levelGoals.length - 1;
 
-        // Update the questUser to the next level or mark as completed
-        if (questUser.currentLevel < questUser.Quest.levelGoals.length - 1) {
-          await prisma.questUser.update({
-            where: { id: questUser.id },
-            data: { currentLevel: { increment: 1 } },
-          });
-        } else {
-          await prisma.questUser.update({
-            where: { id: questUser.id },
-            data: { completed: true },
-          });
-        }
-        questsCache.delete(`quest-${questUser.quest_id}`);
+        // Atualização atômica via transação Prisma
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              money: { increment: reward },
+              totalBudget: { increment: reward },
+            },
+          }),
+          hasNextLevel
+            ? prisma.questUser.update({
+                where: { id: questUser.id },
+                data: { currentLevel: { increment: 1 } },
+              })
+            : prisma.questUser.update({
+                where: { id: questUser.id },
+                data: { completed: true },
+              }),
+        ]);
+
+        questsCache.delete(`quest-${user.id}-${questUser.quest_id}`);
         return sucessResponse(null, "Recompensa recebida com sucesso!");
       })
   );

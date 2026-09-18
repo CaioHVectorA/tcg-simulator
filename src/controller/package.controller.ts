@@ -226,7 +226,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         console.log({ first, packagesCount, packagesId });
         if (
           packagesId.some(
-            (id) => id > packagesCount + first.id || id < first.id
+            (id: number) => id > packagesCount + first.id || id < first.id
           )
         ) {
           set.status = 400;
@@ -236,7 +236,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           );
         }
         const quantities = {} as Record<number, number>;
-        packagesId.forEach((id) => {
+        packagesId.forEach((id: number) => {
           quantities[id] = (quantities[id] || 0) + 1;
         });
         const packages = await prisma.package.findMany({
@@ -288,7 +288,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const { packagesId } = body;
         const quantities = {} as Record<number, number>;
         let rarityPointsGain = 0;
-        packagesId.forEach((id) => {
+        packagesId.forEach((id: number) => {
           quantities[id] = (quantities[id] || 0) + 1;
         });
         const packages = await prisma.package.findMany({

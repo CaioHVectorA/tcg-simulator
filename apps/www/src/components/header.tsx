@@ -2,9 +2,10 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy } from 'lucide-react'
+import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { UpgradeAccountModal } from '@/components/upgrade-account-modal'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,16 +32,19 @@ import {
 import { Separator } from './ui/separator'
 import { useUser } from '@/context/UserContext'
 import { balanceTranslate } from '@/lib/balance-translate'
-import { Wip } from './wip'
 import { Avatar } from './avatar'
+import { NotificationsPopover } from './notifications-popover'
+import { SocialHub } from '@/modules/social/social-hub'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
     { name: 'Inventário', href: '/inventario', icon: Box },
     { name: 'Coleção', href: '/colecao', icon: Layers },
     { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
+    { name: 'Áreas', href: '/areas', icon: Compass },
+    { name: "Missões", href: "/missoes", icon: Trophy },
+    { name: "Social", href: "/social", icon: Users },
     { name: "Afiliado", href: "/afiliado", icon: Handshake },
-    { name: "Missões", href: "/missoes", icon: Trophy }
 ]
 
 const profileItems = [
@@ -52,7 +56,9 @@ const profileItems = [
 export function HeaderMenu() {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = React.useState(false)
-    const { picture, username, money, email } = useUser()
+    const [upgradeOpen, setUpgradeOpen] = React.useState(false)
+    const user = useUser()
+    const { picture, username, money, email, isGuest } = user || {}
     return (
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
@@ -94,6 +100,16 @@ export function HeaderMenu() {
                                 <p className='text-xl font-syne'>{balanceTranslate(money)}</p>
                                 <Coins color='gold' className="size-4" />
                             </div>
+                            {isGuest && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => { setIsOpen(false); setUpgradeOpen(true); }}
+                                    className="w-full mt-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5"
+                                >
+                                    <Sparkles className="size-3.5" />
+                                    Salvar Conta (Convidado)
+                                </Button>
+                            )}
                             <Separator />
                         </SheetHeader>
                         <nav className="flex flex-col space-y-4 mt-4">
@@ -111,7 +127,7 @@ export function HeaderMenu() {
                                     {item.name}
                                 </Link>
                             ))}
-                            <Link href="/friends" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
+                            <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
                                 <Users className="w-4 h-4 mr-2" />
                                 Social
                             </Link>
@@ -166,23 +182,42 @@ export function HeaderMenu() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <div className=' flex gap-2 items-center'>
-                        <p className='text-xl'>{balanceTranslate(money)}</p>
-                        <Coins color='gold' className="size-6" />
+                        {isGuest && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setUpgradeOpen(true)}
+                                className="h-8 gap-1.5 border-amber-500/50 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:text-amber-400 font-semibold text-xs px-2.5 rounded-full animate-pulse hover:animate-none shadow-sm"
+                            >
+                                <Sparkles className="size-3.5" />
+                                <span className="hidden lg:inline">Conta Convidado •</span> Salvar Conta
+                            </Button>
+                        )}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/60 border border-border">
+                            <span className='text-sm font-bold font-mono'>{balanceTranslate(money)}</span>
+                            <Coins color='gold' className="size-4 shrink-0 text-amber-400" />
+                        </div>
+                        <NotificationsPopover />
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Users className=' size-6' />
+                                <Button variant="ghost" size="icon" className="size-10 rounded-full">
+                                    <Users className='size-5' />
+                                    <span className="sr-only">Social</span>
+                                </Button>
                             </SheetTrigger>
-                            <SheetContent side="right">
-                                <SheetHeader>
-                                    <SheetTitle>Social</SheetTitle>
+                            <SheetContent side="right" className="w-[90vw] sm:max-w-md overflow-y-auto">
+                                <SheetHeader className="mb-4">
+                                    <SheetTitle className="text-xl font-bold flex items-center gap-2">
+                                        <Users className="size-5 text-primary" /> Social & Treinadores
+                                    </SheetTitle>
                                 </SheetHeader>
-                                {/* Conteúdo de amizade aqui */}
-                                <Wip />
+                                <SocialHub />
                             </SheetContent>
                         </Sheet>
                     </div>
                 </div>
             </div>
+            <UpgradeAccountModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
         </header>
     )
 }

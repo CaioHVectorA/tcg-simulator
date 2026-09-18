@@ -3,21 +3,15 @@ import { useArr } from "@/hooks/use-arr-state";
 import { generateUUID } from "@/lib/uuid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-// export type ArrStateActions<T> = {
-//     setArrState: React.Dispatch<React.SetStateAction<T[]>>;
-//     addItem: (item: T) => void;
-//     removeItem: (index: number) => void;
-//     editItem: (index: number, data: T) => void;
-//     undo: () => void;
-// };
-import React, { createContext, useContext } from "react";
+import { useToast } from "@/hooks/use-toast";
+import React, { createContext, useContext, useState } from "react";
 
 type KartItem = {
     id: number;
     name: string;
     price: number;
     quantity: number;
-    type: "package" | "card"
+    type: "package" | "card";
     card_id?: number;
 };
 
@@ -33,6 +27,10 @@ type KartContextType = {
         message: string;
     }>;
     loading: boolean;
+    lastAddedId: number | null;
+    successModalOpen: boolean;
+    setSuccessModalOpen: (open: boolean) => void;
+    lastPurchasedCount: number;
 };
 
 const KartContext = createContext<KartContextType | undefined>(undefined);
@@ -42,53 +40,108 @@ export const KartProvider = ({ children, setData }: {
     setData: React.Dispatch<React.SetStateAction<number[]>>;
 }) => {
     const [kart, { setArrState: setKart, undo, addItem: add, editItem: edit, removeItem: rm }] = useArr<KartItem>([]);
-    const { post, loading } = useApi()
-    const qClient = useQueryClient()
-    const { refresh } = useRouter()
+    const { post, loading } = useApi();
+    const qClient = useQueryClient();
+    const { refresh } = useRouter();
+    const { toast } = useToast();
+    const [lastAddedId, setLastAddedId] = useState<number | null>(null);
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
+    const [lastPurchasedCount, setLastPurchasedCount] = useState(1);
+
     const addItem = (item: KartItem) => {
+        setLastAddedId(item.id);
+        setTimeout(() => setLastAddedId(null), 800);
+
         const exists = kart.find((i) => (i.id === item.id && i.type === item.type));
         if (exists) {
-            return editItem(item.id, { quantity: exists.quantity + item.quantity });
+            editItem(item.id, { quantity: exists.quantity + item.quantity });
+            toast({
+                title: "Carrinho Atualizado 🛒",
+                description: `Ajustado para ${exists.quantity + item.quantity}x ${item.name}.`
+            });
+            return;
         }
         add(item);
+        toast({
+            title: "Adicionado ao Carrinho 🛒",
+            description: `${item.quantity}x ${item.name} adicionado.`
+        });
     };
 
     const removeItem = (id: number) => {
+        const item = kart.find(i => i.id === id);
         setKart((prevKart) => prevKart.filter((item) => item.id !== id));
+        if (item) {
+            toast({
+                title: "Item Removido 🗑️",
+                description: `"${item.name}" removido.`
+            });
+        }
     };
 
     const editItem = (id: number, data: Partial<KartItem>) => {
+        if (data.quantity !== undefined && data.quantity <= 0) {
+            removeItem(id);
+            return;
+        }
         setKart((prevKart) =>
             prevKart.map((item) =>
                 item.id === id ? { ...item, ...data } : item
             )
         );
     };
+
     const checkout = async (setOpen: (g: boolean) => void) => {
-        const key = generateUUID()
+        const key = generateUUID();
         try {
             const res = await post("/store/checkout?key=" + key, {
                 items: kart
             });
             const { data, ok } = res.data;
             if (ok) {
-                console.log('Chegou aqui!')
-                await qClient.invalidateQueries({ queryKey: ["user"] })
-                await qClient.refetchQueries({ queryKey: ["user"] })
+                await qClient.invalidateQueries({ queryKey: ["user"] });
+                await qClient.refetchQueries({ queryKey: ["user"] });
+                const itemCount = kart.reduce((acc, item) => acc + item.quantity, 0);
+                setLastPurchasedCount(itemCount || 1);
                 setKart([]);
-                console.log('Chegou aqui! 2!')
+                setSuccessModalOpen(true);
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Não foi possível concluir",
+                    description: res.data?.message || "Verifique seu saldo de moedas."
+                });
             }
-            setOpen(false)
-            const cardsId = kart.filter(item => item.type === 'card').map(item => item.card_id!)
-            setData((prev) => [...prev, ...cardsId])
+            setOpen(false);
+            const cardsId = kart.filter(item => item.type === 'card').map(item => item.card_id!);
+            setData((prev) => [...prev, ...cardsId]);
             return { ok, message: "Compra efetuada com êxito!" };
         } catch (error) {
-            console.log(error)
+            console.log(error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao finalizar compra",
+                description: "Tente novamente em alguns segundos."
+            });
             return { ok: false, message: "Erro ao finalizar compra, tente novamente em alguns segundos" };
         }
-    }
+    };
+
     return (
-        <KartContext.Provider value={{ kart, setKart, addItem, removeItem, editItem, undo, checkout, loading }}>
+        <KartContext.Provider value={{ 
+            kart, 
+            setKart, 
+            addItem, 
+            removeItem, 
+            editItem, 
+            undo, 
+            checkout, 
+            loading, 
+            lastAddedId,
+            successModalOpen,
+            setSuccessModalOpen,
+            lastPurchasedCount
+        }}>
             {children}
         </KartContext.Provider>
     );

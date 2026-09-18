@@ -24,5 +24,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["apps", "node_modules", "widgets"]
 }
