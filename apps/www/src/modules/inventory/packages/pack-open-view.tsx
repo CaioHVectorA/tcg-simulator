@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
+import { MaxRarityCelebration } from "@/components/max-rarity-celebration";
 import { Sparkles, Eye, ArrowRight, CheckCircle2, RotateCcw, Trophy, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -46,6 +47,7 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
+  const [maxRarityCard, setMaxRarityCard] = useState<Card | null>(null);
 
   const currentCard = cards[currentIndex];
   const rarityConfig = currentCard ? RARITY_COLORS[currentCard.rarity || 1] : RARITY_COLORS[1];
@@ -56,12 +58,17 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
 
     soundFx.playCardFlip();
     const rarity = currentCard?.rarity || 1;
-    if (rarity === 2) {
-      setTimeout(() => soundFx.playRareChime(), 150);
-    } else if (rarity === 3) {
-      setTimeout(() => soundFx.playEpicAura(), 150);
+    if (rarity === 5) {
+      soundFx.playMaxRarityAura();
+      setTimeout(() => {
+        setMaxRarityCard(currentCard);
+      }, 500);
     } else if (rarity >= 4) {
       setTimeout(() => soundFx.playLegendaryFanfare(), 150);
+    } else if (rarity === 3) {
+      setTimeout(() => soundFx.playEpicAura(), 150);
+    } else if (rarity === 2) {
+      setTimeout(() => soundFx.playRareChime(), 150);
     }
   };
 
@@ -151,6 +158,11 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                 style={{ transformStyle: "preserve-3d" }}
                 className="w-full h-full relative"
               >
+                {/* Suspense Glow para carta Rarity 5 antes de virar */}
+                {!isFlipped && currentCard.rarity === 5 && (
+                  <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-500 opacity-90 blur-xl animate-pulse pointer-events-none" />
+                )}
+
                 {/* Lado Verso */}
                 <div
                   style={{ backfaceVisibility: "hidden" }}
@@ -339,6 +351,12 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
         isOpen={Boolean(inspectCard)}
         onClose={() => setInspectCard(null)}
         card={inspectCard}
+      />
+
+      <MaxRarityCelebration
+        card={maxRarityCard as any}
+        isOpen={Boolean(maxRarityCard)}
+        onClose={() => setMaxRarityCard(null)}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "./card-detail-modal";
+import { MaxRarityCelebration } from "./max-rarity-celebration";
 import { Sparkles, Eye, ArrowRight, CheckCircle2, RotateCcw, Flame, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
@@ -79,6 +80,7 @@ export function PackOpeningModal({
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
+  const [maxRarityCard, setMaxRarityCard] = useState<OpenedCard | null>(null);
   const [totalOpenedInSession, setTotalOpenedInSession] = useState(0);
 
   // Inicialização ao abrir modal
@@ -131,12 +133,17 @@ export function PackOpeningModal({
     soundFx.playCardFlip();
 
     const rarity = currentCard.rarity || 1;
-    if (rarity === 2) {
-      setTimeout(() => soundFx.playRareChime(), 150);
-    } else if (rarity === 3) {
-      setTimeout(() => soundFx.playEpicAura(), 150);
+    if (rarity === 5) {
+      soundFx.playMaxRarityAura();
+      setTimeout(() => {
+        setMaxRarityCard(currentCard);
+      }, 500);
     } else if (rarity >= 4) {
       setTimeout(() => soundFx.playLegendaryFanfare(), 150);
+    } else if (rarity === 3) {
+      setTimeout(() => soundFx.playEpicAura(), 150);
+    } else if (rarity === 2) {
+      setTimeout(() => soundFx.playRareChime(), 150);
     }
   };
 
@@ -341,6 +348,11 @@ export function PackOpeningModal({
                       style={{ transformStyle: "preserve-3d" }}
                       className="w-full h-full relative"
                     >
+                      {/* Suspense Glow para carta Rarity 5 antes de virar */}
+                      {!isFlipped && currentCard.rarity === 5 && (
+                        <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-500 opacity-90 blur-xl animate-pulse pointer-events-none" />
+                      )}
+
                       {/* LADO DA FRENTE (VERSO POKÉMON - ANTES DE VIRAR) */}
                       <div
                         style={{ backfaceVisibility: "hidden" }}
@@ -570,6 +582,13 @@ export function PackOpeningModal({
         isOpen={Boolean(inspectCard)}
         onClose={() => setInspectCard(null)}
         card={inspectCard}
+      />
+
+      {/* Celebração Cinemática de Máxima Raridade (Tier 5 / God Pull) */}
+      <MaxRarityCelebration
+        card={maxRarityCard}
+        isOpen={Boolean(maxRarityCard)}
+        onClose={() => setMaxRarityCard(null)}
       />
     </>
   );

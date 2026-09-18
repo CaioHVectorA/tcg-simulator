@@ -14,6 +14,17 @@ const baseResponse = t.Object({
   data: t.Any(),
 });
 
+function checkGuestSocial(user: User, set: any) {
+  if (user?.isGuest) {
+    set.status = 403;
+    return errorResponse(
+      "Recurso social indisponível para contas convidadas.",
+      "Visitantes não podem usar recursos sociais. Aprimore sua conta para interagir com a comunidade!"
+    );
+  }
+  return null;
+}
+
 export const userController = new Elysia({}).group("/user", (app) => {
   return app
     .use(jwt)
@@ -43,6 +54,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/friends",
       async ({ user, prisma, query, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { search } = query;
         const friends = await prisma.friend_User.findMany({
           where: {
@@ -81,6 +94,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/search",
       async ({ user, prisma, query, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { q } = query;
         if (!q || q.trim().length < 2) {
           return sucessResponse([]);
@@ -148,6 +163,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/requests",
       async ({ user, prisma, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const requests = await prisma.friend_User.findMany({
           where: { friend_id: user.id, accepted: false },
           select: {
@@ -178,6 +195,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/requests/sent",
       async ({ user, prisma, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const requests = await prisma.friend_User.findMany({
           where: { user_id: user.id, accepted: false },
           select: {
@@ -208,6 +227,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .post(
       "send/:id",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const targetId = Number(params.id);
         if (isNaN(targetId)) {
           set.status = 400;
@@ -314,6 +335,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .post(
       "accept/:id",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { id } = params;
         if (isNaN(Number(id))) {
           set.status = 400;
@@ -387,6 +410,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .delete(
       "reject/:id",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { id } = params;
         if (isNaN(id)) {
           set.status = 400;
@@ -424,6 +449,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .delete(
       "/remove-sent/:id",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { id } = params;
         if (isNaN(Number(id))) {
           set.status = 400;
@@ -583,6 +610,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .post(
       "/donate",
       async ({ user, prisma, body, set }) => {
+        const guestBlock = checkGuestSocial(user, set);
+        if (guestBlock) return guestBlock;
         const { receiver_id, amount } = body as { receiver_id: number; amount: number };
 
         if (!receiver_id || isNaN(receiver_id) || receiver_id === user.id) {
@@ -852,6 +881,8 @@ export const userController = new Elysia({}).group("/user", (app) => {
       }
     )
     .get("/friendship-data", async ({ user, prisma, set }) => {
+      const guestBlock = checkGuestSocial(user, set);
+      if (guestBlock) return guestBlock;
       // return all data - sent, received, online
       const sent = await prisma.friend_User.findMany({
         where: { user_id: user.id, accepted: false },

@@ -18,12 +18,14 @@ import {
   Trash2,
   Loader2,
   Check,
+  Camera,
 } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
+import { AvatarPickerModal } from "@/components/avatar-picker-modal";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +65,7 @@ export default function PerfilPage() {
 
   const [selectedCard, setSelectedCard] = useState<CardModalData | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newPicture, setNewPicture] = useState("");
 
@@ -141,9 +144,17 @@ export default function PerfilPage() {
       {/* Banner & Perfil do Treinador */}
       <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-8 backdrop-blur-md shadow-md mb-8">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="relative">
-            <Avatar username={user.username} src={user.picture} className="size-24 sm:size-28 shadow-xl" />
-            <Badge className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono font-bold text-xs bg-primary text-primary-foreground px-2.5 shadow-sm">
+          <div
+            className="relative group cursor-pointer"
+            onClick={() => setAvatarPickerOpen(true)}
+            title="Clique para alterar avatar"
+          >
+            <Avatar username={user.username} src={user.picture} className="size-24 sm:size-28 shadow-xl group-hover:opacity-85 transition-opacity" />
+            <div className="absolute inset-0 rounded-full bg-black/45 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-bold gap-1">
+              <Camera className="size-5" />
+              <span>Trocar</span>
+            </div>
+            <Badge className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono font-bold text-xs bg-primary text-primary-foreground px-2.5 shadow-sm pointer-events-none">
               NV. {stats.level}
             </Badge>
           </div>
@@ -294,9 +305,20 @@ export default function PerfilPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                URL do Avatar:
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-muted-foreground block">
+                  Avatar do Perfil:
+                </label>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => setAvatarPickerOpen(true)}
+                  className="h-auto p-0 text-xs font-semibold text-primary"
+                >
+                  <Sparkles className="size-3 mr-1" /> Galeria / Cartas
+                </Button>
+              </div>
               <Input
                 value={newPicture}
                 onChange={(e) => setNewPicture(e.target.value)}
@@ -322,6 +344,14 @@ export default function PerfilPage() {
         card={selectedCard}
         isOpen={Boolean(selectedCard)}
         onClose={() => setSelectedCard(null)}
+      />
+
+      {/* Modal de Escolha de Avatar */}
+      <AvatarPickerModal
+        isOpen={avatarPickerOpen}
+        onClose={() => setAvatarPickerOpen(false)}
+        currentPicture={user.picture}
+        username={user.username}
       />
     </div>
   );

@@ -19,14 +19,16 @@ export function getRandomCardFromPackage(
 ): Card | null {
   function getRarity(): keyof typeof mapRarity {
     const weights: { key: keyof typeof mapRarity; weight: number }[] = [
-      { key: "full_legendary", weight: pkg.full_legendary_rarity || 0.01 },
-      { key: "legendary", weight: pkg.legendary_rarity || 0.04 },
-      { key: "epic", weight: pkg.epic_rarity || 0.15 },
-      { key: "rare", weight: pkg.rare_rarity || 0.30 },
-      { key: "common", weight: pkg.common_rarity || 0.50 },
+      { key: "full_legendary", weight: pkg.full_legendary_rarity ?? 0.01 },
+      { key: "legendary", weight: pkg.legendary_rarity ?? 0.04 },
+      { key: "epic", weight: pkg.epic_rarity ?? 0.15 },
+      { key: "rare", weight: pkg.rare_rarity ?? 0.30 },
+      { key: "common", weight: pkg.common_rarity ?? 0.50 },
     ];
 
     const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
+    if (totalWeight <= 0) return "common";
+
     let rand = Math.random() * totalWeight;
 
     for (const item of weights) {
@@ -40,7 +42,14 @@ export function getRandomCardFromPackage(
   }
 
   const rarity = getRarity();
-  const pool = cardsByRarity[rarity] || cardsByRarity["common"] || [];
+  const requestedPool = cardsByRarity[rarity];
+  const pool =
+    requestedPool && requestedPool.length > 0
+      ? requestedPool
+      : cardsByRarity["common"] && cardsByRarity["common"].length > 0
+      ? cardsByRarity["common"]
+      : Object.values(cardsByRarity).find((p) => p && p.length > 0) || [];
+
   if (pool.length === 0) return null;
 
   const randomIndex = Math.floor(Math.random() * pool.length);

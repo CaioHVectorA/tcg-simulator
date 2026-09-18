@@ -6,8 +6,9 @@ WORKDIR /myapp
 RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # ---- Passo 1: Instalação e Geração do Prisma ----
-# Copia os arquivos de pacotes
-COPY package.json bun.lockb ./
+# Copia os arquivos de pacotes (incluindo workspace para resolução do bun.lock)
+COPY package.json bun.lock* ./
+COPY apps/www/package.json ./apps/www/
 
 # Copia a pasta prisma INTEIRA para dentro de ./prisma (evita o bug de caminhos)
 COPY prisma ./prisma/

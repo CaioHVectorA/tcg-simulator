@@ -14,6 +14,17 @@ const baseResponse = t.Object({
   data: t.Any(),
 });
 
+function checkGuestTrade(user: User, set: any) {
+  if (user?.isGuest) {
+    set.status = 403;
+    return errorResponse(
+      "Recurso indisponível para convidados.",
+      "Visitantes não podem realizar trocas ou fazer ofertas. Aprimore sua conta para negociar!"
+    );
+  }
+  return null;
+}
+
 export const tradeController = new Elysia({}).group("/trades", (app) => {
   return app
     .use(jwt)
@@ -224,6 +235,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .post(
       "/",
       async ({ user, prisma, body, set }) => {
+        const guestBlock = checkGuestTrade(user, set);
+        if (guestBlock) return guestBlock;
         const {
           name,
           description = "",
@@ -362,6 +375,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .post(
       "/accept/:id",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestTrade(user, set);
+        if (guestBlock) return guestBlock;
         const id = Number(params.id);
         if (isNaN(id)) {
           set.status = 400;
@@ -543,6 +558,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .post(
       "/:id/offer",
       async ({ user, prisma, params, body, set }) => {
+        const guestBlock = checkGuestTrade(user, set);
+        if (guestBlock) return guestBlock;
         const id = Number(params.id);
         const { card_ids = [], money = 0 } = body as { card_ids: number[]; money?: number };
 
@@ -639,6 +656,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
     .post(
       "/offer/:offerId/accept",
       async ({ user, prisma, params, set }) => {
+        const guestBlock = checkGuestTrade(user, set);
+        if (guestBlock) return guestBlock;
         const offerId = Number(params.offerId);
 
         const offer = await prisma.trade_offers.findUnique({

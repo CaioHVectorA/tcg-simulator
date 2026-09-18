@@ -214,6 +214,97 @@ class SoundEffects {
     osc.start();
     osc.stop(ctx.currentTime + 0.16);
   }
+
+  /**
+   * Suspense & Impacto para Carta de Raridade Máxima (Sub-bass e crescendo)
+   */
+  public playMaxRarityAura() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    // Sub-bass sweep
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(65, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(130, ctx.currentTime + 0.5);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(120, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.5);
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.75);
+  }
+
+  /**
+   * Grande Fanfarra God Pull / Tier 5 Máxima Raridade
+   */
+  public playGodPullFanfare() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    // Acordes orquestrais triunfantes em escala estendida
+    const fanfareChords = [
+      { delay: 0.0, notes: [440, 554.37, 659.25], dur: 0.25 },     // A4, C#5, E5
+      { delay: 0.22, notes: [554.37, 659.25, 880.0], dur: 0.25 },   // C#5, E5, A5
+      { delay: 0.45, notes: [659.25, 830.61, 987.77], dur: 0.3 },   // E5, G#5, B5
+      { delay: 0.75, notes: [880.0, 1108.73, 1318.51, 1760.0], dur: 1.8 }, // Epic A5, C#6, E6, A6
+    ];
+
+    fanfareChords.forEach(({ delay, notes, dur }) => {
+      const startTime = ctx.currentTime + delay;
+      notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + dur + 0.05);
+      });
+    });
+
+    // Cascata de brilho / sparkles no final (arpejo veloz ascendente)
+    const sparkleNotes = [1318.51, 1479.98, 1661.22, 1760.0, 2093.0, 2637.02];
+    sparkleNotes.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + 0.9 + idx * 0.06;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.12, startTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.45);
+    });
+  }
 }
 
 export const soundFx = new SoundEffects();

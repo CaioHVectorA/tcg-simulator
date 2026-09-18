@@ -33,6 +33,9 @@ import { loadTcgImg } from "@/lib/load-tcg-img";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
 import { ChatDialog } from "@/components/chat-dialog";
+import { useUser } from "@/context/UserContext";
+import { GuestRestrictionCard } from "@/components/guest-restriction-card";
+import { UpgradeAccountModal } from "@/components/upgrade-account-modal";
 import {
   Dialog,
   DialogContent,
@@ -87,6 +90,8 @@ interface CounterOffer {
 }
 
 export default function TrocasPage() {
+  const user = useUser();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { get, post, delete: del } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -329,6 +334,23 @@ export default function TrocasPage() {
 
         {/* 1. ABA: MERCADO PÚBLICO */}
         <TabsContent value="market" className="space-y-6">
+          {user?.isGuest && (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="size-4 text-amber-500 shrink-0" />
+                <span className="text-muted-foreground">
+                  Você está navegando no mercado como <strong>Visitante</strong>. Salve sua conta para negociar e aceitar ofertas.
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setUpgradeOpen(true)}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 shrink-0"
+              >
+                Salvar Conta
+              </Button>
+            </div>
+          )}
           {/* Filtros e Barra de Busca */}
           <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center gap-4">
             <div className="relative flex-1 w-full">
@@ -521,6 +543,10 @@ export default function TrocasPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
+                                if (user?.isGuest) {
+                                  setUpgradeOpen(true);
+                                  return;
+                                }
                                 setOfferTradeTarget(trade);
                                 setOfferSelectedCards([]);
                                 setOfferMoney(0);
@@ -534,7 +560,13 @@ export default function TrocasPage() {
                           <Button
                             size="sm"
                             disabled={!trade.canFulfill}
-                            onClick={() => setConfirmAcceptTrade(trade)}
+                            onClick={() => {
+                              if (user?.isGuest) {
+                                setUpgradeOpen(true);
+                                return;
+                              }
+                              setConfirmAcceptTrade(trade);
+                            }}
                             className={`text-xs h-9 rounded-xl font-bold ${
                               trade.canFulfill
                                 ? "bg-emerald-600 hover:bg-emerald-500 text-white"
@@ -556,6 +588,9 @@ export default function TrocasPage() {
 
         {/* 2. ABA: CRIAR OFERTA */}
         <TabsContent value="create" className="space-y-6 max-w-3xl mx-auto">
+          {user?.isGuest ? (
+            <GuestRestrictionCard featureTitle="a Criação de Propostas de Troca" />
+          ) : (
           <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm space-y-5">
             <div>
               <h2 className="text-xl font-bold text-foreground">Configurar Nova Troca</h2>
@@ -741,11 +776,14 @@ export default function TrocasPage() {
               Publicar Troca no Mercado
             </Button>
           </div>
+          )}
         </TabsContent>
 
         {/* 3. ABA: MINHAS TROCAS */}
         <TabsContent value="my" className="space-y-6">
-          {loadingMyTrades ? (
+          {user?.isGuest ? (
+            <GuestRestrictionCard featureTitle="o Painel de Minhas Trocas" />
+          ) : loadingMyTrades ? (
             <div className="py-24 flex justify-center">
               <Loader2 className="size-8 animate-spin text-primary" />
             </div>
@@ -1014,6 +1052,8 @@ export default function TrocasPage() {
         isOpen={Boolean(chatFriend)}
         onClose={() => setChatFriend(null)}
       />
+
+      <UpgradeAccountModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }

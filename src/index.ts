@@ -41,7 +41,7 @@ export const server: Elysia = new Elysia({
   .use(jwt)
   .use(
     cors({
-      origin: process.env.CLIENT_URL || "*",
+      origin: process.env.CLIENT_URL || true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
       exposeHeaders: ["Content-Type", "Authorization"],

@@ -24,6 +24,8 @@ import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ChatDialog, ChatFriend } from "@/components/chat-dialog";
+import { useUser } from "@/context/UserContext";
+import { GuestRestrictionCard } from "@/components/guest-restriction-card";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +69,7 @@ interface SearchUserResult {
 }
 
 export const SocialHub: React.FC = () => {
+  const user = useUser();
   const { get, post, delete: del } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,6 +84,10 @@ export const SocialHub: React.FC = () => {
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [friendFilter, setFriendFilter] = useState("");
+
+  if (user?.isGuest) {
+    return <GuestRestrictionCard featureTitle="a Central Social & Amigos" />;
+  }
 
   // 1. Query: Amigos
   const { data: friends = [], isLoading: loadingFriends } = useQuery<FriendUser[]>({
