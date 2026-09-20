@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 const handler = NextAuth({
-  secret: "TEST",
+  secret: process.env.NEXTAUTH_SECRET || "TEST",
   theme: {
     logo: "https://www.tcgsim.com/wallpaper.jpg",
     buttonText: "Entrar com sua conta google!",
@@ -10,8 +10,8 @@ const handler = NextAuth({
   },
   providers: [
     GoogleProvider({
-      clientId: process.env.CLIENT_ID!,
-      clientSecret: process.env.SECRET_GOOGLE!,
+      clientId: (process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID || "")!,
+      clientSecret: (process.env.GOOGLE_CLIENT_SECRET || process.env.SECRET_GOOGLE || "")!,
     }),
   ],
 });
