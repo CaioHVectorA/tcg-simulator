@@ -305,6 +305,58 @@ class SoundEffects {
       osc.stop(startTime + 0.45);
     });
   }
+
+  /**
+   * Som de Troca Concluída (Pokéball trade chime com acordes triunfantes)
+   */
+  public playTradeSuccess() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    // Arpejo de conexão de troca
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+    notes.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + idx * 0.08;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.18, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.4);
+    });
+
+    // Acorde final de confirmação
+    const chordNotes = [783.99, 1046.5, 1318.51, 1567.98];
+    const chordTime = ctx.currentTime + 0.45;
+    chordNotes.forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, chordTime);
+
+      gain.gain.setValueAtTime(0, chordTime);
+      gain.gain.linearRampToValueAtTime(0.15, chordTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, chordTime + 0.9);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(chordTime);
+      osc.stop(chordTime + 0.95);
+    });
+  }
 }
 
 export const soundFx = new SoundEffects();
+

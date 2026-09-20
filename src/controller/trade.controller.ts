@@ -113,7 +113,10 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
 
           const requestedCards = trade.cards
             .filter((c) => !c.is_sender)
-            .map((c) => c.Card);
+            .map((c) => ({
+              ...c.Card,
+              userOwns: myCardIds.has(c.Card.id),
+            }));
 
           // Verifica se o usuário atual cumpre todos os requisitos
           const hasRequestedCards =
@@ -130,6 +133,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
             name: trade.name,
             description: trade.description,
             createdAt: trade.createdAt,
+            expiresAt: trade.expiresAt,
             acceptOffers: trade.acceptOffers,
             acceptMoney: trade.acceptMoney,
             moneySending: trade.moneySending,
@@ -214,8 +218,17 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         const creatorTrade = trade.userTrades.find((ut) => ut.is_sender);
         const acceptorTrade = trade.userTrades.find((ut) => !ut.is_sender);
 
+        const myUserCards = await prisma.cards_user.findMany({
+          where: { userId: user.id },
+          select: { cardId: true },
+        });
+        const myCardIds = new Set(myUserCards.map((c) => c.cardId));
+
         const offeredCards = trade.cards.filter((c) => c.is_sender).map((c) => c.Card);
-        const requestedCards = trade.cards.filter((c) => !c.is_sender).map((c) => c.Card);
+        const requestedCards = trade.cards.filter((c) => !c.is_sender).map((c) => ({
+          ...c.Card,
+          userOwns: myCardIds.has(c.Card.id),
+        }));
 
         return sucessResponse({
           ...trade,

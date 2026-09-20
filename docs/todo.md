@@ -9,6 +9,13 @@
 
 ### ✅ Entregas Concluídas Recentemente
 
+- [x] **Refatoração Completa da Estação de Trocas P2P (`/trocas`), UX Tátil & Seed Realista:**
+  - Redesenho completo da interface `/trocas` em formato de mesa de negociação com cards no padrão "VOCÊ RECEBE" (com bordas iluminadas por raridade, zoom e brilho holográfico) ⇄ "VOCÊ ENTREGA" (com selos visuais em tempo real de cartas possuídas `✓ No Binder` vs cartas que faltam `🔒 Falta`).
+  - Barra de filtros com chips táteis (*Todas as Ofertas*, *Posso Aceitar Já* com contador verde esmeralda, *God Pulls ★5*, *Místicas ★4*, *Épicas ★3*, *Com Moedas*).
+  - Fluxo de criação de oferta ("Trade Builder") em 3 passos com seleção visual de cartas marcadas para troca, catálogo com filtros ágeis de raridade e comprovante em tempo real ("Trade Ticket") com cálculo da taxa diária (2.000 moedas/dia) e seletor de duração (1 a 30 dias).
+  - Som exclusivo de finalização de troca (`soundFx.playTradeSuccess()`) sintetizado com harmônicos clássicos do Pokémon Trade Center.
+  - Script dedicado de seed em lote (`prisma/seed/seed-trades.ts`): criação de 10 treinadores da comunidade (Red, Cynthia, Steven, Lance, Blue, Sabrina, Leon, Nemona, Misty, Brock) e 12 ofertas de trocas balanceadas com cartas registradas em `cards_user` e contrapropostas ativas no banco.
+
 - [x] **Limpeza Visual e Textual na Landing Page e Aba de Login:**
   - Removidos textos inúteis, buzzwords técnicos ("Web Audio API", "WebSocket", "animações a 60fps", "celebrações cinematográficas") e instruções redundantes de cursor.
   - Removido texto "Abertura cinematográfica com áudio" e lista estática de bullet points da tela `/entrar`.
