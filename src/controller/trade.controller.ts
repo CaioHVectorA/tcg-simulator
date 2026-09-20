@@ -248,6 +248,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           minRarity = 1,
           maxRarity = 5,
           public: isPublic = true,
+          durationDays = 3,
         } = body as {
           name: string;
           description?: string;
@@ -259,6 +260,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           minRarity?: number;
           maxRarity?: number;
           public?: boolean;
+          durationDays?: number;
         };
 
         if (!name || !name.trim()) {
@@ -269,6 +271,20 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         if (!sender_cards || sender_cards.length === 0) {
           set.status = 400;
           return errorResponse("Cartas obrigatórias", "Você deve selecionar ao menos uma carta para oferecer");
+        }
+
+        // Taxa de publicação: 2.000 moedas (2k) por dia
+        const d = Math.max(1, Math.min(30, Number(durationDays ?? 3)));
+        const fee = d * 2000;
+
+        // Validar saldo para cobrir taxa + moedas ofertadas
+        const totalRequiredMoney = fee + (moneySending > 0 ? Number(moneySending) : 0);
+        if (user.money < totalRequiredMoney) {
+          set.status = 400;
+          return errorResponse(
+            "Saldo insuficiente",
+            `Saldo insuficiente! Você precisa de ${totalRequiredMoney} moedas (taxa de publicação: ${fee} moedas por ${d} dia(s)${moneySending > 0 ? ` + ${moneySending} moedas ofertadas` : ""}).`
+          );
         }
 
         // Validar posse das cartas pelo remetente
@@ -288,16 +304,17 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           return errorResponse("Você não possui uma ou mais cartas selecionadas para a troca");
         }
 
-        // Validar moedas oferecidas
-        if (moneySending > 0 && user.money < moneySending) {
-          set.status = 400;
-          return errorResponse("Saldo insuficiente", "Você não possui moedas suficientes para ofertar nesta troca");
-        }
-
         const tradeHash = `TRD-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+        const expiresAt = new Date(Date.now() + d * 24 * 60 * 60 * 1000);
 
-        // Executar transação atômica de criação da troca
+        // Executar transação atômica de criação da troca e débito da taxa
         const newTrade = await prisma.$transaction(async (tx) => {
+          // Debitar taxa de publicação
+          await tx.user.update({
+            where: { id: user.id },
+            data: { money: { decrement: fee } },
+          });
+
           const trade = await tx.trade.create({
             data: {
               name: name.trim(),
@@ -310,6 +327,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
               minRarity: Number(minRarity) || 1,
               maxRarity: Number(maxRarity) || 5,
               public: isPublic !== false,
+              expiresAt,
             },
           });
 
@@ -353,7 +371,10 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           },
         }, user.id);
 
-        return sucessResponse(newTrade, "Oferta de troca criada com sucesso!");
+        return sucessResponse(
+          newTrade,
+          `Oferta de troca criada com sucesso! Taxa de ${fee} moedas debitada para ${d} dia(s).`
+        );
       },
       {
         body: t.Object({
@@ -367,6 +388,7 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           minRarity: t.Optional(t.Number()),
           maxRarity: t.Optional(t.Number()),
           public: t.Optional(t.Boolean()),
+          durationDays: t.Optional(t.Number()),
         }),
         detail: { tags: ["Trade"], description: "Cria uma nova oferta de troca" },
         response: baseResponse,

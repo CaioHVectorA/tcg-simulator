@@ -26,7 +26,10 @@ import {
   ShoppingBag,
   PackageOpen,
   Filter,
+  Book,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AlbumView } from "@/modules/inventory/album";
 
 export type CardItem = {
   id: number;
@@ -76,6 +79,7 @@ export function Cards({
   });
 
   const isFavoritesOnly = searchParams.get("favorites") === "true";
+  const [currentView, setCurrentView] = useState<"cards" | "albums">("cards");
 
   const handleFilterToggle = (showOnlyFavorites: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -129,68 +133,85 @@ export function Cards({
   return (
     <div className="min-h-screen bg-background text-foreground py-6 sm:py-10">
       <div className="container mx-auto px-4 max-w-7xl">
-        {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-border/60">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-xs font-semibold mb-2">
-              <Layers className="size-3.5 text-amber-500" />
-              <span>Seu Deck de Cartas</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-bold font-syne tracking-tight">
-              Sua Coleção
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Cartas que você possui ({totalCards} no total) • Inspecione em alta resolução e selecione favoritas
-            </p>
-          </div>
-
-          {/* Barra de Filtros e Busca */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            {/* Filtro de Favoritas */}
-            <div className="inline-flex rounded-xl bg-secondary/80 p-1 border border-border shrink-0">
-              <button
-                type="button"
-                onClick={() => handleFilterToggle(false)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  !isFavoritesOnly
-                    ? "bg-primary text-slate-950 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Todas
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFilterToggle(true)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  isFavoritesOnly
-                    ? "bg-rose-600 text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Heart className={`size-3.5 ${isFavoritesOnly ? "fill-white" : "fill-rose-500/20 text-rose-500"}`} />
-                <span>Favoritas</span>
-              </button>
-            </div>
-
-            {/* Busca */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-1.5">
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar pelo nome..."
-                  className="pl-9 h-10 text-xs sm:text-sm bg-secondary/60 border-border"
-                />
+        <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as any)} className="w-full">
+          {/* Cabeçalho */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-border/60">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-xs font-semibold mb-2">
+                <Layers className="size-3.5 text-amber-500" />
+                <span>Coleção & Conquistas</span>
               </div>
-              <Button type="submit" size="sm" className="h-10 px-4 font-semibold text-xs shrink-0">
-                Buscar
-              </Button>
-            </form>
+              <h1 className="text-2xl sm:text-4xl font-bold font-syne tracking-tight">
+                {currentView === "cards" ? "Sua Coleção" : "Álbuns Oficiais & Missões"}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {currentView === "cards"
+                  ? `Cartas que você possui (${totalCards} no total) • Inspecione em alta resolução e selecione favoritas`
+                  : "Complete os conjuntos temáticos de todas as regiões para reivindicar recompensas em ouro e XP!"}
+              </p>
+            </div>
+
+            {/* Alternador de Abas */}
+            <TabsList className="bg-secondary/80 border border-border p-1">
+              <TabsTrigger value="cards" className="text-xs sm:text-sm font-semibold gap-2">
+                <Layers className="size-4 text-primary" />
+                <span>Minhas Cartas ({totalCards})</span>
+              </TabsTrigger>
+              <TabsTrigger value="albums" className="text-xs sm:text-sm font-semibold gap-2">
+                <Book className="size-4 text-amber-500" />
+                <span>Álbuns & Conquistas</span>
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </div>
+
+          {/* ABA: MINHAS CARTAS */}
+          <TabsContent value="cards" className="mt-0 space-y-6">
+            {/* Barra de Filtros e Busca */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 mb-6">
+              {/* Filtro de Favoritas */}
+              <div className="inline-flex rounded-xl bg-secondary/80 p-1 border border-border shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleFilterToggle(false)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    !isFavoritesOnly
+                      ? "bg-primary text-slate-950 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFilterToggle(true)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    isFavoritesOnly
+                      ? "bg-rose-600 text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Heart className={`size-3.5 ${isFavoritesOnly ? "fill-white" : "fill-rose-500/20 text-rose-500"}`} />
+                  <span>Favoritas</span>
+                </button>
+              </div>
+
+              {/* Busca */}
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-1.5">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar pelo nome..."
+                    className="pl-9 h-10 text-xs sm:text-sm bg-secondary/60 border-border"
+                  />
+                </div>
+                <Button type="submit" size="sm" className="h-10 px-4 font-semibold text-xs shrink-0">
+                  Buscar
+                </Button>
+              </form>
+            </div>
 
         {/* Empty States Aprimorados */}
         {data.length === 0 && (
@@ -355,6 +376,13 @@ export function Cards({
             </Pagination>
           </div>
         )}
+          </TabsContent>
+
+          {/* ABA: ÁLBUNS & CONQUISTAS */}
+          <TabsContent value="albums" className="mt-0">
+            <AlbumView />
+          </TabsContent>
+        </Tabs>
 
         {/* Modal de Zoom */}
         <Dialog open={!!selectedCard} onOpenChange={(open) => !open && setSelectedCard(null)}>

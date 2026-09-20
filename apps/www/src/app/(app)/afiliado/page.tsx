@@ -100,7 +100,7 @@ export default function Affiliate() {
     const { toast } = useToast()
     const handleCopy = async () => {
         if (!data) return
-        const text = `Venha colecionar cartas comigo! \n ${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`
+        const text = `Venha colecionar cartas comigo! \n ${window.location.origin}/entrar?referrer=${data.hash}`
         await navigator.clipboard.writeText(text)
         toast({ title: 'Link copiado!', description: 'Agora você pode compartilhar seu link com seus amigos e nas suas redes!' })
     }
@@ -121,7 +121,7 @@ export default function Affiliate() {
                         <h3 className=" font-syne mt-8 text-3xl text-center">Seu link de afiliado</h3>
                         <p className=" font-syne text-xl text-center mt-2">Compartilhe este link com seus amigos e comece a ganhar moedas!</p>
                         <div className=" mt-12 flex">
-                            <input type="text" disabled value={`${window.location.origin}/entrar?with_bonus=true&referrer=${data.hash}`} className=" w-full text-black/50 p-2 border rounded-l-full" />
+                            <input type="text" disabled value={`${window.location.origin}/entrar?referrer=${data.hash}`} className=" w-full text-black/50 p-2 border rounded-l-full" />
                             <Button onClick={handleCopy} className="rounded-r-full font-syne text-xl" size={'lg'}>Copiar</Button>
                         </div>
                         <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-64 mx-auto mt-4 object-cover" />

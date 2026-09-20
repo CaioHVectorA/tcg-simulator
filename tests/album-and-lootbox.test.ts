@@ -65,4 +65,23 @@ describe("Album & Thematic Lootbox Mechanics", () => {
     const uniqueIds = new Set(chosenCards.map((c) => c.id));
     expect(uniqueIds.size).toBe(10);
   });
+
+  it("should strictly match Pokemon names and NOT confuse Mew with Mewtwo", () => {
+    const { matchesPokemonName } = require("../src/controller/album.controller");
+
+    // Mew should match Mew, Mew ex, Mew VMAX
+    expect(matchesPokemonName("Mew", "Mew")).toBe(true);
+    expect(matchesPokemonName("Mew ex", "Mew")).toBe(true);
+    expect(matchesPokemonName("Mew VMAX", "Mew")).toBe(true);
+
+    // CRITICAL: Mew should NOT match Mewtwo or Mewtwo-GX!
+    expect(matchesPokemonName("Mewtwo", "Mew")).toBe(false);
+    expect(matchesPokemonName("Mewtwo-GX", "Mew")).toBe(false);
+    expect(matchesPokemonName("Mewtwo VSTAR", "Mew")).toBe(false);
+
+    // Mewtwo should match Mewtwo and variants, but NOT Mew
+    expect(matchesPokemonName("Mewtwo", "Mewtwo")).toBe(true);
+    expect(matchesPokemonName("Mewtwo-GX", "Mewtwo")).toBe(true);
+    expect(matchesPokemonName("Mew", "Mewtwo")).toBe(false);
+  });
 });

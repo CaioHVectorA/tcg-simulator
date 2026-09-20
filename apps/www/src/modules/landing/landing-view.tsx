@@ -136,7 +136,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                   <Link href="/entrar">Entrar</Link>
                 </Button>
                 <Button asChild className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans text-xs sm:text-sm px-4 shadow-md shadow-amber-500/20">
-                  <Link href="/entrar?with_bonus=true">
+                  <Link href="/entrar">
                     Jogar Agora <Sparkles className="size-3.5 ml-1.5" />
                   </Link>
                 </Button>
@@ -210,9 +210,9 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               variant="outline"
               className="w-full sm:w-auto h-12 px-6 font-sans font-semibold text-sm sm:text-base border-border/80 hover:bg-secondary/60 rounded-xl hover:scale-105 active:scale-95 transition-all"
             >
-              <Link href="/entrar?with_bonus=true">
-                <Gift className="size-4 mr-2 text-amber-500" />
-                Bônus de 3.000 Moedas
+              <Link href="/entrar">
+                <Sparkles className="size-4 mr-2 text-amber-500" />
+                Criar Coleção Grátis
               </Link>
             </Button>
           </motion.div>
@@ -359,10 +359,10 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
             <div className="max-w-2xl mx-auto">
               <span className="text-3xl sm:text-4xl mb-3 block">🎁</span>
               <h2 className="font-syne text-2xl sm:text-4xl font-black text-foreground mb-3">
-                Comece sua jornada com 3.000 Moedas
+                Comece sua jornada com Boosters Gratuitos
               </h2>
               <p className="font-sans text-xs sm:text-base text-muted-foreground mb-8">
-                Crie sua conta em menos de 1 minuto ou jogue diretamente como convidado para testar seu azar e sua sorte na abertura de boosters!
+                Crie sua conta em menos de 1 minuto ou jogue diretamente como convidado para abrir pacotes e começar sua coleção lendária!
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -371,8 +371,8 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                   size="lg"
                   className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-syne rounded-xl shadow-lg shadow-amber-500/20"
                 >
-                  <Link href="/entrar?with_bonus=true">
-                    Resgatar Bônus & Jogar <ArrowRight className="size-4 ml-1.5" />
+                  <Link href="/entrar">
+                    Jogar Agora Gratuitamente <ArrowRight className="size-4 ml-1.5" />
                   </Link>
                 </Button>
                 <Button

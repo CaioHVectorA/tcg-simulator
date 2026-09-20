@@ -92,31 +92,82 @@ export function PackOpeningModal({
   const [summaryCountdown, setSummaryCountdown] = useState(0);
   const summaryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Inicialização ao abrir modal
+  // Background Prefetch Refs e Estado
+  const prefetchedCardsRef = useRef<OpenedCard[] | null>(null);
+  const prefetchPromiseRef = useRef<Promise<OpenedCard[]> | null>(null);
+  const [isPrefetching, setIsPrefetching] = useState(false);
+
+  // Inicialização e prefetch instantâneo ao abrir modal
   useEffect(() => {
     if (isOpen) {
-      setPhase("ready");
+      if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
+
+      if (phase === "ready") {
+        if (preloadedCards && preloadedCards.length > 0) {
+          prefetchedCardsRef.current = preloadedCards;
+          preloadedCards.forEach((c) => {
+            if (c.image_url) {
+              const img = new Image();
+              img.src = loadTcgImg(c.image_url);
+            }
+          });
+        } else if (!prefetchedCardsRef.current && !prefetchPromiseRef.current && pack?.id) {
+          setIsPrefetching(true);
+          const promise = post("/packages/open", { packageId: pack.id })
+            .then((res) => {
+              const list = res.data.data || res.data || [];
+              prefetchedCardsRef.current = list;
+              // Pré-carrega imagens imediatamente no cache do browser
+              if (Array.isArray(list)) {
+                list.forEach((c: OpenedCard) => {
+                  if (c.image_url) {
+                    const img = new Image();
+                    img.src = loadTcgImg(c.image_url);
+                  }
+                });
+              }
+              return list;
+            })
+            .catch((err) => {
+              console.error("Falha no prefetch do pacote:", err);
+              return [];
+            })
+            .finally(() => {
+              setIsPrefetching(false);
+            });
+          prefetchPromiseRef.current = promise;
+        }
+      }
+    } else {
+      // Ao fechar o modal, sincroniza dados se algum pacote foi aberto
+      if (prefetchedCardsRef.current) {
+        qClient.invalidateQueries({ queryKey: ["packages"] });
+        qClient.invalidateQueries({ queryKey: ["user"] });
+        qClient.invalidateQueries({ queryKey: ["cards"] });
+      }
+      prefetchedCardsRef.current = null;
+      prefetchPromiseRef.current = null;
       setCards([]);
       setCurrentCardIndex(0);
       setIsFlipped(false);
-      setTotalOpenedInSession(0);
-      setSummaryCountdown(0);
-      if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
     }
-  }, [isOpen]);
+  }, [isOpen, phase, pack?.id, preloadedCards]);
 
   // Ação de rasgar o pacote
   const handleTearPack = async () => {
-    if (loading || phase !== "ready") return;
+    if (phase !== "ready") return;
 
     soundFx.playPackTear();
     setPhase("tearing");
 
     try {
-      const tearStartTime = Date.now();
       let cardsGetted: OpenedCard[] = [];
 
-      if (preloadedCards && preloadedCards.length > 0) {
+      if (prefetchedCardsRef.current && prefetchedCardsRef.current.length > 0) {
+        cardsGetted = prefetchedCardsRef.current;
+      } else if (prefetchPromiseRef.current) {
+        cardsGetted = await prefetchPromiseRef.current;
+      } else if (preloadedCards && preloadedCards.length > 0) {
         cardsGetted = preloadedCards;
       } else {
         const res = await post("/packages/open", { packageId: pack.id });
@@ -133,9 +184,7 @@ export function PackOpeningModal({
         });
       }
 
-      const elapsed = Date.now() - tearStartTime;
-      const waitTime = Math.max(0, 350 - elapsed);
-
+      // Transição fluida de 350ms sem interrupções
       setTimeout(() => {
         setCards(cardsGetted);
         setCurrentCardIndex(0);
@@ -147,7 +196,7 @@ export function PackOpeningModal({
         qClient.invalidateQueries({ queryKey: ["packages"] });
         qClient.invalidateQueries({ queryKey: ["user"] });
         qClient.invalidateQueries({ queryKey: ["cards"] });
-      }, waitTime);
+      }, 350);
     } catch (err) {
       setPhase("ready");
     }
@@ -221,10 +270,12 @@ export function PackOpeningModal({
 
   // Abrir mais um pacote do mesmo tipo
   const handleOpenAnother = () => {
-    setPhase("ready");
+    prefetchedCardsRef.current = null;
+    prefetchPromiseRef.current = null;
     setCards([]);
     setCurrentCardIndex(0);
     setIsFlipped(false);
+    setPhase("ready");
   };
 
   const currentCard = cards[currentCardIndex];

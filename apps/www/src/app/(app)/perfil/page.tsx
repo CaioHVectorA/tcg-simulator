@@ -22,11 +22,16 @@ import {
   Camera,
   Sun,
   Moon,
+  Gift,
+  Lock,
+  CheckCircle2,
+  Package as PackageIcon,
 } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { loadTcgImg } from "@/lib/load-tcg-img";
+import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
 import { AvatarPickerModal } from "@/components/avatar-picker-modal";
 import {
@@ -35,6 +40,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface LevelMilestone {
+  level: number;
+  coins: number;
+  packCount: number;
+  badge: string;
+  title: string;
+  isReached: boolean;
+  isClaimed: boolean;
+}
+
+interface LevelRoadData {
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+  levelProgress: number;
+  milestones: LevelMilestone[];
+  unclaimedCount: number;
+}
 
 interface ProfileData {
   user: {
@@ -83,6 +107,40 @@ export default function PerfilPage() {
     queryFn: async () => {
       const res = await get("/user/profile");
       return res.data.data;
+    },
+  });
+
+  const { data: levelRoad, isLoading: loadingLevelRoad } = useQuery<LevelRoadData>({
+    queryKey: ["level-road"],
+    queryFn: async () => {
+      const res = await get("/user/level-road");
+      return res.data.data;
+    },
+  });
+
+  const { mutate: claimReward, isPending: claimingReward } = useMutation({
+    mutationFn: async (targetLevel?: number) => {
+      const payload = targetLevel ? { level: targetLevel } : {};
+      const res = await post("/user/level-road/claim", payload);
+      return res.data;
+    },
+    onSuccess: (res) => {
+      soundFx.playSuccess();
+      toast({
+        title: "Recompensa Resgatada!",
+        description: res.toast || "Prêmios adicionados ao seu inventário com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["level-road"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Falha ao resgatar",
+        description: err.response?.data?.toast || "Não foi possível resgatar esta recompensa.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -211,6 +269,126 @@ export default function PerfilPage() {
               <Progress value={stats.levelProgress} className="h-2.5" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Trilha do Treinador: Progressão de Nível & XP */}
+      <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-7 backdrop-blur-md shadow-md mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="size-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-inner">
+              <Trophy className="size-6 text-amber-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-extrabold tracking-tight text-foreground">
+                  Trilha do Treinador
+                </h2>
+                <Badge variant="outline" className="text-[10px] font-mono border-amber-500/40 text-amber-500 bg-amber-500/10">
+                  XP & Nível
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-sans mt-0.5">
+                Evolua seu nível de treinador para resgatar fortunas em moedas, pacotes booster raros e títulos honorários.
+              </p>
+            </div>
+          </div>
+
+          {levelRoad && levelRoad.unclaimedCount > 0 && (
+            <Button
+              onClick={() => claimReward(undefined)}
+              disabled={claimingReward}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-syne rounded-xl shadow-lg shadow-amber-500/20 text-xs h-9 px-4 self-start sm:self-auto shrink-0"
+            >
+              {claimingReward ? (
+                <Loader2 className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Gift className="size-4 mr-1.5 animate-bounce" />
+              )}
+              Resgatar Todas ({levelRoad.unclaimedCount})
+            </Button>
+          )}
+        </div>
+
+        {/* Milestones Scroll Track */}
+        <div className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-border">
+          {levelRoad?.milestones.map((m) => {
+            const isClaimed = m.isClaimed;
+            const isClaimable = m.isReached && !m.isClaimed;
+            const isLocked = !m.isReached;
+
+            return (
+              <div
+                key={m.level}
+                className={`min-w-[170px] max-w-[185px] shrink-0 rounded-2xl p-3.5 border transition-all duration-200 flex flex-col justify-between ${
+                  isClaimable
+                    ? "bg-gradient-to-b from-amber-500/15 via-card to-card border-amber-400/80 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/40"
+                    : isClaimed
+                    ? "bg-card/40 border-border/50 opacity-75"
+                    : "bg-card/25 border-dashed border-border/60 opacity-60"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <Badge
+                      className={`text-[10px] font-mono font-bold px-2 py-0.5 ${
+                        isClaimable
+                          ? "bg-amber-500 text-slate-950"
+                          : isClaimed
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      Nv. {m.level}
+                    </Badge>
+                    <span className="text-lg leading-none" title={m.title}>
+                      {m.badge}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xs font-bold text-foreground line-clamp-1 mb-2.5" title={m.title}>
+                    {m.title}
+                  </h3>
+
+                  <div className="space-y-1.5 mb-3.5 text-[11px] font-sans">
+                    <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
+                      <Coins className="size-3.5 shrink-0" />
+                      <span>+{m.coins.toLocaleString("pt-BR")} moedas</span>
+                    </div>
+
+                    {m.packCount > 0 && (
+                      <div className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                        <PackageIcon className="size-3.5 shrink-0" />
+                        <span>+{m.packCount} Pacote{m.packCount > 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  {isClaimed ? (
+                    <span className="flex items-center justify-center text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-xl py-1.5 px-2.5 w-full border border-emerald-500/20">
+                      <CheckCircle2 className="size-3 mr-1" /> Resgatado
+                    </span>
+                  ) : isClaimable ? (
+                    <Button
+                      size="sm"
+                      onClick={() => claimReward(m.level)}
+                      disabled={claimingReward}
+                      className="w-full text-xs font-bold rounded-xl h-8 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm"
+                    >
+                      {claimingReward ? <Loader2 className="size-3 animate-spin mr-1" /> : <Gift className="size-3 mr-1" />}
+                      Resgatar
+                    </Button>
+                  ) : (
+                    <span className="flex items-center justify-center text-[10px] font-medium text-muted-foreground bg-muted/40 rounded-xl py-1.5 px-2.5 w-full border border-border/40">
+                      <Lock className="size-3 mr-1 opacity-70" /> Bloqueado
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

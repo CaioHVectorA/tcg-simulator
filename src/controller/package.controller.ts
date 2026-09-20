@@ -96,11 +96,19 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       "/",
       async ({ jwt, headers, user, prisma, set }) => {
         console.log({ user });
-        const packagesUnformatted = await prisma.packages_User.findMany({
-          where: { userId: user.id, opened: false },
-          select: { Package: true },
-          distinct: ["packageId"],
-        });
+        let packagesUnformatted;
+        const isAdmin = user.email === "admin@gmail.com";
+        if (isAdmin) {
+          const allPkgs = await prisma.package.findMany({ orderBy: { id: "asc" } });
+          packagesUnformatted = allPkgs.map((p) => ({ Package: p }));
+        } else {
+          packagesUnformatted = await prisma.packages_User.findMany({
+            where: { userId: user.id, opened: false },
+            select: { Package: true },
+            distinct: ["packageId"],
+          });
+        }
+
         // i want duplicates packages
         const packages = [] as {
           name: string;
@@ -111,14 +119,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           description: string;
         }[];
         for (const package_ of packagesUnformatted) {
-          const quantity = await prisma.packages_User.count({
-            where: {
-              userId: user.id,
-              packageId: package_.Package.id,
-              opened: false,
-            },
-          });
-          // console.log({ package_ });
+          const quantity = isAdmin
+            ? 9999
+            : await prisma.packages_User.count({
+                where: {
+                  userId: user.id,
+                  packageId: package_.Package.id,
+                  opened: false,
+                },
+              });
           packages.push({
             name: package_.Package.name,
             image_url: package_.Package.image_url,
@@ -301,7 +310,8 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             opened: false,
           },
         });
-        if (packagesUser.length < packagesId.length) {
+        const isAdmin = user.email === "admin@gmail.com";
+        if (!isAdmin && packagesUser.length < packagesId.length) {
           set.status = 400;
           return errorResponse(
             "Pacote não encontrado",
@@ -318,25 +328,26 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             );
             allCards.push(...cards);
           }
-          const packageUserId =
-            packagesUser.find((p) => p.packageId === package_.id)?.id || 10000;
-          if (packageUserId === 10000) {
-            console.log("Package not found");
-            continue;
+          if (!isAdmin) {
+            const packageUserId =
+              packagesUser.find((p) => p.packageId === package_.id)?.id || 10000;
+            if (packageUserId === 10000) {
+              console.log("Package not found");
+              continue;
+            }
+            const pkgPkgIds = packagesUser
+              .filter((p) => p.packageId === package_.id)
+              .map((p) => p.id)
+              .slice(0, quantities[package_.id]);
+            await prisma.packages_User.updateMany({
+              data: { opened: true },
+              where: {
+                userId: user.id,
+                id: { in: pkgPkgIds },
+                opened: false,
+              },
+            });
           }
-          const pkgPkgIds = packagesUser
-            .filter((p) => p.packageId === package_.id)
-            .map((p) => p.id)
-            .slice(0, quantities[package_.id]);
-          console.log({ pkgPkgIds });
-          await prisma.packages_User.updateMany({
-            data: { opened: true },
-            where: {
-              userId: user.id,
-              id: { in: pkgPkgIds },
-              opened: false,
-            },
-          });
         }
         await prisma.cards_user.createMany({
           data: allCards.map((card) => ({ userId: user.id, cardId: card.id })),
@@ -369,9 +380,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       "/open",
       async ({ user, prisma, body }) => {
         const { packageId } = body;
-        const package_ = await prisma.packages_User.findFirst({
+        const isAdmin = user.email === "admin@gmail.com";
+        let package_ = await prisma.packages_User.findFirst({
           where: { userId: user.id, packageId, opened: false },
         });
+        if (!package_ && isAdmin) {
+          package_ = await prisma.packages_User.create({
+            data: { userId: user.id, packageId, opened: false },
+          });
+        }
         if (!package_)
           return errorResponse(
             "Pacote não encontrado",
@@ -386,12 +403,26 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             "Pacote não encontrado"
           );
         const cards = await OpenPackage(packageToOpen, prisma);
-        await prisma.packages_User.update({
-          where: { userId: user.id, packageId, opened: false, id: package_.id },
-          data: { opened: true },
-        });
+        if (!isAdmin) {
+          await prisma.packages_User.update({
+            where: { userId: user.id, packageId, opened: false, id: package_.id },
+            data: { opened: true },
+          });
+        }
         await prisma.cards_user.createMany({
           data: cards.map((card) => ({ userId: user.id, cardId: card.id })),
+        });
+        const rarityPointsGain = cards.reduce(
+          (acc, curr) => acc + (curr.rarity || 1),
+          0
+        );
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            rarityPoints: {
+              increment: rarityPointsGain,
+            },
+          },
         });
         const sortedCards = cards.sort((a, b) => a.rarity - b.rarity);
         return sucessResponse(sortedCards);
@@ -472,11 +503,16 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           chosenIds.add(picked.id);
         }
 
-        // Transação Atômica: Deduzir ouro e adicionar cartas ao inventário
+        const rarityGain = chosenCards.reduce((sum, c) => sum + (c.rarity || 1), 0);
+
+        // Transação Atômica: Deduzir ouro, adicionar cartas e somar pontos de raridade
         await prisma.$transaction([
           prisma.user.update({
             where: { id: user.id },
-            data: { money: { decrement: goldAmount } },
+            data: {
+              money: { decrement: goldAmount },
+              rarityPoints: { increment: rarityGain },
+            },
           }),
           prisma.cards_user.createMany({
             data: chosenCards.map((c) => ({ userId: user.id, cardId: c.id })),

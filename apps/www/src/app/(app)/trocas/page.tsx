@@ -121,6 +121,18 @@ export default function TrocasPage() {
   const [receiveMoney, setReceiveMoney] = useState<number>(0);
   const [allowOffers, setAllowOffers] = useState<boolean>(true);
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [durationDays, setDurationDays] = useState<number>(3);
+
+  // Cálculo da taxa de publicação: 2.000 moedas (2k) por dia
+  const calculateTradeFee = (days: number) => {
+    const d = Math.max(1, Math.min(30, Number(days ?? 1)));
+    return d * 2000;
+  };
+
+  const tradeFee = calculateTradeFee(durationDays);
+  const totalRequiredMoney = tradeFee + (sendMoney || 0);
+  const userMoney = user?.money ?? 0;
+  const hasEnoughBalance = userMoney >= totalRequiredMoney;
 
   // 1. Query: Feed de Trocas do Mercado
   const { data: marketData, isLoading: loadingMarket } = useQuery<{
@@ -143,7 +155,7 @@ export default function TrocasPage() {
   const { data: myInventory = [] } = useQuery<any[]>({
     queryKey: ["my-inventory-cards"],
     queryFn: async () => {
-      const res = await get("/card/my");
+      const res = await get("/cards/my-tradeable");
       return res.data.data ?? [];
     },
   });
@@ -153,7 +165,7 @@ export default function TrocasPage() {
     queryKey: ["catalog-search", catalogSearch],
     queryFn: async () => {
       if (!catalogSearch.trim() || catalogSearch.trim().length < 2) return [];
-      const res = await get(`/card/search?query=${encodeURIComponent(catalogSearch.trim())}`);
+      const res = await get(`/cards/search?query=${encodeURIComponent(catalogSearch.trim())}`);
       return res.data.data ?? [];
     },
     enabled: catalogSearch.trim().length >= 2,
@@ -188,6 +200,7 @@ export default function TrocasPage() {
         moneySending: sendMoney,
         moneyReceiving: receiveMoney,
         acceptOffers: allowOffers,
+        durationDays: durationDays,
       };
       const res = await post("/trades", payload);
       return res.data;
@@ -201,9 +214,12 @@ export default function TrocasPage() {
       setSelectedReceiverCards([]);
       setSendMoney(0);
       setReceiveMoney(0);
+      setDurationDays(3);
       setActiveTab("market");
       queryClient.invalidateQueries({ queryKey: ["trades"] });
       queryClient.invalidateQueries({ queryKey: ["my-trades"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["my-inventory-cards"] });
     },
     onError: (err: any) => {
       toast({
@@ -635,38 +651,49 @@ export default function TrocasPage() {
               </div>
 
               <div className="max-h-56 overflow-y-auto p-2 bg-accent/20 rounded-xl border border-border/40 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                {myInventory.map((item) => {
-                  const card = item.Card || item;
-                  const isSelected = selectedSenderCards.includes(card.id);
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedSenderCards(selectedSenderCards.filter((id) => id !== card.id));
-                        } else {
-                          setSelectedSenderCards([...selectedSenderCards, card.id]);
-                        }
-                      }}
-                      className={`relative rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
-                        isSelected
-                          ? "border-primary ring-2 ring-primary/40 scale-95"
-                          : "border-transparent hover:border-border"
-                      }`}
-                    >
-                      <img
-                        src={loadTcgImg(card.image_url)}
-                        alt={card.name}
-                        className="w-full aspect-[2.5/3.5] object-cover"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
-                          <Check className="size-5 text-white font-black" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {myInventory.length === 0 ? (
+                  <div className="col-span-full py-8 text-center text-xs text-muted-foreground">
+                    Nenhuma carta disponível no inventário para oferecer.
+                  </div>
+                ) : (
+                  myInventory.map((item) => {
+                    const card = item.Card || item;
+                    const isSelected = selectedSenderCards.includes(card.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedSenderCards(selectedSenderCards.filter((id) => id !== card.id));
+                          } else {
+                            setSelectedSenderCards([...selectedSenderCards, card.id]);
+                          }
+                        }}
+                        className={`relative rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/40 scale-95"
+                            : "border-transparent hover:border-border"
+                        }`}
+                      >
+                        <img
+                          src={loadTcgImg(card.image_url)}
+                          alt={card.name}
+                          className="w-full aspect-[2.5/3.5] object-cover"
+                        />
+                        {item.quantity && item.quantity > 1 && (
+                          <span className="absolute top-1 right-1 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10">
+                            x{item.quantity}
+                          </span>
+                        )}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                            <Check className="size-5 text-white font-black" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               <div className="mt-3 flex items-center gap-2">
@@ -753,6 +780,92 @@ export default function TrocasPage() {
               </div>
             </div>
 
+            {/* 3. DURAÇÃO E TAXA PROPORCIONAL DE PUBLICAÇÃO */}
+            <div className="pt-3 border-t border-border/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Clock className="size-4 text-amber-500" /> 3. Duração da Oferta no Mercado:
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-sans">
+                    Taxa fixa: 2.000 moedas (2k) por dia de oferta
+                  </span>
+                </div>
+                <Badge variant="outline" className="font-mono text-xs border-amber-500/40 text-amber-500 bg-amber-500/10">
+                  {durationDays} {durationDays === 1 ? "dia" : "dias"}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {[
+                  { days: 1, label: "1 dia" },
+                  { days: 2, label: "2 dias" },
+                  { days: 3, label: "3 dias (Padrão)" },
+                  { days: 5, label: "5 dias" },
+                  { days: 7, label: "7 dias" },
+                  { days: 14, label: "14 dias" },
+                ].map((opt) => {
+                  const isSelected = durationDays === opt.days;
+                  const optFee = calculateTradeFee(opt.days);
+                  return (
+                    <button
+                      key={opt.days}
+                      type="button"
+                      onClick={() => setDurationDays(opt.days)}
+                      className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                        isSelected
+                          ? "border-amber-500 bg-amber-500/15 shadow-sm ring-1 ring-amber-500/50"
+                          : "border-border/60 bg-accent/20 hover:border-border hover:bg-accent/40"
+                      }`}
+                    >
+                      <span className={`text-xs font-bold ${isSelected ? "text-amber-500" : "text-foreground"}`}>
+                        {opt.label}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-0.5">
+                        <Coins className="size-3 text-amber-500" /> {optFee.toLocaleString("pt-BR")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Resumo de Custos e Validação */}
+              <div className="p-3 rounded-xl bg-accent/30 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Taxa de publicação ({durationDays}d):</span>
+                    <span className="font-mono font-bold text-amber-500 flex items-center gap-1">
+                      <Coins className="size-3.5" /> {tradeFee.toLocaleString("pt-BR")} moedas
+                    </span>
+                  </div>
+                  {sendMoney > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Moedas inclusas na troca:</span>
+                      <span className="font-mono font-bold text-foreground">
+                        + {sendMoney.toLocaleString("pt-BR")} moedas
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Custo total para publicar:</span>
+                    <span className="font-mono font-black text-foreground">
+                      {totalRequiredMoney.toLocaleString("pt-BR")} moedas
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      (Seu saldo: <strong className={!hasEnoughBalance ? "text-destructive" : "text-emerald-500"}>{userMoney.toLocaleString("pt-BR")}</strong>)
+                    </span>
+                  </div>
+                </div>
+
+                {!hasEnoughBalance && (
+                  <div className="flex items-center gap-1.5 text-destructive font-bold text-xs bg-destructive/10 border border-destructive/20 rounded-lg p-2">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>Saldo insuficiente (faltam {totalRequiredMoney - userMoney} moedas)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Opções extras */}
             <div className="pt-3 border-t border-border/60 flex items-center justify-between">
               <div>
@@ -766,7 +879,12 @@ export default function TrocasPage() {
 
             <Button
               onClick={() => createTrade()}
-              disabled={creatingTrade || !tradeTitle.trim() || selectedSenderCards.length === 0}
+              disabled={
+                creatingTrade ||
+                !tradeTitle.trim() ||
+                selectedSenderCards.length === 0 ||
+                !hasEnoughBalance
+              }
               className="w-full h-11 rounded-xl font-bold bg-primary text-primary-foreground text-sm shadow-md mt-4"
             >
               {creatingTrade ? (
@@ -774,7 +892,7 @@ export default function TrocasPage() {
               ) : (
                 <PlusCircle className="size-4 mr-2" />
               )}
-              Publicar Troca no Mercado
+              Publicar Troca ({tradeFee.toLocaleString("pt-BR")} moedas)
             </Button>
           </div>
           )}

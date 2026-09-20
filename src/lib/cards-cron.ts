@@ -30,48 +30,21 @@ async function getRandom(index: number = 0) {
 }
 
 function getPrice(rarity: number): [number, number] {
-  const weights = [
+  // Pesos de mercado rebalanceados:
+  // Rarity 4 (Mística): Artigo de puro luxo com 7 dígitos (1.2M a 4.5M)
+  // Rarity 5 (Lendária): 8 dígitos (8M a 25M)
+  const weights: [number, number][] = [
     [50, 500],
-    [500, 1_500],
-    [2_000, 10_000],
-    [10_000, 50_000],
-    [50_000, 100_000],
+    [1_000, 5_000],
+    [25_000, 120_000],
+    [1_200_000, 4_500_000],
+    [8_000_000, 25_000_000],
   ];
-  function round(number: number) {
-    return parseInt(String(number / 100)) * 100;
-  }
-  function weightedRandomInt(
-    min: number,
-    max: number,
-    weights: (value: number) => number
-  ): number {
-    const range = max - min + 1;
-    const values = Array.from({ length: range }, (_, i) => min + i);
-    const weightValues = values.map((value) => weights(value));
-
-    const totalWeight = weightValues.reduce((sum, weight) => sum + weight, 0);
-    const randomValue = Math.random() * totalWeight;
-
-    let cumulativeWeight = 0;
-    for (let i = 0; i < values.length; i++) {
-      cumulativeWeight += weightValues[i];
-      if (randomValue < cumulativeWeight) {
-        return values[i];
-      }
-    }
-
-    return values[values.length - 1]; // Fallback (deveria ser improvável alcançar aqui)
-  }
-  const callback = (min: number, max: number) => (value: number) => {
-    // Exemplo de pesos: valores mais próximos de 8000 têm maior chance
-    const target = (max - min) * 0.8 + min;
-    const influence = 1400; // Controle do alcance da "concentração" em torno do target
-    return Math.exp(
-      -Math.pow(value - target, 2) / (2 * Math.pow(influence, 2))
-    );
-  };
-  const [min, max] = weights[rarity - 1];
-  return [round(weightedRandomInt(min, max, callback(min, max))), round(max)];
+  const [min, max] = weights[Math.max(0, Math.min(4, (rarity || 1) - 1))];
+  const factor = Math.pow(Math.random(), 0.85);
+  const rawPrice = min + factor * (max - min);
+  const roundedPrice = Math.round(rawPrice / 100) * 100;
+  return [roundedPrice, max];
 }
 export function CardsCron(): CronConfig {
   return {

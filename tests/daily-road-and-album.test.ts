@@ -34,7 +34,7 @@ describe("Daily Road & Album Business Logic", () => {
     // Grand finale on day 30
     const day30 = DAILY_ROAD_REWARDS[29];
     expect(day30.day).toBe(30);
-    expect(day30.coins).toBe(25000);
+    expect(day30.coins).toBe(65000);
     expect(day30.packName).toBe("Pacote lendário");
     expect(day30.isGrandFinale).toBe(true);
   });

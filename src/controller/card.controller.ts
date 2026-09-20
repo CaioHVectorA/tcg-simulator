@@ -46,7 +46,60 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         response: baseResponse,
       }
     )
+    .get(
+      "/search",
+      async ({ prisma, query }) => {
+        const searchTerm = (query.query || query.search || "").trim();
+        if (!searchTerm || searchTerm.length < 2) {
+          return sucessResponse([]);
+        }
+        const cards = await prisma.card.findMany({
+          where: {
+            name: { contains: searchTerm, mode: "insensitive" },
+          },
+          take: 24,
+          orderBy: { rarity: "desc" },
+        });
+        return sucessResponse(cards);
+      },
+      {
+        query: t.Object({
+          query: t.Optional(t.String()),
+          search: t.Optional(t.String()),
+        }),
+        detail: { tags: ["Card"], description: "Busca cartas no catálogo" },
+        response: baseResponse,
+      }
+    )
+    .get(
+      "/my-tradeable",
+      async ({ prisma, user }) => {
+        const userCards = await prisma.cards_user.findMany({
+          where: { userId: user.id },
+          include: { Card: true },
+          orderBy: { Card: { rarity: "desc" } },
+        });
 
+        const map = new Map<number, { id: number; Card: any; quantity: number }>();
+        for (const uc of userCards) {
+          if (!uc.Card) continue;
+          if (map.has(uc.cardId)) {
+            map.get(uc.cardId)!.quantity++;
+          } else {
+            map.set(uc.cardId, {
+              id: uc.id,
+              Card: uc.Card,
+              quantity: 1,
+            });
+          }
+        }
+        return sucessResponse(Array.from(map.values()));
+      },
+      {
+        detail: { tags: ["Card"], description: "Retorna cartas do inventário para trocas" },
+        response: baseResponse,
+      }
+    )
     .get(
       "/:id",
       async ({ prisma, params, set }) => {

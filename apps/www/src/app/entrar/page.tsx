@@ -424,7 +424,7 @@ export default function LoginRegisterPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="font-syne text-2xl font-bold text-foreground">
-                                        {withBonus ? 'Resgatar Bônus de 3.000 Moedas' : activeTab === 'login' ? 'Acessar Simulador' : activeTab === 'register' ? 'Criar Conta de Treinador' : 'Acesso Convidado'}
+                                        {activeTab === 'login' ? 'Acessar Simulador' : activeTab === 'register' ? 'Criar Conta de Treinador' : 'Acesso Convidado'}
                                     </CardTitle>
                                     <CardDescription className="font-sans text-xs text-muted-foreground mt-1">
                                         {activeTab === 'login' ? 'Digite suas credenciais para continuar sua jornada' : activeTab === 'register' ? 'Cadastre-se para desbloquear todas as funções sociais' : 'Jogue agora mesmo sem necessidade de senha'}
@@ -434,11 +434,11 @@ export default function LoginRegisterPage() {
                         </CardHeader>
 
                         <CardContent className="p-6 pt-0">
-                            <Tabs value={withBonus ? 'register' : activeTab} onValueChange={(val) => {
+                            <Tabs value={activeTab} onValueChange={(val) => {
                                 setActiveTab(val);
                                 soundFx.playCardFlip();
                             }} className="w-full">
-                                <TabsList style={{ display: withBonus ? 'none' : 'grid' }} className="w-full grid-cols-3 bg-muted/60 p-1 rounded-xl mb-5">
+                                <TabsList className="w-full grid grid-cols-3 bg-muted/60 p-1 rounded-xl mb-5">
                                     <TabsTrigger value="login" className="rounded-lg text-xs font-semibold font-sans">
                                         Entrar
                                     </TabsTrigger>

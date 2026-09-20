@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { loadTcgImg } from "@/lib/load-tcg-img";
-import { Sparkles, Shield, Heart, Tag, Layers } from "lucide-react";
+import { Sparkles, Shield, Heart, Tag, Layers, Coins } from "lucide-react";
 
 export interface CardModalData {
   id: number;
@@ -34,6 +34,14 @@ const RARITY_LABELS: Record<number, { label: string; color: string; stars: strin
   3: { label: "Épica", color: "bg-purple-500/20 text-purple-400 border-purple-500/40", stars: "★★★" },
   4: { label: "Mística", color: "bg-amber-500/20 text-amber-300 border-amber-500/40", stars: "★★★★" },
   5: { label: "Lendária / God Pull", color: "bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-amber-500/20 text-rose-300 border-rose-400/50", stars: "★★★★★" },
+};
+
+const VALUATION_CONFIG: Record<number, { text: string; subtext: string; isLuxury: boolean }> = {
+  1: { text: "100 ~ 500", subtext: "Moedas", isLuxury: false },
+  2: { text: "1.500 ~ 5.000", subtext: "Moedas", isLuxury: false },
+  3: { text: "35.000 ~ 120.000", subtext: "Moedas", isLuxury: false },
+  4: { text: "1.200.000 ~ 4.500.000", subtext: "Moedas (7 dígitos)", isLuxury: true },
+  5: { text: "8.000.000 ~ 25.000.000", subtext: "Moedas (8 dígitos)", isLuxury: true },
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -144,6 +152,32 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                   <span className="text-[11px] text-muted-foreground block font-sans">Raridade</span>
                   <span className="text-lg font-bold font-mono">Tier {card.rarity}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Valuation de Mercado Estimado */}
+            <div className={`rounded-xl p-3 border transition-all ${
+              (VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).isLuxury
+                ? "bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-amber-500/5 border-amber-500/40 shadow-sm shadow-amber-500/10"
+                : "bg-accent/40 border-border/60"
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Coins className="size-4 text-amber-500" /> Valuation de Mercado
+                </span>
+                {(VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).isLuxury && (
+                  <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-sm">
+                    ✨ Artigo de Luxo
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className={`text-lg font-black font-mono ${(VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).isLuxury ? "text-amber-400 drop-shadow-sm" : "text-foreground"}`}>
+                  {(VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).text}
+                </span>
+                <span className="text-[11px] text-muted-foreground font-sans">
+                  {(VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).subtext}
+                </span>
               </div>
             </div>
 

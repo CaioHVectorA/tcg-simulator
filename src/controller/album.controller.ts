@@ -16,6 +16,15 @@ export interface OfficialAlbumDef {
   badge: string;
 }
 
+export function matchesPokemonName(cardName: string, targetName: string): boolean {
+  if (!cardName || !targetName) return false;
+  const normalizedCard = cardName.toLowerCase().replace(/[^a-z0-9]/g, " ");
+  const normalizedTarget = targetName.toLowerCase().replace(/[^a-z0-9]/g, " ");
+  const escaped = normalizedTarget.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(^|\\s)${escaped}(\\s|$)`, "i");
+  return regex.test(normalizedCard);
+}
+
 export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
   {
     id: "kanto_trio",
@@ -28,6 +37,26 @@ export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
     badge: "Ultra Raro",
   },
   {
+    id: "kanto_starters",
+    title: "Iniciais Clássicos de Kanto",
+    category: "Regiões",
+    description: "O quarteto icônico de Pallet Town: Bulbasaur, Charmander, Squirtle e Pikachu.",
+    targetNames: ["Bulbasaur", "Charmander", "Squirtle", "Pikachu"],
+    rewardGold: 8000,
+    rewardXp: 250,
+    badge: "Nostalgia",
+  },
+  {
+    id: "johto_starters",
+    title: "Iniciais de Johto",
+    category: "Regiões",
+    description: "Os companheiros de New Bark Town: Chikorita, Cyndaquil e Totodile.",
+    targetNames: ["Chikorita", "Cyndaquil", "Totodile"],
+    rewardGold: 10000,
+    rewardXp: 300,
+    badge: "Ouro & Prata",
+  },
+  {
     id: "johto_beasts",
     title: "Cães Lendários de Johto",
     category: "Lendários",
@@ -36,6 +65,56 @@ export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
     rewardGold: 15000,
     rewardXp: 500,
     badge: "Lendário",
+  },
+  {
+    id: "hoenn_starters",
+    title: "Iniciais de Hoenn",
+    category: "Regiões",
+    description: "Os jovens exploradores de Littleroot Town: Treecko, Torchic e Mudkip.",
+    targetNames: ["Treecko", "Torchic", "Mudkip"],
+    rewardGold: 10000,
+    rewardXp: 300,
+    badge: "Rubi & Safira",
+  },
+  {
+    id: "hoenn_weather",
+    title: "Guardiões do Clima de Hoenn",
+    category: "Lendários",
+    description: "Os titãs dos Mares, da Terra e dos Céus: Kyogre, Groudon e Rayquaza.",
+    targetNames: ["Kyogre", "Groudon", "Rayquaza"],
+    rewardGold: 20000,
+    rewardXp: 700,
+    badge: "Lendário",
+  },
+  {
+    id: "regi_titans",
+    title: "Titãs Selados (Regis)",
+    category: "Lendários",
+    description: "Forjados na era glacial e rochosa: Regirock, Regice, Registeel e o colosso Regigigas.",
+    targetNames: ["Regirock", "Regice", "Registeel", "Regigigas"],
+    rewardGold: 24000,
+    rewardXp: 800,
+    badge: "Ancestral",
+  },
+  {
+    id: "sinnoh_starters",
+    title: "Iniciais de Sinnoh",
+    category: "Regiões",
+    description: "Os parceiros do Professor Rowan: Turtwig, Chimchar e Piplup.",
+    targetNames: ["Turtwig", "Chimchar", "Piplup"],
+    rewardGold: 12000,
+    rewardXp: 350,
+    badge: "Diamante & Pérola",
+  },
+  {
+    id: "lake_guardians",
+    title: "Guardiões dos Lagos de Sinnoh",
+    category: "Lendários",
+    description: "Espíritos da Sabedoria, Emoção e Força de Vontade: Uxie, Mesprit e Azelf.",
+    targetNames: ["Uxie", "Mesprit", "Azelf"],
+    rewardGold: 16000,
+    rewardXp: 550,
+    badge: "Espiritual",
   },
   {
     id: "sinnoh_creation",
@@ -58,24 +137,114 @@ export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
     badge: "Divino",
   },
   {
-    id: "hoenn_weather",
-    title: "Guardiões do Clima de Hoenn",
-    category: "Lendários",
-    description: "Os titãs dos Mares, da Terra e dos Céus: Kyogre, Groudon e Rayquaza.",
-    targetNames: ["Kyogre", "Groudon", "Rayquaza"],
-    rewardGold: 20000,
-    rewardXp: 700,
-    badge: "Lendário",
+    id: "unova_starters",
+    title: "Iniciais de Unova",
+    category: "Regiões",
+    description: "A nova geração de Nuvema Town: Snivy, Tepig e Oshawott.",
+    targetNames: ["Snivy", "Tepig", "Oshawott"],
+    rewardGold: 12000,
+    rewardXp: 350,
+    badge: "Preto & Branco",
   },
   {
-    id: "kanto_starters",
-    title: "Iniciais Clássicos de Kanto",
+    id: "unova_tao",
+    title: "Dragões Tao de Unova",
+    category: "Lendários",
+    description: "Verdade, Ideais e o Vazio Congelado: Reshiram, Zekrom e Kyurem.",
+    targetNames: ["Reshiram", "Zekrom", "Kyurem"],
+    rewardGold: 25000,
+    rewardXp: 850,
+    badge: "Místico",
+  },
+  {
+    id: "kalos_starters",
+    title: "Iniciais de Kalos & Greninja",
     category: "Regiões",
-    description: "O quarteto icônico de Pallet Town: Bulbasaur, Charmander, Squirtle e Pikachu.",
-    targetNames: ["Bulbasaur", "Charmander", "Squirtle", "Pikachu"],
-    rewardGold: 8000,
-    rewardXp: 250,
-    badge: "Nostalgia",
+    description: "A elite de Vaniville: Chespin, Fennekin, Froakie e o supremo Greninja.",
+    targetNames: ["Chespin", "Fennekin", "Froakie", "Greninja"],
+    rewardGold: 16000,
+    rewardXp: 500,
+    badge: "Kalosiano",
+  },
+  {
+    id: "kalos_mortals",
+    title: "Entidades da Vida & Morte",
+    category: "Lendários",
+    description: "O equilíbrio natural de Kalos: Xerneas (Vida), Yveltal (Destruição) e Zygarde (Equilíbrio).",
+    targetNames: ["Xerneas", "Yveltal", "Zygarde"],
+    rewardGold: 26000,
+    rewardXp: 900,
+    badge: "Aura Pura",
+  },
+  {
+    id: "alola_stars",
+    title: "Espíritos Tropicais de Alola",
+    category: "Regiões",
+    description: "Os companheiros das ilhas tropicais: Rowlet, Litten e Mimikyu.",
+    targetNames: ["Rowlet", "Litten", "Mimikyu"],
+    rewardGold: 14000,
+    rewardXp: 450,
+    badge: "Alola Alii",
+  },
+  {
+    id: "alola_light",
+    title: "Trio da Luz de Alola",
+    category: "Lendários",
+    description: "Os arautos do Sol, da Lua e do Prisma Estelar: Solgaleo, Lunala e Necrozma.",
+    targetNames: ["Solgaleo", "Lunala", "Necrozma"],
+    rewardGold: 28000,
+    rewardXp: 950,
+    badge: "Cósmico",
+  },
+  {
+    id: "galar_heroes",
+    title: "Espada & Escudo de Galar",
+    category: "Lendários",
+    description: "Os protetores da Noite Negra: Zacian, Zamazenta e o cataclísmico Eternatus.",
+    targetNames: ["Zacian", "Zamazenta", "Eternatus"],
+    rewardGold: 30000,
+    rewardXp: 1000,
+    badge: "Galar Heroico",
+  },
+  {
+    id: "paldea_starters",
+    title: "Iniciais de Paldea",
+    category: "Regiões",
+    description: "Os jovens aprendizes da Academia: Sprigatito, Fuecoco e Quaxly.",
+    targetNames: ["Sprigatito", "Fuecoco", "Quaxly"],
+    rewardGold: 15000,
+    rewardXp: 500,
+    badge: "Terastal",
+  },
+  {
+    id: "paldea_paradox",
+    title: "Dragões do Passado & Futuro",
+    category: "Lendários",
+    description: "Os ápices da linha temporal da Grande Cratera de Paldea: Koraidon, Miraidon e Cyclizar.",
+    targetNames: ["Koraidon", "Miraidon", "Cyclizar"],
+    rewardGold: 32000,
+    rewardXp: 1100,
+    badge: "Paradoxo",
+  },
+  {
+    id: "eeveelutions_classic",
+    title: "Eeveelutions Clássicas",
+    category: "Especiais",
+    description: "A evolução elementar primária: Eevee, Vaporeon, Jolteon e Flareon.",
+    targetNames: ["Eevee", "Vaporeon", "Jolteon", "Flareon"],
+    rewardGold: 16000,
+    rewardXp: 550,
+    badge: "Adaptação",
+  },
+  {
+    id: "eeveelutions_modern",
+    title: "Eeveelutions da Harmonia",
+    category: "Especiais",
+    description: "As evoluções espirituais e afetivas: Espeon, Umbreon, Leafeon, Glaceon e Sylveon.",
+    targetNames: ["Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon"],
+    rewardGold: 25000,
+    rewardXp: 850,
+    badge: "Laços Puros",
   },
   {
     id: "fire_dragons",
@@ -163,15 +332,15 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
         const isClaimed = claimedAlbumIds.has(album.id);
 
         const cardSlots = album.targetNames.map((targetName) => {
-          // Check if user owns any card containing targetName
+          // Check if user owns any card matching targetName strictly
           const ownedMatch = userCards.find((uc) =>
-            uc.Card.name.toLowerCase().includes(targetName.toLowerCase())
+            matchesPokemonName(uc.Card.name, targetName)
           );
 
           // Sample card info for preview/silhouette
           const sampleCard =
             referenceCards.find((rc) =>
-              rc.name.toLowerCase().includes(targetName.toLowerCase())
+              matchesPokemonName(rc.name, targetName)
             ) || {
               id: 0,
               name: targetName,
@@ -237,7 +406,7 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
 
       const hasAllCards = albumDef.targetNames.every((targetName) =>
         userCards.some((uc) =>
-          uc.Card.name.toLowerCase().includes(targetName.toLowerCase())
+          matchesPokemonName(uc.Card.name, targetName)
         )
       );
 
