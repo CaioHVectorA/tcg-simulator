@@ -44,7 +44,7 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                     <div className="size-7 sm:size-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mb-1">
                         <Lock className="size-3.5 sm:size-4" />
                     </div>
-                    <h3 className="text-black dark:text-white font-bold text-xs sm:text-sm">Adquirido</h3>
+                    <h3 className="text-foreground font-bold text-xs sm:text-sm">Adquirido</h3>
                 </div>
             )}
 
@@ -79,7 +79,7 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                                     {balanceTranslate(card.original_price)}
                                 </span>
                             )}
-                            <div className="flex items-center gap-1 text-black dark:text-white font-bold text-xs sm:text-base mt-0.5">
+                            <div className="flex items-center gap-1 text-foreground font-bold text-xs sm:text-base mt-0.5">
                                 <Coins className="size-3.5 sm:size-4 text-amber-500 fill-amber-500/20 shrink-0" />
                                 <span className="truncate">{balanceTranslate(card.price)}</span>
                             </div>

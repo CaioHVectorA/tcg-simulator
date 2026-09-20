@@ -168,27 +168,42 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             .concat(userDiaryMissions);
         }
 
-        // Mapeia as queries em um array de Promises
+        // Nomes de missões que migraram para o sistema de Álbuns
+        const EXCLUDED_QUEST_NAMES = [
+          "deus dos deuses",
+          "ao lado do fantasma",
+          "voando alto",
+          "assim como ash",
+          "com o canil",
+          "o trio do tempo",
+        ];
+
+        questsUser = questsUser.filter(
+          (q) => !EXCLUDED_QUEST_NAMES.some((ex) => q.Quest.name.toLowerCase().includes(ex))
+        );
+
+        // Mapeia as queries em um array de Promises com cache e skip de finalizadas
         const queryPromises = questsUser.map(async (quest) => {
           const cacheKey = `quest-${user.id}-${quest.quest_id}`;
           if (questsCache.has(cacheKey)) {
             //@ts-ignore
             const [cachedQuest, lastUpdate] = questsCache.get(cacheKey);
-            if (new Date().getTime() - lastUpdate.getTime() < 5000) {
+            if (new Date().getTime() - lastUpdate.getTime() < 30000) {
               return cachedQuest;
             }
           }
+
           let queryRes: {
             mission_complete: boolean;
             progress: number | bigint;
           };
-          // in a mission, same if user completed all levels, isnt completed in DB. We will check if the user completed all levels
+
           let isFullCompleted = false;
-          if (!quest.Quest.levelGoals[quest.currentLevel]) {
+          if (quest.completed || !quest.Quest.levelGoals[quest.currentLevel]) {
             isFullCompleted = true;
             queryRes = {
               mission_complete: true,
-              progress: quest.Quest.levelGoals[quest.currentLevel - 1],
+              progress: quest.Quest.levelGoals[quest.currentLevel - 1] || quest.Quest.levelGoals[quest.Quest.levelGoals.length - 1] || 1,
             };
           } else {
             const query = runQuery(
@@ -204,13 +219,13 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
 
           const response = {
             name: quest.Quest.name,
-            description: quest.Quest.description[quest.currentLevel],
+            description: quest.Quest.description[quest.currentLevel] || quest.Quest.description[quest.Quest.description.length - 1],
             id: quest.Quest.id,
             currentLevel: quest.currentLevel,
-            actualReward: quest.Quest.levelRewards[quest.currentLevel],
+            actualReward: quest.Quest.levelRewards[quest.currentLevel] || quest.Quest.levelRewards[quest.Quest.levelRewards.length - 1],
             completed: Boolean(queryRes.mission_complete),
             total:
-              quest.Quest.levelGoals[quest.currentLevel] || queryRes.progress,
+              quest.Quest.levelGoals[quest.currentLevel] || Number(queryRes.progress),
             progress: Number(queryRes.progress),
             fullCompleted: isFullCompleted || quest.completed,
             isDiary: quest.Quest.isDiary,
@@ -278,6 +293,81 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
 
         questsCache.delete(`quest-${user.id}-${questUser.quest_id}`);
         return sucessResponse(null, "Recompensa recebida com sucesso!");
+      })
+      .post("/claim-all", async ({ user }) => {
+        const questsUser = await prisma.questUser.findMany({
+          where: { user_id: user.id, completed: false },
+          include: { Quest: true },
+        });
+
+        let totalReward = 0;
+        let claimedCount = 0;
+        const transactionOps: any[] = [];
+        const cacheKeysToDelete: string[] = [];
+
+        for (const qu of questsUser) {
+          if (!qu.Quest.levelGoals[qu.currentLevel]) continue;
+
+          const query = runQuery(
+            qu.Quest.queryCheck,
+            qu.Quest.levelGoals[qu.currentLevel],
+            user.id
+          );
+
+          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
+            mission_complete: boolean;
+            progress: number | bigint;
+          }[];
+
+          if (queryRes?.mission_complete) {
+            const reward = qu.Quest.levelRewards[qu.currentLevel] || 0;
+            totalReward += reward;
+            claimedCount++;
+            const hasNextLevel = qu.currentLevel < qu.Quest.levelGoals.length - 1;
+
+            if (hasNextLevel) {
+              transactionOps.push(
+                prisma.questUser.update({
+                  where: { id: qu.id },
+                  data: { currentLevel: { increment: 1 } },
+                })
+              );
+            } else {
+              transactionOps.push(
+                prisma.questUser.update({
+                  where: { id: qu.id },
+                  data: { completed: true },
+                })
+              );
+            }
+            cacheKeysToDelete.push(`quest-${user.id}-${qu.quest_id}`);
+          }
+        }
+
+        if (claimedCount === 0 || totalReward === 0) {
+          return errorResponse("Nenhuma recompensa pronta para ser coletada.");
+        }
+
+        transactionOps.push(
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              money: { increment: totalReward },
+              totalBudget: { increment: totalReward },
+            },
+          })
+        );
+
+        await prisma.$transaction(transactionOps);
+
+        for (const key of cacheKeysToDelete) {
+          questsCache.delete(key);
+        }
+
+        return sucessResponse(
+          { totalClaimed: totalReward, count: claimedCount },
+          `Você coletou ${totalReward} moedas de ${claimedCount} missões!`
+        );
       })
   );
 });

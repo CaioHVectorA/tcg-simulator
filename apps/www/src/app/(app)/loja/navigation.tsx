@@ -4,14 +4,13 @@ import { motion } from "framer-motion"
 import { Gift, Zap, Package, Sparkles } from "lucide-react"
 
 const SECTIONS = [
-    { id: "bounty", label: "Recompensa", icon: Gift },
     { id: "flashcards", label: "Promoções", icon: Zap },
     { id: "standard", label: "Padrão", icon: Package },
     { id: "themed", label: "Temáticos", icon: Sparkles },
 ]
 
 export function Navigation() {
-    const [activeSection, setActiveSection] = useState("bounty")
+    const [activeSection, setActiveSection] = useState("standard")
 
     useEffect(() => {
         const handleScroll = () => {
@@ -52,13 +51,13 @@ export function Navigation() {
                             key={sec.id}
                             onClick={() => scrollTo(sec.id)}
                             className={`relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs md:text-sm font-semibold shrink-0 transition-colors duration-150 ${
-                                isActive ? "text-white dark:text-black" : "text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
+                                isActive ? "text-primary-foreground font-bold" : "text-muted-foreground hover:text-foreground"
                             }`}
                         >
                             {isActive && (
                                 <motion.div
                                     layoutId="activeNavTab"
-                                    className="absolute inset-0 bg-black dark:bg-white rounded-full -z-10 shadow-sm"
+                                    className="absolute inset-0 bg-primary rounded-full -z-10 shadow-sm"
                                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                 />
                             )}

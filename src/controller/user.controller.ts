@@ -25,6 +25,39 @@ function checkGuestSocial(user: User, set: any) {
   return null;
 }
 
+export const DAILY_ROAD_REWARDS = [
+  { day: 1, coins: 1000, packName: null, isMilestone: false, title: "Moedas Iniciais" },
+  { day: 2, coins: 1200, packName: null, isMilestone: false, title: "Moedas de Bônus" },
+  { day: 3, coins: 1500, packName: null, isMilestone: false, title: "Moedas Extras" },
+  { day: 4, coins: 1800, packName: null, isMilestone: false, title: "Moedas de Treino" },
+  { day: 5, coins: 2200, packName: null, isMilestone: false, title: "Baú de Moedas" },
+  { day: 6, coins: 2500, packName: null, isMilestone: false, title: "Reserva de Batalha" },
+  { day: 7, coins: 4000, packName: "Pacote simples", isMilestone: true, title: "🎁 Marco 1: Booster Simples + 4k" },
+  { day: 8, coins: 3000, packName: null, isMilestone: false, title: "Moedas do Dia" },
+  { day: 9, coins: 3200, packName: null, isMilestone: false, title: "Moedas do Dia" },
+  { day: 10, coins: 3500, packName: null, isMilestone: false, title: "Bolsa de Moedas" },
+  { day: 11, coins: 4000, packName: null, isMilestone: false, title: "Moedas de Treinador" },
+  { day: 12, coins: 4500, packName: null, isMilestone: false, title: "Moedas de Treinador" },
+  { day: 13, coins: 5000, packName: null, isMilestone: false, title: "Cofre de Moedas" },
+  { day: 14, coins: 7000, packName: "Pacote raro", isMilestone: true, title: "💎 Marco 2: Booster Raro + 7k" },
+  { day: 15, coins: 5500, packName: null, isMilestone: false, title: "Moedas do Dia" },
+  { day: 16, coins: 6000, packName: null, isMilestone: false, title: "Moedas do Dia" },
+  { day: 17, coins: 6500, packName: null, isMilestone: false, title: "Moedas Avançadas" },
+  { day: 18, coins: 7000, packName: null, isMilestone: false, title: "Moedas Avançadas" },
+  { day: 19, coins: 7500, packName: null, isMilestone: false, title: "Saco Pesado de Ouro" },
+  { day: 20, coins: 8000, packName: null, isMilestone: false, title: "Saco Pesado de Ouro" },
+  { day: 21, coins: 10000, packName: "Grande pacote", isMilestone: true, title: "🔥 Marco 3: Grande Pacote + 10k" },
+  { day: 22, coins: 8500, packName: null, isMilestone: false, title: "Moedas de Elite" },
+  { day: 23, coins: 9000, packName: null, isMilestone: false, title: "Moedas de Elite" },
+  { day: 24, coins: 9500, packName: null, isMilestone: false, title: "Cofre Dourado" },
+  { day: 25, coins: 10000, packName: null, isMilestone: false, title: "Cofre Dourado" },
+  { day: 26, coins: 11000, packName: null, isMilestone: false, title: "Tesouro do Ginásio" },
+  { day: 27, coins: 12000, packName: null, isMilestone: false, title: "Tesouro da Liga" },
+  { day: 28, coins: 15000, packName: "Pacote épicos", isMilestone: true, title: "👑 Marco 4: Booster Épico + 15k" },
+  { day: 29, coins: 14000, packName: null, isMilestone: false, title: "Véspera da Glória" },
+  { day: 30, coins: 25000, packName: "Pacote lendário", isMilestone: true, isGrandFinale: true, title: "🌟 GRANDE FINAL: Booster Místico + 25k Ouro!" },
+];
+
 export const userController = new Elysia({}).group("/user", (app) => {
   return app
     .use(jwt)
@@ -602,6 +635,116 @@ export const userController = new Elysia({}).group("/user", (app) => {
             "Endpoint relacionado ao resgate do tempo da última recompensa",
         },
         response: {
+          401: baseResponse,
+          200: baseResponse,
+        },
+      }
+    )
+    .get(
+      "/daily-road",
+      async ({ user }) => {
+        const lastBountyDate = new Date(
+          user.last_daily_bounty || new Date("2021-01-01")
+        );
+        const diffInMs = new Date().getTime() - lastBountyDate.getTime();
+        const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
+        const canClaim = diffDays >= 1;
+        const currentCycleDay = ((user.daily_bounty_level - 1) % 30) + 1;
+        const completedCycles = Math.floor((user.daily_bounty_level - 1) / 30);
+        const oneDay = 1000 * 60 * 60 * 24;
+        const nextDiff = Math.max(0, oneDay - diffInMs);
+
+        return sucessResponse({
+          currentDay: currentCycleDay,
+          canClaim,
+          nextDiff,
+          completedCycles,
+          totalClaimedDays: user.daily_bounty_level - 1,
+          rewards: DAILY_ROAD_REWARDS,
+          todayReward: DAILY_ROAD_REWARDS[currentCycleDay - 1],
+        });
+      },
+      {
+        detail: {
+          tags: ["User"],
+          description: "Retorna o status completo da Estrada de Recompensas de 30 Dias",
+        },
+        response: {
+          401: baseResponse,
+          200: baseResponse,
+        },
+      }
+    )
+    .post(
+      "/daily-road/claim",
+      async ({ user, prisma, set }) => {
+        const lastBountyDate = new Date(
+          user.last_daily_bounty || new Date("2021-01-01")
+        );
+        const now = new Date();
+        const diffInMs = now.getTime() - lastBountyDate.getTime();
+        const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
+
+        if (diffDays < 1) {
+          set.status = 400;
+          return errorResponse(
+            "Você já resgatou sua recompensa de hoje.",
+            "Volte amanhã para continuar sua jornada de 30 dias!"
+          );
+        }
+
+        const currentCycleDay = ((user.daily_bounty_level - 1) % 30) + 1;
+        const todayReward = DAILY_ROAD_REWARDS[currentCycleDay - 1];
+
+        // Atualizar saldo e nível do usuário
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            last_daily_bounty: now,
+            money: { increment: todayReward.coins },
+            totalBudget: { increment: todayReward.coins },
+            daily_bounty_level: { increment: 1 },
+          },
+        });
+
+        // Conceder pacote bônus caso o dia tenha
+        let packageGranted = null;
+        if (todayReward.packName) {
+          const pack = await prisma.package.findFirst({
+            where: {
+              name: { contains: todayReward.packName, mode: "insensitive" },
+            },
+          });
+          if (pack) {
+            await prisma.packages_User.create({
+              data: {
+                userId: user.id,
+                packageId: pack.id,
+                opened: false,
+              },
+            });
+            packageGranted = { id: pack.id, name: pack.name };
+          }
+        }
+
+        return sucessResponse(
+          {
+            claimedDay: currentCycleDay,
+            reward: todayReward,
+            packageGranted,
+          },
+          `Dia ${currentCycleDay} resgatado! +${todayReward.coins} moedas${
+            packageGranted ? ` e 1x ${packageGranted.name}!` : "!"
+          }`
+        );
+      },
+      {
+        detail: {
+          tags: ["User"],
+          description: "Resgata a recompensa do dia atual na Estrada de 30 Dias",
+        },
+        response: {
+          400: baseResponse,
           401: baseResponse,
           200: baseResponse,
         },

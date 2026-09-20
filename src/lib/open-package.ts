@@ -111,14 +111,14 @@ export async function OpenPackage(
   return cards;
 }
 
-export async function* OpenPackageStreamingHandle(
-  pkg: Package,
-  qtd: number,
-  prisma: PrismaClient
-) {
-  yield "start";
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  yield "loading";
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  yield "end";
+export async function warmupCardsCache(prisma: PrismaClient) {
+  if (!cache.get("all")) {
+    try {
+      const allCards = await prisma.card.findMany();
+      cache.set("all", allCards);
+      console.log(`[Cache Warmup] Carregadas ${allCards.length} cartas em memória.`);
+    } catch (err) {
+      console.error("[Cache Warmup] Falha ao aquecer cache:", err);
+    }
+  }
 }

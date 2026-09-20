@@ -41,9 +41,7 @@ const menuItems = [
     { name: 'Inventário', href: '/inventario', icon: Box },
     { name: 'Coleção', href: '/colecao', icon: Layers },
     { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
-    { name: 'Áreas', href: '/areas', icon: Compass },
     { name: "Missões", href: "/missoes", icon: Trophy },
-    { name: "Social", href: "/social", icon: Users },
     { name: "Afiliado", href: "/afiliado", icon: Handshake },
 ]
 
@@ -200,9 +198,9 @@ export function HeaderMenu() {
                         <NotificationsPopover />
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-10 rounded-full">
+                                <Button variant="ghost" size="icon" className="size-10 rounded-full hover:bg-accent text-foreground transition-colors" title="Social & Treinadores">
                                     <Users className='size-5' />
-                                    <span className="sr-only">Social</span>
+                                    <span className="sr-only">Social & Treinadores</span>
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[90vw] sm:max-w-md overflow-y-auto">

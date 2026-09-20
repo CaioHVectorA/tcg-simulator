@@ -17,7 +17,7 @@ export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: Purc
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="font-syne bg-zinc-950 text-white border-zinc-800 max-w-sm sm:max-w-md rounded-2xl p-6 text-center shadow-2xl">
+            <DialogContent className="font-syne bg-card text-foreground border-border max-w-sm sm:max-w-md rounded-2xl p-6 text-center shadow-2xl">
                 <DialogHeader className="items-center">
                     <motion.div
                         initial={{ scale: 0, rotate: -20 }}
@@ -25,14 +25,14 @@ export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: Purc
                         transition={{ type: "spring", stiffness: 300, damping: 15 }}
                         className="size-16 sm:size-20 rounded-2xl bg-gradient-to-br from-amber-500/20 via-primary/20 to-purple-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mb-3 shadow-xl relative"
                     >
-                        <Package className="size-8 sm:size-10 text-white" />
+                        <Package className="size-8 sm:size-10 text-foreground" />
                         <Sparkles className="size-5 text-amber-400 absolute -top-1 -right-1 animate-pulse" />
                     </motion.div>
 
-                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-white">
+                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-foreground">
                         Compra Realizada! 🎉
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400 text-xs sm:text-sm mt-1">
+                    <DialogDescription className="text-muted-foreground text-xs sm:text-sm mt-1">
                         Seus {itemCount} {itemCount === 1 ? 'item' : 'itens'} já foram entregues com sucesso na sua conta.
                     </DialogDescription>
                 </DialogHeader>
@@ -53,14 +53,12 @@ export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: Purc
                     <Button 
                         onClick={() => onOpenChange(false)}
                         variant="outline"
-                        className="w-full py-4 text-xs font-bold text-zinc-200 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white"
+                        className="w-full py-4 text-xs font-bold"
                     >
                         <ShoppingBag className="size-3.5 mr-1" />
                         <span>Continuar Comprando</span>
                     </Button>
                 </div>
-
-
             </DialogContent>
         </Dialog>
     )

@@ -25,7 +25,7 @@ export function RewardModal({
 }: RewardModalProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="font-syne bg-zinc-950 text-white border-zinc-800 max-w-sm sm:max-w-md rounded-2xl p-6 text-center shadow-2xl">
+            <DialogContent className="font-syne bg-card text-foreground border-border max-w-sm sm:max-w-md rounded-2xl p-6 text-center shadow-2xl">
                 <DialogHeader className="items-center">
                     <motion.div
                         initial={{ scale: 0, rotate: -15 }}
@@ -39,10 +39,10 @@ export function RewardModal({
                         <Sparkles className="size-5 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
                     </motion.div>
 
-                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-white">
+                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-foreground">
                         {title}
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400 text-xs sm:text-sm mt-1">
+                    <DialogDescription className="text-muted-foreground text-xs sm:text-sm mt-1">
                         {description}
                     </DialogDescription>
                 </DialogHeader>
@@ -52,13 +52,13 @@ export function RewardModal({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="my-3 py-3 px-4 rounded-xl bg-zinc-900 border border-amber-500/30 flex items-center justify-center gap-2"
+                        className="my-3 py-3 px-4 rounded-xl bg-secondary border border-amber-500/30 flex items-center justify-center gap-2"
                     >
                         <Coins className="size-5 text-amber-400 fill-amber-400/20" />
                         <span className="text-xl sm:text-2xl font-black text-amber-400">
                             +{balanceTranslate(rewardAmount)}
                         </span>
-                        <span className="text-xs text-zinc-400 font-semibold">moedas</span>
+                        <span className="text-xs text-muted-foreground font-semibold">moedas</span>
                     </motion.div>
                 )}
 

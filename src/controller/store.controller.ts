@@ -54,85 +54,96 @@ export const storeController = new Elysia({}).group("/store", (app) => {
       "/checkout",
       async ({ body, query, user, set }) => {
         const { items } = body;
-        const { key } = query;
-        let rarityPointsGain = 0;
+        const packageItems = items.filter((i) => i.type === "package");
+        const cardItems = items.filter((i) => i.type === "card");
+
+        const packageIds = packageItems.map((i) => i.id);
+        const cardIds = cardItems.map((i) => i.id);
+
+        const [packages, promotionalCards] = await Promise.all([
+          packageIds.length > 0
+            ? prisma.package.findMany({ where: { id: { in: packageIds } } })
+            : Promise.resolve([]),
+          cardIds.length > 0
+            ? prisma.promotional_Cards.findMany({
+                where: { id: { in: cardIds } },
+                include: { card: true },
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const packageMap = new Map(packages.map((p) => [p.id, p]));
+        const cardMap = new Map(promotionalCards.map((c) => [c.id, c]));
+
         let total = 0;
-        const cardsId = [];
-        const packagesId = [];
-        for (const item of items) {
-          if (item.type === "package") {
-            const pack = await prisma.package.findUnique({
-              where: { id: item.id },
-            });
-            if (!pack) {
-              set.status = 404;
-              return errorResponse(
-                "Package not found",
-                "Um dos pacotes não foi encontrado"
-              );
-            }
-            for (let i = 0; i < item.quantity; i++) {
-              packagesId.push(pack.id);
-            }
-            await prisma.user_Purchase.create({
-              data: {
-                quantity: item.quantity,
-                package_id: pack.id,
-                user_id: user.id,
-              },
-            });
-            total += pack.price * item.quantity;
-          } else {
-            const promotional_card = await prisma.promotional_Cards.findUnique({
-              where: { id: item.id },
-              include: { card: true },
-            });
-            if (!promotional_card) {
-              set.status = 404;
-              return errorResponse("Card not found", "Carta não encontrada");
-            }
-            await prisma.user_Purchase.create({
-              data: {
-                user_id: user.id,
-                card_id: promotional_card.card_id,
-              },
-            });
-            cardsId.push(promotional_card.card_id);
-            rarityPointsGain += promotional_card.card.rarity;
-            total += promotional_card.price;
+        let rarityPointsGain = 0;
+        const packagesToCreate: { packageId: number; userId: number }[] = [];
+        const cardsToCreate: { cardId: number; userId: number }[] = [];
+        const purchasesToCreate: any[] = [];
+
+        for (const item of packageItems) {
+          const pack = packageMap.get(item.id);
+          if (!pack) {
+            set.status = 404;
+            return errorResponse("Package not found", "Um dos pacotes não foi encontrado");
           }
+          total += pack.price * item.quantity;
+          for (let i = 0; i < item.quantity; i++) {
+            packagesToCreate.push({ packageId: pack.id, userId: user.id });
+          }
+          purchasesToCreate.push({
+            quantity: item.quantity,
+            package_id: pack.id,
+            user_id: user.id,
+          });
         }
-        if (user.money < total)
+
+        for (const item of cardItems) {
+          const promo = cardMap.get(item.id);
+          if (!promo) {
+            set.status = 404;
+            return errorResponse("Card not found", "Carta não encontrada");
+          }
+          total += promo.price * item.quantity;
+          for (let i = 0; i < item.quantity; i++) {
+            cardsToCreate.push({ cardId: promo.card_id, userId: user.id });
+            purchasesToCreate.push({
+              user_id: user.id,
+              card_id: promo.card_id,
+            });
+          }
+          rarityPointsGain += promo.card.rarity * item.quantity;
+        }
+
+        if (user.money < total) {
+          set.status = 400;
           return errorResponse(
             "Sem dinheiro suficiente",
-            "Você não tem dinheiro suficiente para comprar esses itens"
+            "Você não tem moedas suficientes para comprar esses itens"
           );
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: { money: user.money - total },
-          }),
-          prisma.cards_user.createMany({
-            data: cardsId.map((id) => ({
-              cardId: id,
-              userId: user.id,
-            })),
-          }),
+        }
+
+        const txs: any[] = [
           prisma.user.update({
             where: { id: user.id },
             data: {
-              rarityPoints: {
-                increment: rarityPointsGain,
-              },
+              money: { decrement: total },
+              rarityPoints: { increment: rarityPointsGain },
             },
           }),
-          prisma.packages_User.createMany({
-            data: packagesId.map((id) => ({
-              packageId: id,
-              userId: user.id,
-            })),
-          }),
-        ]);
+        ];
+
+        if (purchasesToCreate.length > 0) {
+          txs.push(prisma.user_Purchase.createMany({ data: purchasesToCreate }));
+        }
+        if (packagesToCreate.length > 0) {
+          txs.push(prisma.packages_User.createMany({ data: packagesToCreate }));
+        }
+        if (cardsToCreate.length > 0) {
+          txs.push(prisma.cards_user.createMany({ data: cardsToCreate }));
+        }
+
+        await prisma.$transaction(txs);
         return sucessResponse(null, "Compra realizada com sucesso");
       },
       {
@@ -153,7 +164,6 @@ export const storeController = new Elysia({}).group("/store", (app) => {
         where: {
           user_id: user.id,
           card_id: { not: null },
-          user_id: user.id,
         },
         select: {
           card_id: true,

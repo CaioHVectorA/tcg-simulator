@@ -12,24 +12,28 @@ const syne = Syne({
   variable: '--font-syne'
 })
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         {/* <script src="https://unpkg.com/react-scan/dist/auto.global.js"></script> */}
       </head>
       <body
         className={`${syne.variable} antialiased`}
       >
-        <Suspense fallback={<Loader />}>
-          {children}
-        </Suspense>
-        <Analytics />
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <Suspense fallback={<Loader />}>
+            {children}
+          </Suspense>
+          <Analytics />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

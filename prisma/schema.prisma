@@ -21,6 +21,7 @@ model Card {
   Trade_Card        Trade_Card[]
   trade_offer_cards trade_offer_cards[]
   User_Purchase     User_Purchase[]
+  FavoriteCard      FavoriteCard[]
 
   @@map("cards")
 }
@@ -71,6 +72,18 @@ model Cards_user {
   @@map("cards_user")
 }
 
+model FavoriteCard {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  cardId    Int
+  createdAt DateTime @default(now())
+  Card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+  @@map("favorite_cards")
+}
+
 model User {
   id                                               Int                @id @default(autoincrement())
   username                                         String
@@ -110,6 +123,7 @@ model User {
   User_Purchase                                    User_Purchase[]
   User_Ranking                                     User_Ranking?
   Trade_User                                       User_Trade[]
+  FavoriteCard                                     FavoriteCard[]
 
   @@map("users")
 }

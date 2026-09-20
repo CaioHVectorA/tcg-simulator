@@ -1,26 +1,98 @@
-export function LoadingRing({ }: {}) {
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Sparkles } from "lucide-react";
+
+const POKEMON_FLAVOR_TEXTS = [
+  "Achando shinies...",
+  "Embaralhando o deck...",
+  "Polindo as cartas raras...",
+  "Alimentando o Snorlax...",
+  "Consultando o Professor Carvalho...",
+  "Calibrando as Pokébolas...",
+  "Sintonizando com o Centro Pokémon...",
+  "Separando os pacotes especiais...",
+  "Verificando os pontos de raridade...",
+  "Aquecendo a chama do Charizard...",
+];
+
+export function LoadingRing({ className = "" }: { className?: string }) {
   return (
-    <div className="w-16 h-16 border-b-2 border-t-2 border-purple-500 rounded-full animate-spin"></div>
+    <div className={`size-12 border-3 border-primary/30 border-t-primary rounded-full animate-spin ${className}`} />
   );
 }
 
-export function Loader() {
+export function Loader({ customText }: { customText?: string }) {
+  const [flavorIndex, setFlavorIndex] = useState(0);
+
+  useEffect(() => {
+    if (customText) return;
+    const interval = setInterval(() => {
+      setFlavorIndex((prev) => (prev + 1) % POKEMON_FLAVOR_TEXTS.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [customText]);
+
+  const currentText = customText || POKEMON_FLAVOR_TEXTS[flavorIndex];
+
   return (
-    <div className="flex items-center w-screen justify-center h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"></div>
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-md font-syne select-none p-4">
+      {/* Aura de fundo suave */}
+      <div className="absolute size-56 rounded-full bg-red-500/10 blur-3xl pointer-events-none animate-pulse" />
+
+      {/* Pokébola Tátil Animada */}
+      <div className="relative mb-6">
+        <div className="size-20 sm:size-24 rounded-full border-4 border-slate-950 dark:border-white shadow-2xl relative overflow-hidden flex flex-col items-center justify-center animate-bounce duration-1000">
+          {/* Hemisfério Superior (Vermelho) */}
+          <div className="w-full h-1/2 bg-gradient-to-b from-red-500 via-rose-500 to-red-600 border-b-2 border-slate-950 dark:border-slate-900 relative">
+            <div className="absolute top-1 left-2 w-4 h-1.5 rounded-full bg-white/40 blur-[0.5px]" />
+          </div>
+
+          {/* Hemisfério Inferior (Branco) */}
+          <div className="w-full h-1/2 bg-gradient-to-t from-slate-200 via-slate-100 to-white" />
+
+          {/* Botão Central com Luz Pulsante */}
+          <div className="absolute size-7 rounded-full bg-white border-3 border-slate-950 dark:border-slate-900 shadow-md flex items-center justify-center z-10">
+            <div className="size-3 rounded-full bg-slate-100 border border-slate-400 flex items-center justify-center">
+              <div className="size-1.5 rounded-full bg-cyan-400 animate-ping opacity-90" />
+            </div>
+          </div>
+        </div>
+
+        {/* Efeito de Faísca */}
+        <div className="absolute -top-1 -right-1 text-amber-400 animate-spin" style={{ animationDuration: "4s" }}>
+          <Sparkles className="size-5" />
+        </div>
+      </div>
+
+      {/* Texto Dinâmico */}
+      <div className="text-center space-y-2 max-w-xs">
+        <p className="font-bold text-base sm:text-lg text-foreground tracking-wide transition-all duration-300 ease-in-out min-h-[1.75rem]">
+          {currentText}
+        </p>
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0ms" }} />
+          <span className="size-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: "200ms" }} />
+          <span className="size-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: "400ms" }} />
+        </div>
+      </div>
     </div>
   );
 }
 
-
-export function LoaderSimple() {
+export function LoaderSimple({ className = "size-5" }: { className?: string }) {
   return (
-    <div role="status">
-      <svg aria-hidden="true" className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
-        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill" />
-      </svg>
-      <span className="sr-only">Loading...</span>
+    <div role="status" className={`relative inline-flex items-center justify-center shrink-0 ${className} animate-spin`} style={{ animationDuration: '0.8s' }}>
+      <div className="w-full h-full rounded-full border-2 border-foreground/80 overflow-hidden flex flex-col relative shadow-xs">
+        <div className="w-full h-1/2 bg-red-500" />
+        <div className="w-full h-1/2 bg-white" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="size-[36%] rounded-full bg-white border border-slate-900 flex items-center justify-center shadow-xs">
+            <div className="size-1/2 rounded-full bg-slate-900" />
+          </div>
+        </div>
+      </div>
+      <span className="sr-only">Carregando...</span>
     </div>
-  )
+  );
 }

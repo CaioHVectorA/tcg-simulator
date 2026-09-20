@@ -9,12 +9,14 @@ import { useState } from "react";
 import { LoaderSimple } from "@/components/loading-spinner";
 import { motion, AnimatePresence } from "framer-motion";
 import { PurchaseSuccessModal } from "./purchase-success-modal";
+import { CheckoutDialog } from "./checkout-dialog";
 
 export function KartFloating() {
-    const { kart, checkout, loading, removeItem, editItem, successModalOpen, setSuccessModalOpen, lastPurchasedCount } = useKart()
+    const { kart, loading, removeItem, editItem, successModalOpen, setSuccessModalOpen, lastPurchasedCount } = useKart()
     const total = kart.reduce((acc, item) => acc + item.price * item.quantity, 0)
     const totalItems = kart.reduce((acc, item) => acc + item.quantity, 0)
     const [open, setOpen] = useState(false)
+    const [checkoutOpen, setCheckoutOpen] = useState(false)
 
     return (
         <>
@@ -23,6 +25,12 @@ export function KartFloating() {
                 open={successModalOpen}
                 onOpenChange={setSuccessModalOpen}
                 itemCount={lastPurchasedCount}
+            />
+
+            {/* Tactile Dedicated Checkout Modal */}
+            <CheckoutDialog
+                open={checkoutOpen}
+                onOpenChange={setCheckoutOpen}
             />
 
             {kart.length > 0 && (
@@ -34,23 +42,23 @@ export function KartFloating() {
                         exit={{ y: 50, opacity: 0 }}
                         className="fixed bottom-3 left-2 right-2 sm:left-auto sm:right-6 sm:w-96 z-[990] max-w-[calc(100vw-1rem)]"
                     >
-                        <div className="bg-zinc-900 text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-zinc-800 flex items-center justify-between gap-2">
+                        <div className="bg-card text-foreground rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-border flex items-center justify-between gap-2">
                             <button 
                                 onClick={() => setOpen(true)} 
                                 className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 text-left group hover:opacity-90 transition-opacity"
                             >
-                                <div className="size-9 sm:size-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center relative shrink-0">
-                                    <ShoppingBag className="size-4 sm:size-5 text-white" />
-                                    <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 min-w-[1rem] px-1 flex items-center justify-center border border-zinc-900 leading-none">
+                                <div className="size-9 sm:size-10 rounded-xl bg-muted border border-border flex items-center justify-center relative shrink-0">
+                                    <ShoppingBag className="size-4 sm:size-5 text-foreground" />
+                                    <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 min-w-[1rem] px-1 flex items-center justify-center border border-background leading-none">
                                         {totalItems}
                                     </span>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <div className="text-[11px] text-zinc-400 font-medium flex items-center gap-0.5">
+                                    <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-0.5">
                                         <span>{totalItems} {totalItems === 1 ? 'item' : 'itens'}</span>
-                                        <ChevronUp className="size-3 text-zinc-500 group-hover:text-white transition-colors" />
+                                        <ChevronUp className="size-3 text-muted-foreground group-hover:text-foreground transition-colors" />
                                     </div>
-                                    <div className="flex items-center gap-1 font-bold text-xs sm:text-sm text-white truncate">
+                                    <div className="flex items-center gap-1 font-bold text-xs sm:text-sm text-foreground truncate">
                                         <Coins className="size-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
                                         <span className="truncate">{balanceTranslate(total)}</span>
                                     </div>
@@ -58,34 +66,26 @@ export function KartFloating() {
                             </button>
 
                             <Button 
-                                onClick={async () => {
-                                    await checkout(setOpen)
-                                }} 
+                                onClick={() => setCheckoutOpen(true)} 
                                 disabled={loading}
                                 size="sm"
-                                className="bg-white text-zinc-900 hover:bg-zinc-100 font-bold px-3 sm:px-4 py-1.5 h-8 sm:h-9 rounded-xl text-xs gap-1 shrink-0 shadow-xs"
+                                className="bg-foreground text-background hover:bg-foreground/90 font-bold px-3 sm:px-4 py-1.5 h-8 sm:h-9 rounded-xl text-xs gap-1 shrink-0 shadow-xs cursor-pointer"
                             >
-                                {loading ? (
-                                    <LoaderSimple />
-                                ) : (
-                                    <>
-                                        <span>Finalizar</span>
-                                        <ArrowRight className="size-3.5 shrink-0" />
-                                    </>
-                                )}
+                                <span>Finalizar</span>
+                                <ArrowRight className="size-3.5 shrink-0" />
                             </Button>
                         </div>
                     </motion.div>
 
                     {/* Clean Light Cart Sheet */}
                     <Sheet open={open} onOpenChange={setOpen}>
-                        <SheetContent className="font-syne flex flex-col justify-between bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 border-l border-zinc-200 dark:border-zinc-800 w-full sm:max-w-md p-4 sm:p-6">
+                        <SheetContent className="font-syne flex flex-col justify-between bg-card text-foreground border-l border-border w-full sm:max-w-md p-4 sm:p-6">
                             <SheetHeader className="pb-2">
-                                <SheetTitle className="font-bold text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                                <SheetTitle className="font-bold text-lg sm:text-xl text-foreground flex items-center gap-2">
                                     <ShoppingBag className="size-5 text-primary" />
                                     <span>Seu Carrinho</span>
                                 </SheetTitle>
-                                <SheetDescription className="text-zinc-500 text-xs">
+                                <SheetDescription className="text-muted-foreground text-xs">
                                     Revise e edite a quantidade dos seus itens.
                                 </SheetDescription>
                             </SheetHeader>
@@ -99,33 +99,33 @@ export function KartFloating() {
                                             animate={{ opacity: 1, height: "auto" }}
                                             exit={{ opacity: 0, height: 0, x: -30 }}
                                             transition={{ duration: 0.2 }}
-                                            className="p-2.5 sm:p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2"
+                                            className="p-2.5 sm:p-3 rounded-xl bg-secondary border border-border flex items-center justify-between gap-2"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">{item.name}</h4>
-                                                <div className="flex items-center gap-1 font-bold text-xs text-zinc-900 dark:text-zinc-100 mt-0.5">
+                                                <h4 className="font-bold text-xs text-foreground truncate">{item.name}</h4>
+                                                <div className="flex items-center gap-1 font-bold text-xs text-foreground mt-0.5">
                                                     <Coins className="size-3 text-amber-500 fill-amber-500/20 shrink-0" />
                                                     <span>{balanceTranslate(item.price * item.quantity)}</span>
-                                                    <span className="text-zinc-400 font-normal text-[10px] sm:text-[11px] truncate">({balanceTranslate(item.price)} un)</span>
+                                                    <span className="text-muted-foreground font-normal text-[10px] sm:text-[11px] truncate">({balanceTranslate(item.price)} un)</span>
                                                 </div>
                                             </div>
 
                                             {/* Inline Quantity Controls */}
                                             <div className="flex items-center gap-1.5 shrink-0">
-                                                <div className="flex items-center rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 p-0.5">
+                                                <div className="flex items-center rounded-lg bg-background border border-border p-0.5">
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="size-6 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                                                        className="size-6 rounded-md hover:bg-muted text-foreground"
                                                         onClick={() => editItem(item.id, { quantity: item.quantity - 1 })}
                                                     >
                                                         <Minus className="size-3" />
                                                     </Button>
-                                                    <span className="w-5 text-center text-xs font-bold text-zinc-900 dark:text-zinc-100">{item.quantity}</span>
+                                                    <span className="w-5 text-center text-xs font-bold text-foreground">{item.quantity}</span>
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="size-6 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                                                        className="size-6 rounded-md hover:bg-muted text-foreground"
                                                         onClick={() => editItem(item.id, { quantity: item.quantity + 1 })}
                                                     >
                                                         <Plus className="size-3" />
@@ -136,7 +136,7 @@ export function KartFloating() {
                                                     size="icon" 
                                                     variant="ghost" 
                                                     onClick={() => removeItem(item.id)} 
-                                                    className="size-7 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg shrink-0"
+                                                    className="size-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg shrink-0"
                                                 >
                                                     <Trash2 className="size-3.5" />
                                                 </Button>
@@ -146,10 +146,10 @@ export function KartFloating() {
                                 </AnimatePresence>
                             </div>
 
-                            <div className="pt-3 space-y-3 border-t border-zinc-200 dark:border-zinc-800">
+                            <div className="pt-3 space-y-3 border-t border-border">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-zinc-500 font-medium">Total:</span>
-                                    <div className="flex items-center gap-1 font-bold text-zinc-900 dark:text-zinc-50 text-lg sm:text-xl">
+                                    <span className="text-muted-foreground font-medium">Total:</span>
+                                    <div className="flex items-center gap-1 font-bold text-foreground text-lg sm:text-xl">
                                         <Coins className="size-4 sm:size-5 text-amber-500 fill-amber-500/20" />
                                         <span>{balanceTranslate(total)}</span>
                                     </div>
@@ -157,20 +157,15 @@ export function KartFloating() {
 
                                 <SheetFooter>
                                     <Button 
-                                        onClick={async () => {
-                                            await checkout(setOpen)
+                                        onClick={() => {
+                                            setOpen(false);
+                                            setCheckoutOpen(true);
                                         }} 
                                         disabled={loading}
-                                        className="w-full font-bold text-xs sm:text-sm gap-2 h-10"
+                                        className="w-full font-bold text-xs sm:text-sm gap-2 h-10 cursor-pointer"
                                     >
-                                        {loading ? (
-                                            <LoaderSimple />
-                                        ) : (
-                                            <>
-                                                <span>Finalizar Compra</span>
-                                                <ArrowRight className="size-4" />
-                                            </>
-                                        )}
+                                        <span>Revisar e Finalizar Compra</span>
+                                        <ArrowRight className="size-4" />
                                     </Button>
                                 </SheetFooter>
                             </div>

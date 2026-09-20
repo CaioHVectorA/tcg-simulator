@@ -44,32 +44,6 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
         promotionalCards: Promotional[]
     }
 }) {
-    const { get, post } = useApi()
-    const qClient = useQueryClient()
-    const [bountyReward, setBountyReward] = React.useState<number | null>(null)
-    const [bountyModalOpen, setBountyModalOpen] = React.useState(false)
-
-    const { isLoading: loadingBounty, data: timeData, refetch } = useQuery<{ time: string, diff: number, canCollect: boolean, bountyAmounty: boolean | number }>({
-        queryKey: ['bounty-time'],
-        queryFn: async () => {
-            const res = await get('/user/bounty-time')
-            return res.data.data ?? res.data
-        }
-    })
-    const { mutateAsync, isPending } = useMutation({
-        mutationKey: ['bounty-collect'],
-        mutationFn: async () => {
-            const res = await post('/user/bounty', {})
-            const reward = Number(timeData?.bountyAmounty) || 100
-            setBountyReward(reward)
-            setBountyModalOpen(true)
-            await refetch()
-            await qClient.invalidateQueries({ queryKey: ['user'] })
-            await qClient.refetchQueries({ queryKey: ['user'] })
-            return res.data.data ?? res.data
-        }
-    })
-
     const { data, loading, setData } = useFetch('/store/bought-promotional/') as unknown as { data: number[], loading: boolean, setData: React.Dispatch<React.SetStateAction<number[]>> }
     const isInPurchased = (id: number) => data?.includes(id) ?? false
 
@@ -86,62 +60,14 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                                 <ShoppingBag className="size-3.5" />
                                 <span>Loja TCG</span>
                             </div>
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-black dark:text-white">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground">
                                 Loja de Pacotes & Cartas
                             </h1>
                             <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 max-w-xl">
-                                Adquira booster packs, colete sua recompensa diária e garanta cartas promocionais em oferta.
+                                Adquira booster packs clássicos, lootboxes temáticas e garanta cartas em oferta para turbinar seu deck.
                             </p>
                         </div>
                     </div>
-
-                    {/* Daily Reward / Bounty Section */}
-                    {timeData && !loadingBounty && (
-                        <section id="bounty" className="mb-8 sm:mb-10 scroll-mt-20">
-                            <div className="rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border bg-card shadow-xs">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
-                                    <div className="flex flex-row items-center gap-3 sm:gap-4 text-left">
-                                        <div className="size-12 sm:size-14 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
-                                            <Gift className="size-6 sm:size-7" />
-                                        </div>
-                                        <div>
-                                            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">Bônus Diário</span>
-                                            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white">Recompensa Diária</h2>
-                                            {timeData.canCollect ? (
-                                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                                                    Você tem <span className="font-bold text-black dark:text-white">{balanceTranslate(Number(timeData.bountyAmounty))} moedas</span> para coletar!
-                                                </p>
-                                            ) : (
-                                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                                                    Você já resgatou sua recompensa diária hoje.
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {timeData.canCollect ? (
-                                        <Button 
-                                            onClick={() => mutateAsync()} 
-                                            disabled={isPending}
-                                            className="w-full sm:w-auto px-5 font-bold h-10 text-xs sm:text-sm"
-                                        >
-                                            {isPending ? 'Resgatando...' : 'Coletar Recompensa'}
-                                        </Button>
-                                    ) : (
-                                        <div className="flex items-center gap-2 bg-secondary px-3.5 py-2 rounded-xl border border-border shrink-0 w-full sm:w-auto justify-center sm:justify-start">
-                                            <Clock className="size-4 text-muted-foreground shrink-0" />
-                                            <div className="flex items-center gap-1.5 text-left">
-                                                <span className="text-xs text-muted-foreground font-medium">Tempo:</span>
-                                                <span className="text-xs sm:text-sm font-mono font-bold text-black dark:text-white">
-                                                    <Timer initialTime={timeData.diff} />
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-                    )}
 
                     {/* Flash Sale Cards */}
                     {!loading && data && promotionalCards && promotionalCards.length > 0 && (
@@ -149,7 +75,7 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                             <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                 <Zap className="size-4 sm:size-5 text-amber-500 shrink-0" />
                                 <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white">Promoções de Hoje</h2>
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Promoções de Hoje</h2>
                                     <p className="text-[11px] sm:text-xs text-muted-foreground">Descontos especiais em cartas selecionadas</p>
                                 </div>
                             </div>
@@ -162,54 +88,96 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                         </section>
                     )}
 
-                    {/* Standard Packs */}
-                    {standard && standard.length > 0 && (
-                        <section id="standard" className="mb-8 sm:mb-10 scroll-mt-20">
-                            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                                <PackageIcon className="size-4 sm:size-5 text-primary shrink-0" />
-                                <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white">Pacotes Padrão</h2>
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground">Booster packs clássicos</p>
-                                </div>
-                            </div>
+                    {/* Pacotes Padrão */}
+                    {(() => {
+                        const specialPacks = standard?.filter(p => 
+                            p.name.toLowerCase().includes("mítico") || 
+                            p.name.toLowerCase().includes("mitico") || 
+                            p.name.toLowerCase().includes("celestial") || 
+                            p.name.toLowerCase().includes("vórtice") || 
+                            p.name.toLowerCase().includes("vortice") || 
+                            p.name.toLowerCase().includes("sombrio")
+                        ) || [];
+                        const otherStandardPacks = standard?.filter(p => !specialPacks.some(sp => sp.id === p.id)) || [];
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
-                                {standard.map((pack, index) => (
-                                    <PackCard key={pack.id || index} pack={pack} />
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                        return (
+                            <>
+                                {/* 1. Standard Packs */}
+                                {otherStandardPacks.length > 0 && (
+                                    <section id="standard" className="mb-10 sm:mb-12 scroll-mt-20">
+                                        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                                            <PackageIcon className="size-4 sm:size-5 text-primary shrink-0" />
+                                            <div>
+                                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Pacotes Padrão</h2>
+                                                <p className="text-[11px] sm:text-xs text-muted-foreground">Booster packs clássicos ({otherStandardPacks.length} disponíveis)</p>
+                                            </div>
+                                        </div>
 
-                    {/* Themed Packs */}
-                    {tematics && tematics.length > 0 && (
-                        <section id="themed" className="mb-8 sm:mb-10 scroll-mt-20">
-                            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                                <Sparkles className="size-4 sm:size-5 text-purple-500 shrink-0" />
-                                <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white">Pacotes Temáticos</h2>
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground">Edições especiais com cartas selecionadas</p>
-                                </div>
-                            </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
+                                            {otherStandardPacks.map((pack, index) => (
+                                                <PackCard key={pack.id || index} pack={pack} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
-                                {tematics.map((pack, index) => (
-                                    <PackCard withDialog key={pack.id || index} pack={pack} />
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                                {/* 2. Themed Packs / Lootbox */}
+                                {tematics && tematics.length > 0 && (
+                                    <section id="themed" className="mb-12 sm:mb-16 scroll-mt-20">
+                                        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                                            <Sparkles className="size-4 sm:size-5 text-purple-400 shrink-0" />
+                                            <div>
+                                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Pacotes Temáticos (Lootbox)</h2>
+                                                <p className="text-[11px] sm:text-xs text-muted-foreground">Deposite a quantia de ouro desejada • Sorte proporcional e proteção contra cartas repetidas!</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
+                                            {tematics.map((pack, index) => (
+                                                <PackCard withDialog key={pack.id || index} pack={pack} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+
+                                {/* 3. 2 Boosters Mais Fortes / Definitivos no Fundo (Roubadinhos) */}
+                                {specialPacks.length > 0 && (
+                                    <section id="special-packs" className="mb-12 sm:mb-16 scroll-mt-20">
+                                        <div className="p-5 sm:p-8 rounded-3xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-500/10 via-purple-950/40 to-[#0c0d15] shadow-2xl relative overflow-hidden backdrop-blur-md">
+                                            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+                                            <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+                                            
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 relative z-10">
+                                                <div>
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs mb-2 shadow-md">
+                                                        <Sparkles className="size-3.5" />
+                                                        <span>EDIÇÃO DEFINITIVA • OS MAIS ROUBADOS</span>
+                                                    </div>
+                                                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground">
+                                                        ⚡ Boosters Supremos Definitivos
+                                                    </h2>
+                                                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 max-w-2xl">
+                                                        Os dois boosters mais fortes e cobiçados do simulador. Taxas elevadíssimas de cartas místicas, lendárias e god pulls!
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto gap-6 sm:gap-8 justify-center relative z-10">
+                                                {specialPacks.map((pack, index) => (
+                                                    <div key={pack.id || index} className="transform hover:scale-[1.03] transition-transform duration-300">
+                                                        <PackCard pack={pack} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
 
                 <KartFloating />
-                <RewardModal 
-                    open={bountyModalOpen}
-                    onOpenChange={setBountyModalOpen}
-                    iconType="bounty"
-                    title="Bônus Diário Resgatado! 🎉"
-                    description="Sua recompensa diária foi adicionada ao seu saldo com sucesso."
-                    rewardAmount={bountyReward || undefined}
-                />
             </div>
         </KartProvider>
     )

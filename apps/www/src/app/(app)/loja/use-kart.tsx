@@ -97,13 +97,15 @@ export const KartProvider = ({ children, setData }: {
             const res = await post("/store/checkout?key=" + key, {
                 items: kart
             });
-            const { data, ok } = res.data;
+            const { ok } = res.data;
             if (ok) {
-                await qClient.invalidateQueries({ queryKey: ["user"] });
-                await qClient.refetchQueries({ queryKey: ["user"] });
+                // Invalida em background sem travar a interface
+                qClient.invalidateQueries({ queryKey: ["user"] });
+                qClient.invalidateQueries({ queryKey: ["packages"] });
                 const itemCount = kart.reduce((acc, item) => acc + item.quantity, 0);
                 setLastPurchasedCount(itemCount || 1);
                 setKart([]);
+                setOpen(false);
                 setSuccessModalOpen(true);
             } else {
                 toast({
@@ -111,8 +113,8 @@ export const KartProvider = ({ children, setData }: {
                     title: "Não foi possível concluir",
                     description: res.data?.message || "Verifique seu saldo de moedas."
                 });
+                setOpen(false);
             }
-            setOpen(false);
             const cardsId = kart.filter(item => item.type === 'card').map(item => item.card_id!);
             setData((prev) => [...prev, ...cardsId]);
             return { ok, message: "Compra efetuada com êxito!" };

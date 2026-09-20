@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Sparkles, Eye, ArrowRight, CheckCircle2, RotateCcw, Flame, Trophy } fro
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
+import { BoosterPackArt } from "./booster-pack-art";
 
 export interface OpenedCard {
   id: number;
@@ -29,34 +30,38 @@ interface PackOpeningModalProps {
   onClose: () => void;
   pack: UserPackage;
   initialQuantity?: number;
+  preloadedCards?: OpenedCard[];
 }
 
 const RARITY_COLORS: Record<number, { glow: string; text: string; label: string; badge: string }> = {
   1: { glow: "rgba(59, 130, 246, 0.4)", text: "text-blue-400", label: "Comum", badge: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
   2: { glow: "rgba(14, 165, 233, 0.6)", text: "text-sky-300", label: "Rara", badge: "bg-sky-500/20 text-sky-200 border-sky-500/40" },
   3: { glow: "rgba(168, 85, 247, 0.8)", text: "text-purple-300", label: "Épica", badge: "bg-purple-500/20 text-purple-200 border-purple-500/50" },
-  4: { glow: "rgba(234, 179, 8, 0.95)", text: "text-amber-300", label: "Lendária", badge: "bg-amber-500/20 text-amber-200 border-amber-500/60" },
-  5: { glow: "rgba(244, 63, 94, 1.0)", text: "text-rose-300", label: "Ultra Rara", badge: "bg-gradient-to-r from-rose-500/30 to-amber-500/30 text-rose-200 border-rose-500/60" },
+  4: { glow: "rgba(234, 179, 8, 0.95)", text: "text-amber-300", label: "Mística", badge: "bg-amber-500/20 text-amber-200 border-amber-500/60" },
+  5: { glow: "rgba(244, 63, 94, 1.0)", text: "text-rose-300", label: "Lendária", badge: "bg-gradient-to-r from-rose-500/30 to-amber-500/30 text-rose-200 border-rose-500/60" },
 };
 
 // Componente para o Verso da Carta estilo Pokémon
 function PokemonCardBack() {
   return (
-    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 p-2.5 shadow-2xl border-4 border-amber-600/70 flex items-center justify-center relative overflow-hidden select-none">
-      {/* Padrão cósmico de fundo */}
+    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 p-3 shadow-2xl border-4 border-amber-500/70 flex items-center justify-center relative overflow-hidden select-none">
+      {/* Luz ambiente interna */}
       <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent pointer-events-none" />
-      
+
       {/* Borda dourada decorativa interna */}
-      <div className="w-full h-full border border-amber-500/40 rounded-xl flex flex-col items-center justify-center p-3 relative">
-        {/* Esfera / Pokéball estilizada */}
-        <div className="w-28 h-28 rounded-full border-4 border-slate-900 bg-gradient-to-b from-red-600 50% to-white 50% relative flex items-center justify-center shadow-lg shadow-black/60">
-          <div className="w-full h-2.5 bg-slate-900 absolute" />
-          <div className="w-9 h-9 rounded-full bg-white border-4 border-slate-900 flex items-center justify-center z-10 shadow-sm">
-            <div className="w-3.5 h-3.5 rounded-full bg-slate-200 border border-slate-400 animate-pulse" />
+      <div className="w-full h-full border-2 border-amber-400/40 rounded-xl flex flex-col items-center justify-center p-4 relative">
+        {/* Pokébola clássica estilizada */}
+        <div className="w-32 h-32 rounded-full border-4 border-slate-900 bg-gradient-to-b from-red-600 50% to-white 50% relative flex items-center justify-center shadow-2xl shadow-black/80">
+          {/* Faixa central preta */}
+          <div className="w-full h-3 bg-slate-900 absolute" />
+          {/* Botão central da Pokébola */}
+          <div className="w-10 h-10 rounded-full bg-white border-4 border-slate-900 flex items-center justify-center z-10 shadow-md">
+            <div className="w-4 h-4 rounded-full bg-slate-200 border border-slate-400 animate-pulse" />
           </div>
         </div>
 
-        <span className="font-syne font-extrabold text-[11px] tracking-widest text-amber-400/80 uppercase mt-4">
+        {/* Texto do verso */}
+        <span className="font-syne font-black text-xs tracking-widest text-amber-400/90 uppercase mt-5 drop-shadow-md">
           POKÉMON TCG
         </span>
       </div>
@@ -69,9 +74,11 @@ export function PackOpeningModal({
   onClose,
   pack,
   initialQuantity = 1,
+  preloadedCards,
 }: PackOpeningModalProps) {
   const { post, loading } = useApi();
   const qClient = useQueryClient();
+  const isStandardPack = !pack.tcg_id || !pack.image_url || pack.image_url.includes("placeholder");
 
   // Estados do fluxo
   // 'idle' -> 'ready' -> 'tearing' -> 'revealing' -> 'summary'
@@ -82,6 +89,8 @@ export function PackOpeningModal({
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
   const [maxRarityCard, setMaxRarityCard] = useState<OpenedCard | null>(null);
   const [totalOpenedInSession, setTotalOpenedInSession] = useState(0);
+  const [summaryCountdown, setSummaryCountdown] = useState(0);
+  const summaryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Inicialização ao abrir modal
   useEffect(() => {
@@ -91,6 +100,8 @@ export function PackOpeningModal({
       setCurrentCardIndex(0);
       setIsFlipped(false);
       setTotalOpenedInSession(0);
+      setSummaryCountdown(0);
+      if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
     }
   }, [isOpen]);
 
@@ -102,8 +113,28 @@ export function PackOpeningModal({
     setPhase("tearing");
 
     try {
-      const res = await post("/packages/open", { packageId: pack.id });
-      const cardsGetted = res.data.data || res.data || [];
+      const tearStartTime = Date.now();
+      let cardsGetted: OpenedCard[] = [];
+
+      if (preloadedCards && preloadedCards.length > 0) {
+        cardsGetted = preloadedCards;
+      } else {
+        const res = await post("/packages/open", { packageId: pack.id });
+        cardsGetted = res.data.data || res.data || [];
+      }
+
+      // Pré-carrega instantaneamente todas as imagens das cartas para visualização sem delay
+      if (Array.isArray(cardsGetted)) {
+        cardsGetted.forEach((card: OpenedCard) => {
+          if (card.image_url) {
+            const img = new Image();
+            img.src = loadTcgImg(card.image_url);
+          }
+        });
+      }
+
+      const elapsed = Date.now() - tearStartTime;
+      const waitTime = Math.max(0, 350 - elapsed);
 
       setTimeout(() => {
         setCards(cardsGetted);
@@ -116,7 +147,7 @@ export function PackOpeningModal({
         qClient.invalidateQueries({ queryKey: ["packages"] });
         qClient.invalidateQueries({ queryKey: ["user"] });
         qClient.invalidateQueries({ queryKey: ["cards"] });
-      }, 700);
+      }, waitTime);
     } catch (err) {
       setPhase("ready");
     }
@@ -155,6 +186,18 @@ export function PackOpeningModal({
     } else {
       soundFx.playSuccess();
       setPhase("summary");
+      // Inicia contagem regressiva auto-close de 10s
+      setSummaryCountdown(10);
+      summaryTimerRef.current = setInterval(() => {
+        setSummaryCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(summaryTimerRef.current!);
+            onClose();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
   };
 
@@ -162,6 +205,18 @@ export function PackOpeningModal({
   const handleRevealAll = () => {
     soundFx.playSuccess();
     setPhase("summary");
+    // Inicia contagem regressiva auto-close de 10s
+    setSummaryCountdown(10);
+    summaryTimerRef.current = setInterval(() => {
+      setSummaryCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(summaryTimerRef.current!);
+          onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   // Abrir mais um pacote do mesmo tipo
@@ -176,9 +231,10 @@ export function PackOpeningModal({
   const rarityConfig = currentCard ? RARITY_COLORS[currentCard.rarity || 1] : RARITY_COLORS[1];
 
   // Estatísticas do resumo
-  const raresCount = cards.filter((c) => (c.rarity || 1) >= 2).length;
-  const epicsCount = cards.filter((c) => (c.rarity || 1) >= 3).length;
-  const legendariesCount = cards.filter((c) => (c.rarity || 1) >= 4).length;
+  const raresCount = cards.filter((c) => (c.rarity || 1) === 2).length;
+  const epicsCount = cards.filter((c) => (c.rarity || 1) === 3).length;
+  const mythicsCount = cards.filter((c) => (c.rarity || 1) === 4).length;
+  const legendariesCount = cards.filter((c) => (c.rarity || 1) === 5).length;
 
   return (
     <>
@@ -255,11 +311,15 @@ export function PackOpeningModal({
                     className="relative w-64 sm:w-72 aspect-[1/1.5] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-4 border-amber-500/50 group-hover:border-amber-400 transition-colors"
                   >
                     {/* Imagem do Pacote */}
-                    <img
-                      src={loadTcgImg(pack.image_url)}
-                      alt={pack.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    {isStandardPack ? (
+                      <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
+                    ) : (
+                      <img
+                        src={loadTcgImg(pack.image_url)}
+                        alt={pack.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    )}
 
                     {/* Reflexo metálico brilhante */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -295,11 +355,17 @@ export function PackOpeningModal({
                     transition={{ duration: 0.6, ease: "easeOut" }}
                     className="w-full h-16 rounded-t-2xl overflow-hidden border-4 border-b-0 border-amber-400 shadow-xl"
                   >
-                    <img
-                      src={loadTcgImg(pack.image_url)}
-                      alt={pack.name}
-                      className="w-full h-72 object-cover"
-                    />
+                    {isStandardPack ? (
+                      <div className="w-full h-72">
+                        <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
+                      </div>
+                    ) : (
+                      <img
+                        src={loadTcgImg(pack.image_url)}
+                        alt={pack.name}
+                        className="w-full h-72 object-cover"
+                      />
+                    )}
                   </motion.div>
 
                   {/* Clarão de luz do interior do pacote */}
@@ -310,18 +376,42 @@ export function PackOpeningModal({
                     className="absolute inset-0 bg-white rounded-full blur-2xl pointer-events-none"
                   />
 
+                  {/* Cartas brilhantes emergindo do interior do pacote */}
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: -25, opacity: 0.9 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="absolute top-12 w-48 aspect-[2.5/3.5] rounded-xl bg-gradient-to-tr from-amber-400/30 via-indigo-500/20 to-amber-200/30 border-2 border-amber-400/60 shadow-[0_0_40px_rgba(245,158,11,0.5)] pointer-events-none -z-10"
+                  />
+
                   {/* Corpo inferior do pacote */}
                   <motion.div
                     initial={{ y: 0 }}
-                    animate={{ y: 40, opacity: 0.8 }}
+                    animate={{ y: 40, opacity: 0.9 }}
                     transition={{ duration: 0.6 }}
                     className="w-full flex-1 rounded-b-2xl overflow-hidden border-4 border-t-0 border-amber-400 shadow-2xl"
                   >
-                    <img
-                      src={loadTcgImg(pack.image_url)}
-                      alt={pack.name}
-                      className="w-full h-72 object-cover -mt-16"
-                    />
+                    {isStandardPack ? (
+                      <div className="w-full h-72 -mt-16">
+                        <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
+                      </div>
+                    ) : (
+                      <img
+                        src={loadTcgImg(pack.image_url)}
+                        alt={pack.name}
+                        className="w-full h-72 object-cover -mt-16"
+                      />
+                    )}
+                  </motion.div>
+
+                  {/* Indicador animado para nunca parecer travado */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -bottom-8 flex items-center gap-2 bg-slate-900/90 border border-amber-400/50 text-amber-300 font-mono text-xs px-3.5 py-1 rounded-full shadow-xl"
+                  >
+                    <Sparkles className="size-3.5 text-amber-400 animate-spin" />
+                    <span>Liberando cartas do booster...</span>
                   </motion.div>
                 </motion.div>
               )}
@@ -465,15 +555,26 @@ export function PackOpeningModal({
 
                   {/* Badges de Destaque */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
-                      👑 {legendariesCount} Lendárias
-                    </Badge>
-                    <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
-                      💎 {epicsCount} Épicas
-                    </Badge>
-                    <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
-                      ⭐ {raresCount} Raras
-                    </Badge>
+                    {legendariesCount > 0 && (
+                      <Badge variant="outline" className="border-rose-500/40 bg-rose-500/10 text-rose-300 font-mono px-3 py-1">
+                        👑 {legendariesCount} Lendárias
+                      </Badge>
+                    )}
+                    {mythicsCount > 0 && (
+                      <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
+                        ✨ {mythicsCount} Místicas
+                      </Badge>
+                    )}
+                    {epicsCount > 0 && (
+                      <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
+                        💎 {epicsCount} Épicas
+                      </Badge>
+                    )}
+                    {raresCount > 0 && (
+                      <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
+                        ⭐ {raresCount} Raras
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Grid com todas as cartas */}
@@ -538,32 +639,46 @@ export function PackOpeningModal({
                 </div>
               </>
             ) : phase === "summary" ? (
-              <div className="w-full flex items-center justify-between gap-4">
+              <div className="w-full flex flex-col gap-3">
+                {/* Botão Concluir Proeminente com countdown */}
                 <Button
-                  variant="outline"
-                  asChild
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                  onClick={() => {
+                    if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
+                    onClose();
+                  }}
+                  className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20"
                 >
-                  <Link href="/colecao" onClick={onClose}>
-                    Ver Coleção
-                  </Link>
+                  <CheckCircle2 className="size-4 mr-2" />
+                  Concluir & Fechar
+                  {summaryCountdown > 0 && (
+                    <span className="ml-2 text-xs bg-slate-950/30 px-2 py-0.5 rounded-full font-mono">
+                      {summaryCountdown}s
+                    </span>
+                  )}
                 </Button>
 
-                <div className="flex items-center gap-3">
+                {/* Opções secundárias */}
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
+                  >
+                    <Link href="/colecao" onClick={onClose}>
+                      Ver Coleção
+                    </Link>
+                  </Button>
                   {pack.quantity > 1 && (
                     <Button
-                      onClick={handleOpenAnother}
-                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold"
+                      onClick={() => {
+                        if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
+                        handleOpenAnother();
+                      }}
+                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
                     >
-                      <RotateCcw className="size-4 mr-2" /> Abrir Outro ({pack.quantity - 1} restantes)
+                      <RotateCcw className="size-3.5 mr-1.5" /> Abrir Outro ({pack.quantity - 1}x)
                     </Button>
                   )}
-                  <Button
-                    onClick={onClose}
-                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold"
-                  >
-                    Concluir
-                  </Button>
                 </div>
               </div>
             ) : (

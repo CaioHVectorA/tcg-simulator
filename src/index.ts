@@ -27,9 +27,11 @@ import { questsController } from "./controller/quests.controller";
 import { DiaryQuestsCron } from "./lib/diary-quests-cron";
 import { messageController } from "./controller/message.controller";
 import { notificationController } from "./controller/notification.controller";
-import { areaController } from "./controller/area.controller";
+import { albumController } from "./controller/album.controller";
 import { wsManager } from "./lib/ws-manager";
 import { jwt } from "./middlewares/jwt/jwt";
+import { warmupCardsCache } from "./lib/open-package";
+import { prisma } from "./helpers/prisma.client";
 //@ts-ignore
 export const server: Elysia = new Elysia({
   precompile: false,
@@ -114,7 +116,7 @@ export const server: Elysia = new Elysia({
   .use(specialController)
   .use(messageController)
   .use(notificationController)
-  .use(areaController)
+  .use(albumController)
   // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(cron(DiaryQuestsCron()))
@@ -133,6 +135,7 @@ export const server: Elysia = new Elysia({
     hostname: '0.0.0.0'
   });
 console.log("Server running");
+warmupCardsCache(prisma);
 //@ts-ignore
 // RankingCron().run();
 //@ts-ignore

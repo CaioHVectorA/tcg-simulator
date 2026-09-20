@@ -181,40 +181,51 @@ export function Quests() {
     queryKey: ["quests"],
     queryFn: async () => {
       const res = await get("/quests");
-      if (res.data.data.length > 0 && res.data.data.length !== 3) return res.data.data;
+      if (res.data?.data && res.data.data.length > 0) return res.data.data;
       await post("/quests/setup", {});
       const newRes = await get("/quests");
-      return newRes.data.data;
+      return newRes.data?.data || [];
     },
   });
 
   const qClient = useQueryClient();
-  const { mutateAsync, isPending: isMutating } = useMutation({
+  const { mutateAsync: claimSingleQuest, isPending: isClaimingSingle } = useMutation({
     mutationKey: ["quests", "claim"],
     mutationFn: async (quest: Quest) => {
-      if (isMutating) return;
       const res = await patch(`/quests/get-reward/${quest.id}`, {});
       soundFx.playSuccess();
       setRewardAmount(quest.actualReward);
       setRewardTitle(`Missão: ${quest.name}`);
       setRewardModalOpen(true);
       await qClient.invalidateQueries({ queryKey: ["user"] });
-      await qClient.refetchQueries({ queryKey: ["user"] });
       await refetch();
       return res.data.data;
     },
   });
 
+  const { mutateAsync: claimAllQuests, isPending: isClaimingAll } = useMutation({
+    mutationKey: ["quests", "claim-all"],
+    mutationFn: async () => {
+      const res = await post("/quests/claim-all", {});
+      const result = res.data.data as { totalClaimed: number; count: number };
+      soundFx.playLegendaryFanfare();
+      setRewardAmount(result.totalClaimed);
+      setRewardTitle(`${result.count} Missões Coletadas!`);
+      setRewardModalOpen(true);
+      await qClient.invalidateQueries({ queryKey: ["user"] });
+      await refetch();
+      return result;
+    },
+  });
+
+  const isMutating = isClaimingSingle || isClaimingAll;
+
   const handleClaim = (quest: Quest) => {
-    mutateAsync(quest);
+    claimSingleQuest(quest);
   };
 
-  const handleClaimAllAvailable = async () => {
-    if (!data) return;
-    const readyQuests = data.filter((q) => q.completed && !q.fullCompleted);
-    for (const quest of readyQuests) {
-      await mutateAsync(quest);
-    }
+  const handleClaimAllAvailable = () => {
+    claimAllQuests();
   };
 
   const questsList = data || [];

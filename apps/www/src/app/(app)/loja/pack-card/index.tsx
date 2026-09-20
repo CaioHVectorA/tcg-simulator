@@ -15,6 +15,7 @@ import { useKart } from "../use-kart"
 import { NumberQuantityInput } from "@/components/ui/quantity-input"
 import { balanceTranslate } from "@/lib/balance-translate"
 import { Skeleton } from "@/components/ui/skeleton"
+import { BoosterPackArt } from "@/components/booster-pack-art"
 
 type Package = {
     price: number
@@ -62,7 +63,7 @@ function BuyPack({ pack }: { pack: Package }) {
 
             <div className="p-2.5 rounded-xl bg-secondary border border-border flex items-center justify-between">
                 <span className="text-xs text-muted-foreground font-medium">Total:</span>
-                <div className="flex items-center gap-1 font-bold text-black dark:text-white text-base sm:text-lg">
+                <div className="flex items-center gap-1 font-bold text-foreground text-base sm:text-lg">
                     <Coins className="size-4 text-amber-500 fill-amber-500/20" />
                     <span>{balanceTranslate(pack.price * quantity)}</span>
                 </div>
@@ -82,6 +83,8 @@ function BuyPack({ pack }: { pack: Package }) {
     )
 }
 
+import { ThematicLootboxDialog } from "../thematic-lootbox-dialog"
+
 export function PackCard({ pack, withDialog = false }: {
     pack: Package,
     withDialog?: boolean
@@ -89,6 +92,10 @@ export function PackCard({ pack, withDialog = false }: {
     const [cards, setCards] = useState<CardType[]>([])
     const { get, loading, data } = useApi<{ cards: CardType[], pages: number, currentPage: number }>({ cache: true })
     const [hasMore, setHasMore] = useState(true)
+    const [lootboxOpen, setLootboxOpen] = useState(false)
+
+    const isThematic = !!pack.tcg_id
+    const isStandardPack = !pack.tcg_id
 
     const next = async () => {
         const page = data?.currentPage || 1
@@ -108,74 +115,80 @@ export function PackCard({ pack, withDialog = false }: {
             transition={{ duration: 0.2 }}
             className="h-full w-full"
         >
-            <Card className="overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 rounded-xl flex flex-col justify-between h-full group">
+            <Card className="overflow-hidden border border-border/80 bg-card/80 shadow-sm hover:shadow-xl hover:border-amber-500/40 transition-all duration-200 rounded-2xl flex flex-col justify-between h-full group">
                 <div>
-                    <div className="relative aspect-[1/1.3] overflow-hidden bg-secondary/40 flex items-center justify-center">
-                        {pack.tcg_id ? (
-                            <>
+                    <div className="relative aspect-[1/1.38] overflow-hidden bg-secondary/30 flex items-center justify-center p-2.5">
+                        {isStandardPack ? (
+                            <div className="w-full h-full">
+                                <BoosterPackArt name={pack.name} showCrimp={true} />
+                            </div>
+                        ) : (
+                            <div className="w-full h-full relative flex items-center justify-center">
                                 <img 
                                     src={loadTcgImg(pack.image_url)} 
                                     alt={pack.name} 
-                                    className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105" 
+                                    className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105" 
                                 />
-                                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-xs text-white px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold flex items-center gap-1">
-                                    <Sparkles className="size-3 text-amber-400" />
-                                    <span>Booster</span>
+                                <div className="absolute top-2 left-2 bg-purple-950/80 border border-purple-500/40 text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                                    <Sparkles className="size-3 text-purple-400" />
+                                    <span>Lootbox</span>
                                 </div>
-                            </>
-                        ) : (
-                            <div className="p-4 sm:p-5 text-white font-syne h-full w-full flex flex-col justify-center items-start bg-black relative">
-                                <div className="p-2 rounded-xl bg-zinc-800 text-white border border-zinc-700 mb-2">
-                                    <PackageIcon className="size-5 sm:size-6 text-white" />
-                                </div>
-                                <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide">{pack.name}</h3>
-                                {pack.description && (
-                                    <p className="text-xs text-zinc-400 mt-1.5 line-clamp-3 leading-relaxed">
-                                        {pack.description}
-                                    </p>
-                                )}
                             </div>
                         )}
-
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white">
-                            <p className="font-semibold text-xs tracking-wide line-clamp-1">
-                                {pack.name}
-                            </p>
-                        </div>
                     </div>
 
-                    <CardContent className="p-2.5 sm:p-3">
+                    <CardContent className="p-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground font-medium">Preço</span>
-                            <div className="flex items-center gap-1 font-bold text-black dark:text-white text-xs sm:text-base">
-                                <Coins className="size-3.5 sm:size-4 text-amber-500 fill-amber-500/20 shrink-0" />
-                                <span className="truncate">{balanceTranslate(pack.price)}</span>
+                            <span className="text-xs text-muted-foreground font-medium">
+                                {isThematic ? "A partir de" : "Preço"}
+                            </span>
+                            <div className="flex items-center gap-1 font-mono font-bold text-foreground text-xs sm:text-sm">
+                                <Coins className="size-3.5 text-amber-500 fill-amber-500/20 shrink-0" />
+                                <span className="truncate">{isThematic ? "500" : balanceTranslate(pack.price)}</span>
                             </div>
                         </div>
                     </CardContent>
                 </div>
 
-                <CardFooter className="p-2.5 sm:p-3 pt-0 flex items-center gap-1.5 sm:gap-2">
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button className="flex-1 font-bold text-[11px] sm:text-xs h-8 sm:h-9 gap-1" size="sm">
-                                <ShoppingCart className="size-3.5 shrink-0" />
-                                <span>Comprar</span>
+                <CardFooter className="p-3 pt-0 flex items-center gap-2">
+                    {isThematic ? (
+                        <>
+                            <Button 
+                                onClick={() => setLootboxOpen(true)}
+                                className="flex-1 font-bold text-[11px] sm:text-xs h-9 gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-600/20"
+                                size="sm"
+                            >
+                                <Sparkles className="size-3.5 shrink-0" />
+                                <span>Abrir Lootbox</span>
                             </Button>
-                        </SheetTrigger>
-                        <SheetContent className="font-syne bg-background border-border text-foreground w-full sm:max-w-md">
-                            <SheetHeader>
-                                <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-black dark:text-white">
-                                    <PackageIcon className="size-4 sm:size-5 text-primary" />
-                                    <span className="truncate">Comprar {pack.name}</span>
-                                </SheetTitle>
-                                <SheetDescription className="text-xs">
-                                    Escolha a quantidade desejada.
-                                </SheetDescription>
-                            </SheetHeader>
-                            <BuyPack pack={pack} />
-                        </SheetContent>
-                    </Sheet>
+                            <ThematicLootboxDialog 
+                                open={lootboxOpen} 
+                                onOpenChange={setLootboxOpen} 
+                                pack={pack} 
+                            />
+                        </>
+                    ) : (
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button className="flex-1 font-bold text-[11px] sm:text-xs h-9 gap-1.5" size="sm">
+                                    <ShoppingCart className="size-3.5 shrink-0" />
+                                    <span>Comprar</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent className="font-syne bg-background border-border text-foreground w-full sm:max-w-md">
+                                <SheetHeader>
+                                    <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-foreground">
+                                        <PackageIcon className="size-4 sm:size-5 text-primary" />
+                                        <span className="truncate">Comprar {pack.name}</span>
+                                    </SheetTitle>
+                                    <SheetDescription className="text-xs">
+                                        Escolha a quantidade desejada.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <BuyPack pack={pack} />
+                            </SheetContent>
+                        </Sheet>
+                    )}
 
                     {withDialog && (
                         <Dialog>
@@ -198,7 +211,7 @@ export function PackCard({ pack, withDialog = false }: {
                             </DialogTrigger>
                             <DialogContent className="w-[92vw] sm:max-w-3xl max-h-[85vh] flex flex-col font-syne bg-background border-border text-foreground p-4 sm:p-6 rounded-2xl">
                                 <DialogHeader>
-                                    <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-black dark:text-white">
+                                    <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
                                         <Sparkles className="size-4 sm:size-5 text-amber-500 shrink-0" />
                                         <span className="truncate">Cartas em {pack.name}</span>
                                     </DialogTitle>

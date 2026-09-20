@@ -13,6 +13,32 @@ const baseResponse = t.Object({
   data: t.Any(),
 });
 
+async function grantStarterPacks(userId: number) {
+  try {
+    const basicPackage = await prisma.package.findFirst({
+      where: {
+        OR: [
+          { name: { contains: "simples", mode: "insensitive" } },
+          { name: { contains: "básico", mode: "insensitive" } },
+          { name: { contains: "basico", mode: "insensitive" } },
+        ],
+      },
+      orderBy: { price: "asc" },
+    });
+    if (basicPackage) {
+      await prisma.packages_User.createMany({
+        data: Array.from({ length: 5 }).map(() => ({
+          userId,
+          packageId: basicPackage.id,
+          opened: false,
+        })),
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao conceder pacotes iniciais:", err);
+  }
+}
+
 export const authController = new Elysia({}).group("/auth", (app) => {
   return app
     .use(jwt)
@@ -20,8 +46,25 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/login",
       async ({ body, jwt, set }) => {
-        const { email, password } = body;
-        const user = await prisma.user.findFirst({ where: { email } });
+        const { password } = body;
+        const identifier = (body.username || body.email || "").trim();
+
+        if (!identifier) {
+          set.status = 400;
+          return errorResponse(
+            "Informe seu nome de usuário ou e-mail",
+            "Informe seu nome de usuário ou e-mail"
+          );
+        }
+
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: { equals: identifier, mode: "insensitive" } },
+              { username: { equals: identifier, mode: "insensitive" } },
+            ],
+          },
+        });
 
         if (!user) {
           set.status = 404;
@@ -43,8 +86,12 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         return sucessResponse({ token }, "Login efetuado com sucesso!");
       },
       {
-        body: t.Object({ email: t.String(), password: t.String() }),
-        detail: { tags: ["Auth"], description: "Login to the system" },
+        body: t.Object({
+          email: t.Optional(t.String()),
+          username: t.Optional(t.String()),
+          password: t.String(),
+        }),
+        detail: { tags: ["Auth"], description: "Login to the system with email or username" },
         response: {
           200: baseResponse,
           400: baseResponse,
@@ -77,8 +124,6 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           referralId = referralProtocol.id;
         }
         let initialMoney = 500;
-        if (referrer) initialMoney += 3000;
-        if (withBonus) initialMoney += 3000;
         const hashed = await hash(password, 10);
         const money = initialMoney;
         const yesterday = new Date();
@@ -101,6 +146,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             },
           });
         }
+        await grantStarterPacks(user.id);
         const token = await jwt.sign({ id: user.id });
         return sucessResponse({ token }, "Usuário criado com sucesso!");
       },
@@ -185,6 +231,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           }
         }
 
+        await grantStarterPacks(newUser.id);
         const token = await jwt.sign({ id: newUser.id });
         return sucessResponse(
           { token, user: newUser },

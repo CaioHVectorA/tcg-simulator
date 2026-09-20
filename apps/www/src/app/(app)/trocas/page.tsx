@@ -383,7 +383,8 @@ export default function TrocasPage() {
                 <option value="all">Todas as Raridades</option>
                 <option value="2">Rara ou superior (★ 2+)</option>
                 <option value="3">Épica ou superior (★ 3+)</option>
-                <option value="4">Lendária (★ 4+)</option>
+                <option value="4">Mística ou superior (★ 4+)</option>
+                <option value="5">Lendária (★ 5)</option>
               </select>
             </div>
           </div>

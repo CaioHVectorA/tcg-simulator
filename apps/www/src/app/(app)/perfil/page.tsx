@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +20,8 @@ import {
   Loader2,
   Check,
   Camera,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -63,11 +66,17 @@ export default function PerfilPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardModalData | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newPicture, setNewPicture] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ["user-profile"],
@@ -242,6 +251,50 @@ export default function PerfilPage() {
           <span className="text-2xl font-bold font-mono text-foreground block">{stats.tradesDone}</span>
           <span className="text-[11px] text-muted-foreground font-sans">Trocas Feitas</span>
         </div>
+      </div>
+
+      {/* Seletor de Tema Visual: White Mode (Padrão) / Black Mode */}
+      <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-foreground">Tema da Interface</span>
+            <Badge variant="outline" className="text-[10px] font-mono">
+              {mounted && theme === "dark" ? "Black Mode Ativo" : "White Mode (Padrão)"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground font-sans mt-0.5">
+            O padrão da interface é o White Mode. Você pode alternar para o Black Mode quando desejar.
+          </p>
+        </div>
+
+        {mounted && (
+          <div className="flex items-center gap-2 bg-secondary/80 p-1 rounded-xl border border-border">
+            <Button
+              type="button"
+              variant={theme !== "dark" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setTheme("light")}
+              className={`rounded-lg text-xs h-8 px-3 font-bold gap-1.5 ${
+                theme !== "dark" ? "bg-amber-500 text-slate-950 hover:bg-amber-400" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sun className="size-3.5" />
+              <span>White Mode</span>
+            </Button>
+            <Button
+              type="button"
+              variant={theme === "dark" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setTheme("dark")}
+              className={`rounded-lg text-xs h-8 px-3 font-bold gap-1.5 ${
+                theme === "dark" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Moon className="size-3.5" />
+              <span>Black Mode</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Top 5 Cartas Raras */}

@@ -4,6 +4,7 @@ type Package = {
   id: number;
   tcg_id?: string;
   image_url: string;
+  cards_quantity?: number;
 };
 
 type UserPackage = {
@@ -13,4 +14,5 @@ type UserPackage = {
   tcg_id?: string;
   description: string;
   quantity: number;
+  cards_quantity?: number;
 };

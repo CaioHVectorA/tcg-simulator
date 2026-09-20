@@ -174,7 +174,7 @@ export function MaxRarityCelebration({
             </h2>
             <div className="flex items-center gap-2">
               <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/60 font-mono text-xs px-3">
-                RARIDADE ULTRA RARA ★★★★★
+                RARIDADE LENDÁRIA ★★★★★
               </Badge>
               {card.hp && (
                 <Badge variant="outline" className="border-amber-400/40 text-amber-300 font-mono text-xs">

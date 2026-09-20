@@ -75,11 +75,13 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
       "/my",
       async ({ prisma, query, user, set }) => {
         const limit = 32;
-        const { page, search } = query;
+        const { page, search, favorites } = query;
         const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
-        const where: Prisma.CardWhereInput = search
-          ? { name: { contains: search, mode: "insensitive" } }
-          : {};
+        const isFavoritesOnly = favorites === "true";
+        const where: Prisma.CardWhereInput = {
+          ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
+          ...(isFavoritesOnly ? { FavoriteCard: { some: { userId: user.id } } } : {}),
+        };
         const count = await prisma.card.count({
           where: { ...where, Cards_user: { some: { userId: user.id } } },
         });
@@ -89,24 +91,38 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
           take: limit,
           orderBy: { rarity: "desc" },
         });
-        const cardsWithQuantity = await Promise.all(
-          cards.map(async (card) => {
-            const quantity = await prisma.cards_user.count({
-              where: {
-                Card: where,
-                cardId: card.id,
-                userId: user.id,
-              },
-            });
-            return {
-              ...card,
-              quantity,
-            };
-          })
-        );
+
+        const cardIds = cards.map((c) => c.id);
+        const [counts, userFavs] = await Promise.all([
+          prisma.cards_user.groupBy({
+            by: ["cardId"],
+            where: {
+              userId: user.id,
+              cardId: { in: cardIds },
+            },
+            _count: { cardId: true },
+          }),
+          prisma.favoriteCard.findMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIds },
+            },
+            select: { cardId: true },
+          }),
+        ]);
+
+        const countsMap = new Map(counts.map((c) => [c.cardId, c._count.cardId]));
+        const favsSet = new Set(userFavs.map((f) => f.cardId));
+
+        const cardsWithQuantity = cards.map((card) => ({
+          ...card,
+          quantity: countsMap.get(card.id) || 1,
+          isFavorite: favsSet.has(card.id),
+        }));
+
         return sucessResponse({
           data: cardsWithQuantity,
-          totalPages: Math.ceil(count / limit),
+          totalPages: Math.ceil(count / limit) || 1,
           currentPage: parseInt(page || "1"),
           totalCards: count,
         });
@@ -115,9 +131,153 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         query: t.Object({
           page: t.Optional(t.String()),
           search: t.Optional(t.String()),
+          favorites: t.Optional(t.String()),
         }),
         detail: { tags: ["Card"], description: "Resgata cartas do usuário" },
         response: baseResponse,
+      }
+    )
+    .get(
+      "/album",
+      async ({ prisma, query, user }) => {
+        const limit = 24;
+        const { page, search, filter, rarity } = query;
+        const pageNum = Math.max(1, parseInt(page || "1"));
+        const skip = (pageNum - 1) * limit;
+
+        const baseWhere: Prisma.CardWhereInput = {};
+        if (search) {
+          baseWhere.name = { contains: search, mode: "insensitive" };
+        }
+        if (rarity && !isNaN(parseInt(rarity))) {
+          baseWhere.rarity = parseInt(rarity);
+        }
+
+        if (filter === "owned") {
+          baseWhere.Cards_user = { some: { userId: user.id } };
+        } else if (filter === "missing") {
+          baseWhere.Cards_user = { none: { userId: user.id } };
+        } else if (filter === "favorites") {
+          baseWhere.FavoriteCard = { some: { userId: user.id } };
+        }
+
+        const [totalMatching, cards, totalInGame, distinctOwnedGroup, favsCount] = await Promise.all([
+          prisma.card.count({ where: baseWhere }),
+          prisma.card.findMany({
+            where: baseWhere,
+            skip,
+            take: limit,
+            orderBy: [{ rarity: "desc" }, { id: "asc" }],
+          }),
+          prisma.card.count(),
+          prisma.cards_user.groupBy({
+            by: ["cardId"],
+            where: { userId: user.id },
+          }),
+          prisma.favoriteCard.count({ where: { userId: user.id } }),
+        ]);
+
+        const cardIdsOnPage = cards.map((c) => c.id);
+
+        const [userCardsOnPage, userFavsOnPage] = await Promise.all([
+          prisma.cards_user.groupBy({
+            by: ["cardId"],
+            where: {
+              userId: user.id,
+              cardId: { in: cardIdsOnPage },
+            },
+            _count: { cardId: true },
+          }),
+          prisma.favoriteCard.findMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIdsOnPage },
+            },
+            select: { cardId: true },
+          }),
+        ]);
+
+        const quantitiesMap = new Map(userCardsOnPage.map((u) => [u.cardId, u._count.cardId]));
+        const favsSet = new Set(userFavsOnPage.map((f) => f.cardId));
+
+        const cardsWithStatus = cards.map((card) => {
+          const quantity = quantitiesMap.get(card.id) || 0;
+          return {
+            ...card,
+            quantity,
+            isOwned: quantity > 0,
+            isFavorite: favsSet.has(card.id),
+          };
+        });
+
+        const distinctOwnedCount = distinctOwnedGroup.length;
+        const completionPercentage = totalInGame > 0 ? Math.round((distinctOwnedCount / totalInGame) * 100) : 0;
+
+        return sucessResponse({
+          data: cardsWithStatus,
+          totalPages: Math.ceil(totalMatching / limit) || 1,
+          currentPage: pageNum,
+          totalCards: totalMatching,
+          stats: {
+            totalInGame,
+            totalOwnedDistinct: distinctOwnedCount,
+            completionPercentage,
+            favoritesCount: favsCount,
+          },
+        });
+      },
+      {
+        query: t.Object({
+          page: t.Optional(t.String()),
+          search: t.Optional(t.String()),
+          filter: t.Optional(t.String()),
+          rarity: t.Optional(t.String()),
+        }),
+        detail: { tags: ["Card"], description: "Retorna o álbum de cartas com status de posse e favoritos" },
+        response: baseResponse,
+      }
+    )
+    .post(
+      "/:id/favorite",
+      async ({ prisma, params, user, set }) => {
+        const cardId = parseInt(params.id);
+        if (isNaN(cardId)) {
+          set.status = 400;
+          return errorResponse("ID de carta inválido", "Carta inválida");
+        }
+
+        const existing = await prisma.favoriteCard.findUnique({
+          where: {
+            userId_cardId: {
+              userId: user.id,
+              cardId,
+            },
+          },
+        });
+
+        if (existing) {
+          await prisma.favoriteCard.delete({
+            where: { id: existing.id },
+          });
+          return sucessResponse({ isFavorite: false }, "Carta removida dos favoritos");
+        } else {
+          await prisma.favoriteCard.create({
+            data: {
+              userId: user.id,
+              cardId,
+            },
+          });
+          return sucessResponse({ isFavorite: true }, "Carta adicionada aos favoritos! ❤️");
+        }
+      },
+      {
+        params: t.Object({ id: t.String() }),
+        detail: { tags: ["Card"], description: "Alterna favorito da carta" },
+        response: {
+          200: baseResponse,
+          400: baseResponse,
+          401: baseResponse,
+        },
       }
     );
   // .get("/duplicates", async ({ prisma, user }) => {

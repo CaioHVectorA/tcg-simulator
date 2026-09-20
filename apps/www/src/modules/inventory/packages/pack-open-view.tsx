@@ -19,8 +19,8 @@ const RARITY_COLORS: Record<number, { glow: string; text: string; label: string;
   1: { glow: "rgba(59, 130, 246, 0.4)", text: "text-blue-400", label: "Comum", badge: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
   2: { glow: "rgba(14, 165, 233, 0.6)", text: "text-sky-300", label: "Rara", badge: "bg-sky-500/20 text-sky-200 border-sky-500/40" },
   3: { glow: "rgba(168, 85, 247, 0.8)", text: "text-purple-300", label: "Épica", badge: "bg-purple-500/20 text-purple-200 border-purple-500/50" },
-  4: { glow: "rgba(234, 179, 8, 0.95)", text: "text-amber-300", label: "Lendária", badge: "bg-amber-500/20 text-amber-200 border-amber-500/60" },
-  5: { glow: "rgba(244, 63, 94, 1.0)", text: "text-rose-300", label: "Ultra Rara", badge: "bg-gradient-to-r from-rose-500/30 to-amber-500/30 text-rose-200 border-rose-500/60" },
+  4: { glow: "rgba(234, 179, 8, 0.95)", text: "text-amber-300", label: "Mística", badge: "bg-amber-500/20 text-amber-200 border-amber-500/60" },
+  5: { glow: "rgba(244, 63, 94, 1.0)", text: "text-rose-300", label: "Lendária", badge: "bg-gradient-to-r from-rose-500/30 to-amber-500/30 text-rose-200 border-rose-500/60" },
 };
 
 function PokemonCardBack() {
@@ -48,6 +48,18 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
   const [isCompleted, setIsCompleted] = useState(false);
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
   const [maxRarityCard, setMaxRarityCard] = useState<Card | null>(null);
+
+  // Pré-carregamento em lote de todas as cartas no cache do navegador para render instantâneo
+  useEffect(() => {
+    if (cards && Array.isArray(cards)) {
+      cards.forEach((c) => {
+        if (c?.image_url) {
+          const img = new Image();
+          img.src = loadTcgImg(c.image_url);
+        }
+      });
+    }
+  }, [cards]);
 
   const currentCard = cards[currentIndex];
   const rarityConfig = currentCard ? RARITY_COLORS[currentCard.rarity || 1] : RARITY_COLORS[1];
@@ -87,9 +99,10 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
     setIsCompleted(true);
   };
 
-  const raresCount = cards.filter((c) => (c.rarity || 1) >= 2).length;
-  const epicsCount = cards.filter((c) => (c.rarity || 1) >= 3).length;
-  const legendariesCount = cards.filter((c) => (c.rarity || 1) >= 4).length;
+  const raresCount = cards.filter((c) => (c.rarity || 1) === 2).length;
+  const epicsCount = cards.filter((c) => (c.rarity || 1) === 3).length;
+  const mythicsCount = cards.filter((c) => (c.rarity || 1) === 4).length;
+  const legendariesCount = cards.filter((c) => (c.rarity || 1) === 5).length;
 
   return (
     <div className="min-h-[85vh] relative flex flex-col justify-between p-4 sm:p-8 font-syne overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-950/90 shadow-2xl backdrop-blur-2xl">
@@ -264,15 +277,26 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
 
             {/* Badges de Destaque */}
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
-                👑 {legendariesCount} Lendárias
-              </Badge>
-              <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
-                💎 {epicsCount} Épicas
-              </Badge>
-              <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
-                ⭐ {raresCount} Raras
-              </Badge>
+              {legendariesCount > 0 && (
+                <Badge variant="outline" className="border-rose-500/40 bg-rose-500/10 text-rose-300 font-mono px-3 py-1">
+                  👑 {legendariesCount} Lendárias
+                </Badge>
+              )}
+              {mythicsCount > 0 && (
+                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
+                  ✨ {mythicsCount} Místicas
+                </Badge>
+              )}
+              {epicsCount > 0 && (
+                <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
+                  💎 {epicsCount} Épicas
+                </Badge>
+              )}
+              {raresCount > 0 && (
+                <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
+                  ⭐ {raresCount} Raras
+                </Badge>
+              )}
             </div>
 
             {/* Grid de Cartas Reveladas */}

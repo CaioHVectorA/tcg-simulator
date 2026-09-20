@@ -325,6 +325,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
             continue;
           }
           const pkgPkgIds = packagesUser
+            .filter((p) => p.packageId === package_.id)
             .map((p) => p.id)
             .slice(0, quantities[package_.id]);
           console.log({ pkgPkgIds });
@@ -396,6 +397,106 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         return sucessResponse(sortedCards);
       },
       { body: t.Object({ packageId: t.Number() }) }
+    )
+    .post(
+      "/thematic-lootbox",
+      async ({ user, prisma, body, set }) => {
+        const { packageId, goldAmount } = body;
+        if (!goldAmount || goldAmount < 500) {
+          set.status = 400;
+          return errorResponse("Valor mínimo de depósito é 500 moedas!", "Valor mínimo é 500 moedas.");
+        }
+        if (user.money < goldAmount) {
+          set.status = 400;
+          return errorResponse("Saldo insuficiente!", "Você não possui moedas suficientes.");
+        }
+
+        const pkg = await prisma.package.findFirst({
+          where: { id: packageId },
+        });
+        if (!pkg) {
+          set.status = 404;
+          return errorResponse("Pacote não encontrado", "Pacote temático não encontrado.");
+        }
+
+        // Quantidade de cartas proporcional ao ouro depositado (mínimo 3, escala até 15)
+        const cardsCount = Math.min(15, Math.max(3, Math.floor(Math.sqrt(goldAmount / 50)) + 1));
+
+        // Sorte e raridade escalam com o investimento
+        const goldRatio = Math.min(10, Math.max(1, goldAmount / 1000));
+        const weights: { rarity: number; weight: number }[] = [
+          { rarity: 5, weight: Math.min(0.25, 0.01 * goldRatio * 1.6) }, // full_legendary
+          { rarity: 4, weight: Math.min(0.38, 0.04 * goldRatio * 1.5) }, // legendary
+          { rarity: 3, weight: Math.min(0.42, 0.15 * Math.sqrt(goldRatio)) }, // epic
+          { rarity: 2, weight: 0.30 }, // rare
+          { rarity: 1, weight: Math.max(0.05, 0.50 - (goldRatio * 0.04)) }, // common
+        ];
+
+        // Buscar pool de cartas da temática
+        const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
+        let pool = await prisma.card.findMany({
+          where: { card_id: handleTcgId },
+        });
+        if (pool.length === 0) {
+          pool = await prisma.card.findMany({ take: 100 });
+        }
+
+        // Sorteio com Proteção contra Repetição (amostragem sem reposição sempre que possível)
+        const chosenCards: typeof pool = [];
+        const chosenIds = new Set<number>();
+
+        function rollRarity(): number {
+          const total = weights.reduce((s, w) => s + w.weight, 0);
+          let r = Math.random() * total;
+          for (const w of weights) {
+            if (r <= w.weight) return w.rarity;
+            r -= w.weight;
+          }
+          return 1;
+        }
+
+        for (let i = 0; i < cardsCount; i++) {
+          const targetRarity = rollRarity();
+          // Candidatas com a raridade sorteada e que AINDA NÃO foram escolhidas
+          let candidates = pool.filter((c) => c.rarity === targetRarity && !chosenIds.has(c.id));
+          if (candidates.length === 0) {
+            // Fallback para qualquer carta do pool que ainda não foi sorteada
+            candidates = pool.filter((c) => !chosenIds.has(c.id));
+          }
+          if (candidates.length === 0) {
+            // Se o pool for menor que cardsCount, permite re-sorteio
+            candidates = pool;
+          }
+          const picked = candidates[Math.floor(Math.random() * candidates.length)];
+          chosenCards.push(picked);
+          chosenIds.add(picked.id);
+        }
+
+        // Transação Atômica: Deduzir ouro e adicionar cartas ao inventário
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: user.id },
+            data: { money: { decrement: goldAmount } },
+          }),
+          prisma.cards_user.createMany({
+            data: chosenCards.map((c) => ({ userId: user.id, cardId: c.id })),
+          }),
+        ]);
+
+        const sortedCards = chosenCards.sort((a, b) => b.rarity - a.rarity);
+        return sucessResponse({
+          cards: sortedCards,
+          cardsCount: sortedCards.length,
+          goldSpent: goldAmount,
+          packageName: pkg.name,
+        }, `Lootbox ${pkg.name} aberta com sucesso! Você recebeu ${sortedCards.length} cartas.`);
+      },
+      {
+        body: t.Object({
+          packageId: t.Number(),
+          goldAmount: t.Number(),
+        }),
+      }
     );
   // TODO
   // .post(

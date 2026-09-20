@@ -32,8 +32,8 @@ const RARITY_LABELS: Record<number, { label: string; color: string; stars: strin
   1: { label: "Comum", color: "bg-slate-500/20 text-slate-300 border-slate-500/40", stars: "★" },
   2: { label: "Rara", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", stars: "★★" },
   3: { label: "Épica", color: "bg-purple-500/20 text-purple-400 border-purple-500/40", stars: "★★★" },
-  4: { label: "Lendária", color: "bg-amber-500/20 text-amber-300 border-amber-500/40", stars: "★★★★" },
-  5: { label: "Ultra / Full Art", color: "bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-amber-500/20 text-amber-300 border-amber-400/50", stars: "★★★★★" },
+  4: { label: "Mística", color: "bg-amber-500/20 text-amber-300 border-amber-500/40", stars: "★★★★" },
+  5: { label: "Lendária / God Pull", color: "bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-amber-500/20 text-rose-300 border-rose-400/50", stars: "★★★★★" },
 };
 
 const TYPE_COLORS: Record<string, string> = {
