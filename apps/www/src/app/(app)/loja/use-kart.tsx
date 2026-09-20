@@ -102,6 +102,7 @@ export const KartProvider = ({ children, setData }: {
                 // Invalida em background sem travar a interface
                 qClient.invalidateQueries({ queryKey: ["user"] });
                 qClient.invalidateQueries({ queryKey: ["packages"] });
+                qClient.invalidateQueries({ queryKey: ["store-data"] });
                 const itemCount = kart.reduce((acc, item) => acc + item.quantity, 0);
                 setLastPurchasedCount(itemCount || 1);
                 setKart([]);

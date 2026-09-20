@@ -25,7 +25,10 @@ import {
   Loader2,
   AlertCircle,
   MessageSquare,
+  ArrowLeftRight,
+  ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -640,10 +643,17 @@ export default function TrocasPage() {
             </div>
 
             {/* 1. SELEÇÃO DO QUE OFEREÇO */}
-            <div className="pt-3 border-t border-border/60">
+            <div className="pt-3 border-t border-border/60 space-y-2">
+              <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-teal-300">
+                <ArrowLeftRight className="size-4 shrink-0 text-teal-400 mt-0.5" />
+                <span>
+                  <strong>Apenas cartas marcadas para troca:</strong> Selecione abaixo as cartas que você marcou na sua Coleção. Lembre-se: cartas marcadas para troca não poderão ser utilizadas na montagem de decks no modo Batalha!
+                </span>
+              </div>
+
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                  <Layers className="size-4 text-emerald-500" /> 1. O que você está ofertando:
+                  <Layers className="size-4 text-emerald-500" /> 1. O que você está ofertando ({myInventory.length} disponíveis):
                 </span>
                 <span className="text-xs text-muted-foreground font-sans">
                   {selectedSenderCards.length} carta(s) selecionada(s)
@@ -652,8 +662,15 @@ export default function TrocasPage() {
 
               <div className="max-h-56 overflow-y-auto p-2 bg-accent/20 rounded-xl border border-border/40 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                 {myInventory.length === 0 ? (
-                  <div className="col-span-full py-8 text-center text-xs text-muted-foreground">
-                    Nenhuma carta disponível no inventário para oferecer.
+                  <div className="col-span-full py-8 px-4 text-center flex flex-col items-center justify-center gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Você ainda não marcou nenhuma carta para troca na sua coleção.
+                    </p>
+                    <Button asChild variant="outline" size="sm" className="text-xs font-bold gap-1.5 border-teal-500/40 text-teal-400 hover:bg-teal-500/10">
+                      <Link href="/colecao">
+                        <ArrowLeftRight className="size-3.5" /> Ir para Coleção & Marcar Cartas
+                      </Link>
+                    </Button>
                   </div>
                 ) : (
                   myInventory.map((item) => {

@@ -74,8 +74,19 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
     .get(
       "/my-tradeable",
       async ({ prisma, user }) => {
-        const userCards = await prisma.cards_user.findMany({
+        // Encontra as cartas marcadas para troca pelo usuário autenticado
+        const marked = await prisma.tradeMarkedCard.findMany({
           where: { userId: user.id },
+          select: { cardId: true },
+        });
+
+        const markedIds = marked.map((m) => m.cardId);
+        if (markedIds.length === 0) {
+          return sucessResponse([]);
+        }
+
+        const userCards = await prisma.cards_user.findMany({
+          where: { userId: user.id, cardId: { in: markedIds } },
           include: { Card: true },
           orderBy: { Card: { rarity: "desc" } },
         });
@@ -96,7 +107,47 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
         return sucessResponse(Array.from(map.values()));
       },
       {
-        detail: { tags: ["Card"], description: "Retorna cartas do inventário para trocas" },
+        detail: { tags: ["Card"], description: "Retorna cartas marcadas para troca pelo usuário" },
+        response: baseResponse,
+      }
+    )
+    .post(
+      "/toggle-trade-mark/:id",
+      async ({ prisma, params, user, set }) => {
+        const cardId = parseInt(params.id);
+        if (isNaN(cardId)) {
+          set.status = 400;
+          return errorResponse("ID inválido", "ID de carta inválido");
+        }
+
+        const userCard = await prisma.cards_user.findFirst({
+          where: { userId: user.id, cardId },
+        });
+
+        if (!userCard) {
+          set.status = 404;
+          return errorResponse("Carta não encontrada", "Você não possui esta carta em sua coleção.");
+        }
+
+        const existing = await prisma.tradeMarkedCard.findUnique({
+          where: { userId_cardId: { userId: user.id, cardId } },
+        });
+
+        if (existing) {
+          await prisma.tradeMarkedCard.delete({
+            where: { id: existing.id },
+          });
+          return sucessResponse({ isTradeMarked: false }, "Carta desmarcada da lista de trocas.");
+        } else {
+          await prisma.tradeMarkedCard.create({
+            data: { userId: user.id, cardId },
+          });
+          return sucessResponse({ isTradeMarked: true }, "Carta marcada para troca! (Bloqueada para futuros decks)");
+        }
+      },
+      {
+        params: t.Object({ id: t.String() }),
+        detail: { tags: ["Card"], description: "Alterna status de carta marcada para troca" },
         response: baseResponse,
       }
     )
@@ -128,25 +179,31 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
       "/my",
       async ({ prisma, query, user, set }) => {
         const limit = 32;
-        const { page, search, favorites } = query;
-        const skip = search ? 0 : (parseInt(page || "1") - 1) * limit;
+        const { page, search, favorites, type, rarity, tradeOnly } = query;
+        const skip = (parseInt(page || "1") - 1) * limit;
         const isFavoritesOnly = favorites === "true";
+        const isTradeOnly = tradeOnly === "true";
+
         const where: Prisma.CardWhereInput = {
           ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
+          ...(type && type !== "all" ? { type: { equals: type, mode: "insensitive" } } : {}),
+          ...(rarity && rarity !== "all" && !isNaN(Number(rarity)) ? { rarity: Number(rarity) } : {}),
           ...(isFavoritesOnly ? { FavoriteCard: { some: { userId: user.id } } } : {}),
+          ...(isTradeOnly ? { TradeMarkedCard: { some: { userId: user.id } } } : {}),
         };
+
         const count = await prisma.card.count({
           where: { ...where, Cards_user: { some: { userId: user.id } } },
         });
         const cards = await prisma.card.findMany({
           where: { ...where, Cards_user: { some: { userId: user.id } } },
-          skip,
+          skip: Math.max(0, skip),
           take: limit,
           orderBy: { rarity: "desc" },
         });
 
         const cardIds = cards.map((c) => c.id);
-        const [counts, userFavs] = await Promise.all([
+        const [counts, userFavs, userMarked] = await Promise.all([
           prisma.cards_user.groupBy({
             by: ["cardId"],
             where: {
@@ -162,15 +219,24 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
             },
             select: { cardId: true },
           }),
+          prisma.tradeMarkedCard.findMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIds },
+            },
+            select: { cardId: true },
+          }),
         ]);
 
         const countsMap = new Map(counts.map((c) => [c.cardId, c._count.cardId]));
         const favsSet = new Set(userFavs.map((f) => f.cardId));
+        const markedSet = new Set(userMarked.map((m) => m.cardId));
 
         const cardsWithQuantity = cards.map((card) => ({
           ...card,
           quantity: countsMap.get(card.id) || 1,
           isFavorite: favsSet.has(card.id),
+          isTradeMarked: markedSet.has(card.id),
         }));
 
         return sucessResponse({
@@ -185,8 +251,11 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
           page: t.Optional(t.String()),
           search: t.Optional(t.String()),
           favorites: t.Optional(t.String()),
+          type: t.Optional(t.String()),
+          rarity: t.Optional(t.String()),
+          tradeOnly: t.Optional(t.String()),
         }),
-        detail: { tags: ["Card"], description: "Resgata cartas do usuário" },
+        detail: { tags: ["Card"], description: "Resgata cartas do usuário com filtros avançados" },
         response: baseResponse,
       }
     )

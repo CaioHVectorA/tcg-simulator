@@ -319,34 +319,33 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           );
         }
         const allCards = [] as Card[];
-        for await (const package_ of packages) {
-          for (let i = 0; i < quantities[package_.id]; i++) {
-            const cards = await OpenPackage(package_, prisma);
-            rarityPointsGain += cards.reduce(
-              (acc, curr) => acc + curr.rarity,
-              0
-            );
-            allCards.push(...cards);
+        for (const package_ of packages) {
+          const cardsByRarity = await getByRarityCluster({ pkg: package_, prisma });
+          const countToOpen = quantities[package_.id] || 0;
+          for (let i = 0; i < countToOpen; i++) {
+            for (let j = 0; j < package_.cards_quantity; j++) {
+              const card = getRandomCardFromPackage(package_, cardsByRarity);
+              if (card) {
+                rarityPointsGain += card.rarity;
+                allCards.push(card);
+              }
+            }
           }
           if (!isAdmin) {
-            const packageUserId =
-              packagesUser.find((p) => p.packageId === package_.id)?.id || 10000;
-            if (packageUserId === 10000) {
-              console.log("Package not found");
-              continue;
-            }
             const pkgPkgIds = packagesUser
               .filter((p) => p.packageId === package_.id)
               .map((p) => p.id)
               .slice(0, quantities[package_.id]);
-            await prisma.packages_User.updateMany({
-              data: { opened: true },
-              where: {
-                userId: user.id,
-                id: { in: pkgPkgIds },
-                opened: false,
-              },
-            });
+            if (pkgPkgIds.length > 0) {
+              await prisma.packages_User.updateMany({
+                data: { opened: true },
+                where: {
+                  userId: user.id,
+                  id: { in: pkgPkgIds },
+                  opened: false,
+                },
+              });
+            }
           }
         }
         await prisma.cards_user.createMany({
@@ -437,6 +436,10 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           set.status = 400;
           return errorResponse("Valor mínimo de depósito é 500 moedas!", "Valor mínimo é 500 moedas.");
         }
+        if (goldAmount > 1000000) {
+          set.status = 400;
+          return errorResponse("Teto máximo excedido!", "O teto máximo de investimento é 1.000.000 moedas (1M).");
+        }
         if (user.money < goldAmount) {
           set.status = 400;
           return errorResponse("Saldo insuficiente!", "Você não possui moedas suficientes.");
@@ -450,17 +453,17 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           return errorResponse("Pacote não encontrado", "Pacote temático não encontrado.");
         }
 
-        // Quantidade de cartas proporcional ao ouro depositado (mínimo 3, escala até 15)
-        const cardsCount = Math.min(15, Math.max(3, Math.floor(Math.sqrt(goldAmount / 50)) + 1));
+        // Quantidade de cartas proporcional ao ouro depositado (mínimo 3, escala até 25 cartas em 1M)
+        const cardsCount = Math.min(25, Math.max(3, Math.floor(Math.sqrt(goldAmount / 35)) + 1));
 
         // Sorte e raridade escalam com o investimento
-        const goldRatio = Math.min(10, Math.max(1, goldAmount / 1000));
+        const goldRatio = Math.min(30, Math.max(1, goldAmount / 1000));
         const weights: { rarity: number; weight: number }[] = [
-          { rarity: 5, weight: Math.min(0.25, 0.01 * goldRatio * 1.6) }, // full_legendary
-          { rarity: 4, weight: Math.min(0.38, 0.04 * goldRatio * 1.5) }, // legendary
-          { rarity: 3, weight: Math.min(0.42, 0.15 * Math.sqrt(goldRatio)) }, // epic
-          { rarity: 2, weight: 0.30 }, // rare
-          { rarity: 1, weight: Math.max(0.05, 0.50 - (goldRatio * 0.04)) }, // common
+          { rarity: 5, weight: Math.min(0.35, 0.015 * goldRatio * 1.4) }, // full_legendary
+          { rarity: 4, weight: Math.min(0.40, 0.04 * goldRatio * 1.3) }, // legendary
+          { rarity: 3, weight: Math.min(0.45, 0.18 * Math.sqrt(goldRatio)) }, // epic
+          { rarity: 2, weight: Math.max(0.12, 0.35 - (goldRatio * 0.008)) }, // rare
+          { rarity: 1, weight: Math.max(0.02, 0.45 - (goldRatio * 0.02)) }, // common
         ];
 
         // Buscar pool de cartas da temática
@@ -519,13 +522,14 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           }),
         ]);
 
-        const sortedCards = chosenCards.sort((a, b) => b.rarity - a.rarity);
+        // Ordenar do MENOS raro para o MAIS raro (Tier 1 -> Tier 5) para suspense crescente
+        const sortedCards = chosenCards.sort((a, b) => (a.rarity || 1) - (b.rarity || 1));
         return sucessResponse({
           cards: sortedCards,
           cardsCount: sortedCards.length,
           goldSpent: goldAmount,
           packageName: pkg.name,
-        }, `Lootbox ${pkg.name} aberta com sucesso! Você recebeu ${sortedCards.length} cartas.`);
+        }, `Pacote ${pkg.name} aberto com sucesso! Você recebeu ${sortedCards.length} cartas.`);
       },
       {
         body: t.Object({

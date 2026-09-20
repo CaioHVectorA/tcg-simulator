@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { soundFx } from "@/lib/sound-fx";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,34 @@ export function MaxRarityCelebration({
   onClose,
 }: MaxRarityCelebrationProps) {
   const [inspectOpen, setInspectOpen] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Motion values para tilt 3D suave com física de mola sem re-renderizar o React
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [16, -16]), {
+    stiffness: 140,
+    damping: 18,
+  });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-16, 16]), {
+    stiffness: 140,
+    damping: 18,
+  });
+
+  const shineX = useSpring(useTransform(mouseX, [-0.5, 0.5], [-40, 40]), {
+    stiffness: 140,
+    damping: 18,
+  });
+  const shineY = useSpring(useTransform(mouseY, [-0.5, 0.5], [-40, 40]), {
+    stiffness: 140,
+    damping: 18,
+  });
 
   useEffect(() => {
     if (isOpen && card) {
       soundFx.playGodPullFanfare();
+      mouseX.set(0);
+      mouseY.set(0);
     }
   }, [isOpen, card]);
 
@@ -43,7 +66,13 @@ export function MaxRarityCelebration({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setMousePos({ x, y });
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
   };
 
   const cardImg = loadTcgImg(card.image_url);
@@ -56,6 +85,7 @@ export function MaxRarityCelebration({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-4 overflow-hidden font-syne select-none"
         onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Backdrop escuro com nébula cósmica */}
         <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl" />
@@ -121,17 +151,18 @@ export function MaxRarityCelebration({
             </div>
           </motion.div>
 
-          {/* Carta 3D Flutuante com Tilt Interativo */}
+          {/* Carta 3D Flutuante com Tilt Suave por GPU */}
           <motion.div
             initial={{ scale: 0.2, y: 80, rotateZ: -10 }}
             animate={{ scale: 1, y: 0, rotateZ: 0 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 180, damping: 15 }}
             style={{
               perspective: 1000,
-              rotateX: mousePos.y * -20,
-              rotateY: mousePos.x * 20,
+              rotateX,
+              rotateY,
+              transformStyle: "preserve-3d",
             }}
-            className="relative w-64 sm:w-80 aspect-[2.5/3.5] rounded-2xl cursor-pointer group mb-5 transition-transform duration-100 ease-out"
+            className="relative w-64 sm:w-80 aspect-[2.5/3.5] rounded-2xl cursor-pointer group mb-5 will-change-transform"
             onClick={() => setInspectOpen(true)}
           >
             {/* Halo de Brilho Extremo atrás da carta */}
@@ -146,17 +177,15 @@ export function MaxRarityCelebration({
 
               {/* Camada de Foil Holográfico Arco-íris */}
               <div
-                className="absolute inset-0 pointer-events-none opacity-60 mix-blend-color-dodge transition-opacity duration-300"
-                style={{
-                  background: `linear-gradient(${115 + mousePos.x * 60}deg, rgba(255,255,255,0.8) 0%, rgba(255,0,128,0.5) 25%, rgba(0,255,255,0.6) 50%, rgba(255,215,0,0.5) 75%, transparent 100%)`,
-                }}
+                className="absolute inset-0 pointer-events-none opacity-50 mix-blend-color-dodge transition-opacity duration-300 bg-gradient-to-tr from-transparent via-white/30 to-amber-200/40"
               />
 
-              {/* Brilho cintilante dinâmico */}
-              <div
+              {/* Brilho cintilante dinâmico em tempo real sem re-render */}
+              <motion.div
                 className="absolute inset-0 pointer-events-none opacity-40 bg-radial from-white via-transparent to-transparent"
                 style={{
-                  transform: `translate(${mousePos.x * 100}px, ${mousePos.y * 100}px)`,
+                  x: shineX,
+                  y: shineY,
                 }}
               />
             </div>

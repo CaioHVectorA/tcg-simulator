@@ -38,36 +38,29 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const { isLoading, data: user } = useQuery({
         queryKey: ['user'],
         queryFn: async () => {
-            const response = await get("/user/me")
-            if (response.status === 401) {
-                await new Promise(resolve => setTimeout(resolve, 3000))
-                const newResponse = await get("/user/me")
-                if (newResponse.status === 401) {
-                    return push('/entrar')
+            try {
+                const response = await get("/user/me")
+                if (response.status === 401) {
+                    push('/entrar')
+                    return null
                 }
-                return newResponse.data.data
+                return response.data?.data ?? response.data
+            } catch (e) {
+                return null
             }
-            return response.data.data
         },
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
     })
-    // if (!user) return console.log('User not found')
-    if (isLoading) return (
-        <UserContext.Provider value={{ user: null }}>
-            <div className=" w-full flex flex-col items-center h-full justify-center text-center py-12">
-                <LoadingRing />
-                <h3 className="text-foreground font-syne font-bold text-lg mt-3">Carregando suas informações</h3>
-                <p className="font-syne text-muted-foreground text-xs mt-1">Caso demore muito, considere atualizar.</p>
-            </div>
-        </UserContext.Provider>
-    )
+
     return (
         <UserContext.Provider value={{ user: user || null }}>
             {children}
-        </UserContext.Provider >
+        </UserContext.Provider>
     );
 };
 
 export const useUser = () => {
     const context = useContext(UserContext);
-    return context?.user as User;
+    return (context?.user || {}) as User;
 };

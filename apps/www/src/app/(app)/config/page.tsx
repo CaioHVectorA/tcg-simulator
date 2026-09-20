@@ -21,7 +21,7 @@ export default function ConfigPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const { username, email } = useUser();
+  const { username = "", email = "" } = useUser() || {};
 
   useEffect(() => {
     setMounted(true);

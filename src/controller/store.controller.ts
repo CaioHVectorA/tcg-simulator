@@ -37,6 +37,10 @@ export const storeController = new Elysia({}).group("/store", (app) => {
           tcg_id: true,
           price: true,
           description: true,
+          cards_quantity: true,
+        },
+        orderBy: {
+          price: "asc",
         },
       });
       const tematics = packages.filter((p) => p.tcg_id);

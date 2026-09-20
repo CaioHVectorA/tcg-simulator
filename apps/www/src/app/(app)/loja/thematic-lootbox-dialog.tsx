@@ -39,7 +39,7 @@ type ThematicLootboxDialogProps = {
   };
 };
 
-const QUICK_CHIPS = [500, 1000, 2500, 5000, 10000];
+const QUICK_CHIPS = [5000, 25000, 50000, 100000, 250000, 500000, 1000000];
 
 export function ThematicLootboxDialog({
   open,
@@ -51,16 +51,16 @@ export function ThematicLootboxDialog({
   const { post, loading } = useApi();
   const qClient = useQueryClient();
 
-  const [goldAmount, setGoldAmount] = useState<number>(1000);
+  const [goldAmount, setGoldAmount] = useState<number>(5000);
   const [openingModalOpen, setOpeningModalOpen] = useState(false);
   const [openedCards, setOpenedCards] = useState<any[]>([]);
 
-  // Estimativa de cartas
-  const estimatedCards = Math.min(15, Math.max(3, Math.floor(Math.sqrt(goldAmount / 50)) + 1));
-  const luckBonus = Math.min(100, Math.round((goldAmount / 10000) * 100));
+  // Estimativa de cartas e bônus de sorte
+  const estimatedCards = Math.min(25, Math.max(3, Math.floor(Math.sqrt(goldAmount / 35)) + 1));
+  const luckBonus = Math.min(200, Math.round((goldAmount / 5000) * 100));
 
   const handleOpenLootbox = async () => {
-    if (goldAmount < 500 || goldAmount > userMoney) return;
+    if (goldAmount < 500 || goldAmount > 1000000 || goldAmount > userMoney) return;
 
     try {
       const res = await post("/packages/thematic-lootbox", {
@@ -79,7 +79,7 @@ export function ThematicLootboxDialog({
         setOpeningModalOpen(true);
       }
     } catch (err) {
-      console.error("Lootbox error:", err);
+      console.error("Pack customization error:", err);
     }
   };
 
@@ -91,17 +91,17 @@ export function ThematicLootboxDialog({
     <>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto bg-card border-border text-foreground p-5 sm:p-7 rounded-2xl">
-          {/* TELA DE DEPÓSITO E CONFIGURAÇÃO DA LOOTBOX */}
+          {/* TELA DE DEPÓSITO E CONFIGURAÇÃO DO PACOTE */}
             <DialogHeader className="text-left">
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold font-mono mb-1 w-fit">
                 <Gift className="size-3.5" />
-                <span>Lootbox Temática Dinâmica</span>
+                <span>Pacote Temático Personalizado</span>
               </div>
               <DialogTitle className="text-xl sm:text-2xl font-bold font-syne text-foreground flex items-center gap-2">
                 <span>{pack.name}</span>
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-                Deposite quanto ouro desejar. O cálculo determina o volume de cartas e a taxa de sorte com proteção contra repetição!
+                Configure seu investimento em ouro (até 1.000.000 / 1M). O valor determina o volume de cartas e chances míticas com proteção contra repetição!
               </DialogDescription>
             </DialogHeader>
 
@@ -119,7 +119,7 @@ export function ThematicLootboxDialog({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Depósito em Ouro:
+                    Investimento em Ouro (Teto: 1M):
                   </label>
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30">
                     <Coins className="size-4 text-amber-400 shrink-0" />
@@ -133,8 +133,8 @@ export function ThematicLootboxDialog({
                 <input
                   type="range"
                   min={500}
-                  max={Math.max(500, Math.min(25000, userMoney || 25000))}
-                  step={100}
+                  max={Math.max(500, Math.min(1000000, userMoney || 1000000))}
+                  step={goldAmount >= 100000 ? 5000 : 500}
                   value={goldAmount}
                   onChange={(e) => setGoldAmount(Number(e.target.value))}
                   className="w-full accent-amber-400 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
@@ -144,6 +144,7 @@ export function ThematicLootboxDialog({
                 <div className="flex flex-wrap gap-1.5 justify-center">
                   {QUICK_CHIPS.map((chip) => {
                     const disabled = userMoney < chip;
+                    const label = chip >= 1000000 ? "1M" : chip >= 1000 ? `${chip / 1000}k` : chip;
                     return (
                       <button
                         key={chip}
@@ -161,26 +162,26 @@ export function ThematicLootboxDialog({
                             : "bg-secondary/80 border-border text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {chip >= 1000 ? `${chip / 1000}k` : chip}
+                        {label}
                       </button>
                     );
                   })}
                   {userMoney >= 500 && (
                     <button
                       type="button"
-                      onClick={() => setGoldAmount(Math.min(25000, userMoney))}
+                      onClick={() => setGoldAmount(Math.min(1000000, userMoney))}
                       className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border border-amber-500/50 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all"
                     >
-                      MAX
+                      MAX ({userMoney >= 1000000 ? "1M" : balanceTranslate(userMoney)})
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Estatísticas Estimadas da Lootbox */}
+              {/* Estatísticas Estimadas do Pacote */}
               <div className="grid grid-cols-2 gap-2.5 p-3.5 rounded-xl bg-card/60 border border-border/80 text-xs">
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground text-[11px]">Cartas Devolvidas:</span>
+                  <span className="text-muted-foreground text-[11px]">Cartas no Pacote:</span>
                   <div className="flex items-center gap-1 font-bold font-mono text-sm text-foreground">
                     <Sparkles className="size-3.5 text-amber-400" />
                     <span>~{estimatedCards} cartas</span>
@@ -197,7 +198,7 @@ export function ThematicLootboxDialog({
 
                 <div className="col-span-2 pt-2 border-t border-border/50 flex items-center gap-2 text-emerald-400 text-[11px] font-medium">
                   <ShieldCheck className="size-4 shrink-0" />
-                  <span>Proteção ativa: pouca ou zero chance de cartas repetidas no lote!</span>
+                  <span>Proteção ativa: algoritmo anti-duplicatas integrado no lote!</span>
                 </div>
               </div>
             </div>
@@ -211,14 +212,14 @@ export function ThematicLootboxDialog({
               {loading ? (
                 <div className="flex items-center gap-2">
                   <LoaderSimple className="size-4" />
-                  <span>Forjando Lootbox...</span>
+                  <span>Forjando Pacote Especial...</span>
                 </div>
               ) : userMoney < goldAmount ? (
                 <span>Saldo Insuficiente</span>
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="size-4" />
-                  <span>Depositar & Abrir Lootbox ({goldAmount.toLocaleString("pt-BR")} Ouro)</span>
+                  <span>Personalizar & Abrir Pacote ({goldAmount.toLocaleString("pt-BR")} Ouro)</span>
                 </div>
               )}
             </Button>

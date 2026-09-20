@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* <script src="https://unpkg.com/react-scan/dist/auto.global.js"></script> */}
+        <script src="https://unpkg.com/react-scan/dist/auto.global.js" async />
       </head>
       <body
         className={`${syne.variable} antialiased`}

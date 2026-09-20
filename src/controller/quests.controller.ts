@@ -305,21 +305,47 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
         const transactionOps: any[] = [];
         const cacheKeysToDelete: string[] = [];
 
-        for (const qu of questsUser) {
-          if (!qu.Quest.levelGoals[qu.currentLevel]) continue;
+        const candidateQuests = questsUser.filter(
+          (qu) => qu.Quest.levelGoals[qu.currentLevel] !== undefined
+        );
 
-          const query = runQuery(
-            qu.Quest.queryCheck,
-            qu.Quest.levelGoals[qu.currentLevel],
-            user.id
-          );
+        const evaluations = await Promise.all(
+          candidateQuests.map(async (qu) => {
+            const cacheKey = `quest-${user.id}-${qu.quest_id}`;
+            if (questsCache.has(cacheKey)) {
+              //@ts-ignore
+              const [cachedQuest, lastUpdate] = questsCache.get(cacheKey);
+              if (
+                new Date().getTime() - lastUpdate.getTime() < 30000 &&
+                !cachedQuest.completed
+              ) {
+                return { qu, mission_complete: false };
+              }
+            }
 
-          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
-            mission_complete: boolean;
-            progress: number | bigint;
-          }[];
+            const query = runQuery(
+              qu.Quest.queryCheck,
+              qu.Quest.levelGoals[qu.currentLevel],
+              user.id
+            );
 
-          if (queryRes?.mission_complete) {
+            try {
+              const [queryRes] = (await prisma.$queryRaw(
+                Prisma.sql([query])
+              )) as {
+                mission_complete: boolean;
+                progress: number | bigint;
+              }[];
+              return { qu, mission_complete: Boolean(queryRes?.mission_complete) };
+            } catch (err) {
+              console.error(`Error checking quest ${qu.Quest.name}:`, err);
+              return { qu, mission_complete: false };
+            }
+          })
+        );
+
+        for (const { qu, mission_complete } of evaluations) {
+          if (mission_complete) {
             const reward = qu.Quest.levelRewards[qu.currentLevel] || 0;
             totalReward += reward;
             claimedCount++;

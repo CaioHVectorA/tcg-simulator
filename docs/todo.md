@@ -1,68 +1,98 @@
 # TODO.md — Pokémon TCG Simulator
 
 > **Backlog Estruturado de Tarefas, Roadmap e Especificações Técnicas**  
-> Última Atualização: **18 de Setembro de 2026**
+> Última Atualização: **20 de Setembro de 2026**
 
 ---
 
-## 🎯 Status Atual do Projeto: Estável & Expandido
+## 🎯 Status Atual do Projeto: Estável, Rebalanceado & Expandido
 
 ### ✅ Entregas Concluídas Recentemente
-- [x] **Fluxo de Convidado Humanizado & Upgrade de Conta:**
-  - Suporte a nicknames personalizados e botão 🎲 de gerador de nomes aleatórios de treinador em `apps/www/src/app/entrar/page.tsx`.
-  - Endpoint `POST /auth/upgrade-guest` no backend (`auth.controller.ts`) mantendo 100% de cartas, pacotes, moedas, missões e histórico.
-  - Modal interativo de conversão de conta (`UpgradeAccountModal`) e selo de visitante no `HeaderMenu`.
-  - Bloqueio preventivo de recursos sociais (amigos, chat, trocas) para visitantes com feedback visual amigável (`GuestRestrictionCard`).
-- [x] **Sistema de Customização de Avatar de Treinador:**
-  - Modal `AvatarPickerModal` integrado ao perfil (`perfil/page.tsx`) com 3 opções:
-    - Galeria de 16 Pokémon e Treinadores icônicos (PokeAPI official artwork).
-    - Seleção de arte de qualquer carta pertencente à coleção do usuário.
-    - URL personalizada com pré-visualização ao vivo em moldura circular.
-  - Endpoint `PATCH /user/profile` recebendo `picture` e invalidando cache global do usuário.
-- [x] **Animações de Abertura Imersiva & Celebração God Pull (Tier 5):**
-  - Sequência cinematográfica em tela cheia `MaxRarityCelebration` com rotação de raios solares, anéis de energia, aura cósmica, partículas e tilt 3D interativo da carta.
-  - Motor sonoro sintetizado via Web Audio API (`sound-fx.ts`): novos métodos `playMaxRarityAura()` e `playGodPullFanfare()`.
-  - Efeito de suspense (aura pulsante no verso da carta) em `pack-opening-modal.tsx` e `pack-open-view.tsx`.
-- [x] **Suite de Testes Unitários com Bun:**
-  - 15 testes unitários (`tests/auth.test.ts`, `tests/cache.test.ts`, `tests/mount-response.test.ts`, `tests/open-package.test.ts`, `tests/user.controller.ts`) passando 100% em ~250ms via `bun test` ou `bun run test`.
-  - Correção de bug no sorteio de raridade (`src/lib/open-package.ts`): uso de `??` (nullish coalescing) e fallback seguro para pools não vazios.
-- [x] **Script de Desenvolvimento Concorrente:**
-  - `bun dev:all` (`widgets/dev-all.ts`) executando backend (porta 8080) e frontend (porta 3000) simultaneamente com logs prefixados coloridos e dashboard no terminal.
-- [x] **Mapeamento Completo de Bibliotecas, APIs e Issues:**
-  - `docs/libraries-and-apis.md`: detalhamento do runtime Bun, Elysia, Next 15, TCGdex SDK/CDN e motor de áudio.
-  - `docs/issues.md` e `issues.md`: triagem das 77 issues do repositório GitHub.
+
+- [x] **Limpeza Visual e Textual na Landing Page e Aba de Login:**
+  - Removidos textos inúteis, buzzwords técnicos ("Web Audio API", "WebSocket", "animações a 60fps", "celebrações cinematográficas") e instruções redundantes de cursor.
+  - Removido texto "Abertura cinematográfica com áudio" e lista estática de bullet points da tela `/entrar`.
+  - Coluna esquerda da tela de login reformulada para exibir um showcase visual autêntico com `BoosterPackArt` interativo, e simplificado banner de convidado.
+
+- [x] **Boosters Temáticos com Visual Metalizado e Correção de Imagens 404:**
+  - Corrigidas URLs quebradas na tabela `packages` para os sets swsh3, sv03.5 (151), sv04.5 (Destinos de Paldea), swsh9 (Astros Cintilantes), swsh7 (Céus em Evolução) e swsh12.5 (Realeza Absoluta).
+  - Atualizado `BoosterPackArt` para suporte nativo a `logoUrl` com posicionamento centralizado, relevo metalizado e crimp dentado, substituindo logos flutuando em vazio ou cartas esticadas na loja e na abertura.
+
+- [x] **Aumento do Teto dos Pacotes Temáticos para 1.000.000 (1M) & Revelação Crescente:**
+  - Teto de investimento em ouro ampliado de 100k para 1.000.000 (1M) no backend (`POST /packages/thematic-lootbox`) e no frontend (`ThematicLootboxDialog`), com botão MAX (1M) e chips rápidos até 1M.
+  - Invertida a ordem de revelação de cartas para a ordem canônica do TCG: do menos raro para o mais raro (Tier 1 ao Tier 5), garantindo suspense e deixando a melhor carta (God Pull) para o final.
+
+- [x] **Eliminação de Jitter / Tremor do Mouse na Celebração de God Pull:**
+  - Em `apps/www/src/components/max-rarity-celebration.tsx`: substituído `setMousePos` no React por `useMotionValue` + `useSpring` da GPU, e removida classe CSS conflitante `transition-transform duration-100`. Efeito 3D agora responde a 120Hz com física suave sem nenhum tremor.
+
+- [x] **Eliminação da Tela Branca Bloqueante de Carregamento ("Carregando suas informações"):**
+  - Identificada a causa raiz em `apps/www/src/context/UserContext.tsx`: o `UserProvider` envelopava todo o `(app)/layout.tsx` e substituía a árvore inteira de componentes por uma tela branca estática enquanto `/user/me` estava pendente, suprimindo cabeçalhos e esqueletos locais da Loja e outras abas.
+  - Removido bloqueio do `UserProvider`, removido delay arbitrário de 3.000ms e configurado `staleTime: 60000`. O layout e os skeletons de página agora renderizam instantaneamente (0ms).
+
+- [x] **Mini Descrição em Popover `(i)` nos Booster Packs da Loja:**
+  - Adicionado botão interativo `(i)` com efeito translúcido no canto superior de cada booster pack em `apps/www/src/app/(app)/loja/pack-card/index.tsx`.
+  - Ao clicar ou tocar, abre um Popover estilizado exibindo o nome do pacote, badge com a quantidade exata de cartas (`cards_quantity`), custo em moedas e uma mini descrição com a proposta, mecânica e chances de raridade (ex: Tudo ou Nada com 82% de god pull, Pacote Lendário com 65%+ de lendárias, pacotes elementais e temáticos).
+
+- [x] **Otimização Extrema do Endpoint `POST /quests/claim-all` (de 54s para <500ms):**
+  - Causa raiz: laço sequencial executando 23 a 30 queries `prisma.$queryRaw` sequenciais para o Supabase (EUA via PgBouncer), somando ~1.8s por roundtrip e totalizando 54 segundos.
+  - Solução: paralelização de queries com `Promise.all`, verificação em cache curto (`questsCache`) para pular validação de missões atestadas incompletas nos últimos 30 segundos, e criação de novos índices de banco de dados (`cards_user(userId, cardId)`, `packages_user(userId, opened)` e `cards(rarity, type)`).
+
+- [x] **Migração da Coleção (`/colecao`) para Client-Side TanStack Query (Fim do SSR Inflexível):**
+  - Migração de `/colecao` para Client Component com `useQuery(['my-cards', queryString])`, eliminando a lentidão e descompasso de parâmetros causados pelo antigo SSR.
+  - Adicionado `apps/www/src/app/(app)/colecao/loading.tsx` e shimmer de 18 cards durante transições de filtro, com sincronização em tempo real de favoritos e marcações de troca.
+
+- [x] **Reclassificação Rigorosa de Raridades V, VMAX, VSTAR, ex, EX e Megas:**
+  - Script e verificação no banco de dados (`prisma/seed/fix-rarities-and-trade-seed.ts`): todas as 27 cartas especiais e de promoções legadas classificadas erroneamente como Comum/Rara foram promovidas para Tier 3 (Épica) no caso de V/ex/EX/GX e Tier 4 (Mística) / Tier 5 (Lendária) no caso de VMAX, VSTAR e Megas.
+  - Regra de negócio mandatória documentada no `AGENTS.md`.
+
+- [x] **Filtros Avançados na Coleção & Correção da Contagem Total (#66):**
+  - Correção crítica no HOC `withAsyncPaginatedFetchedData` (`apps/www/src/components/hoc/with-paginated-data.tsx`): repasse correto de `totalCards={payload.totalCards}` e de todos os searchParams (`type`, `rarity`, `tradeOnly`, `favorites`, `search`). A coleção não exibe mais "0 cartas no total".
+  - Barra de filtros na Coleção (`apps/www/src/modules/colection/cards.tsx`) com seleção de tipo elemental (Fogo, Água, Elétrico, etc.), filtro por nível de raridade (1 a 5), abas exclusivas para "Todas", "Favoritas" e "Marcadas p/ Troca".
+
+- [x] **Sistema de Marcação de Cartas para Troca (`trade_marked_cards`):**
+  - Nova tabela no Prisma (`trade_marked_cards` / model `TradeMarkedCard`) e endpoint `POST /cards/toggle-trade-mark/:id`.
+  - Botão de toggle e badge `⇄ TROCA` na Coleção.
+  - Integração mandatória na aba de trocas (`apps/www/src/app/(app)/trocas/page.tsx`): o seletor de cartas na criação de oferta lista estritamente cartas marcadas para troca pelo usuário via `GET /cards/my-tradeable`.
+  - Regra de sistema: cartas marcadas para troca não poderão ser utilizadas na formação de decks no futuro modo de batalha.
+
+- [x] **Rebalanceamento Econômico & Linha de 12 Pacotes Padrão:**
+  - Loja reestruturada com exatamente 12 pacotes padrão clássicos (de 100 até 42.000 moedas: Simples, Raro, Grande, Épicos, Iniciação, Lendário, Raro Kanto, Grande Épico, Tudo ou Nada, Vórtice Sombrio, Mítico Celestial, Tempestade Elemental) mais todos os 29 pacotes temáticos do TCGDex.
+  - Seção "Boosters Supremos Definitivos" removida a pedido do usuário; todos os 12 pacotes padrão residem juntos na seção "Pacotes Padrão".
+  - Remoção completa da nomenclatura "lootbox" em favor de "Pacote Temático Personalizado".
+  - Teto de gastos de 100.000 moedas implementado no backend (`package.controller.ts`) e no seletor com chips de atalho (`thematic-lootbox-dialog.tsx`).
+
+- [x] **Carregamento Tátil e Instantâneo da Loja (Zero Latency / Fim do SSR Lag):**
+  - Migração de `/loja` de SSR bloqueante (`withAsyncFetchedData`) para Client Component nativo com TanStack Query (`useQuery`).
+  - Criação de `StoreSkeleton` com silhuetas pulsantes de boosters e cartas flash, e `apps/www/src/app/(app)/loja/loading.tsx`.
+  - Transição imediata de rota (0ms) e cache inteligente de 60 segundos com invalidação pós-checkout.
+
+- [x] **Novas Missões Criativas & Feedback Tátil Instantâneo:**
+  - Adicionadas 7 novas missões de alto rendimento no banco de dados (`seed-creative-quests.ts`): Mestre das Trevas, Especialista Psíquico, Poder de Titã (HP Extremo), Caçador de Místicas & Lendárias, Arsenal V & VMAX, Dinastia Eeveelution e Negociador da Liga. Recompensas entre 8.000 e 100.000 moedas sincronizadas com todos os usuários.
+  - Feedback tátil imediato no botão "Coletar Recompensa": áudio disparado no momento do clique e botão específico com estado de carregamento local (`LoaderSimple`) sem latência percebida.
+
+- [x] **Otimização da Abertura de Pacotes (Sem Engasgos/Loading no Rasgo):**
+  - `pack-opening-modal.tsx`: pré-carregamento em segundo plano ativado durante a tela de resumo (`phase === "summary"`) para que aberturas consecutivas ocorram com 0ms de espera.
+  - `package.controller.ts`: rota `/open-packages` otimizada para agrupar amostragem de raridade em memória por tipo de pacote, eliminando chamadas redundantes a banco de dados.
+
+- [x] **Correções Visuais & Posicionamento de Toasts:**
+  - Reposicionamento do `ToastViewport` (`apps/www/src/components/ui/toast.tsx`) para o topo superior direito (`top-4 right-4`), impedindo que a notificação cubra o botão flutuante de finalizar compra do carrinho.
+  - Ajuste de contraste em variantes `outline` e `ghost` do `button.tsx` para garantir legibilidade com texto explícito em tema claro e escuro.
+
+- [x] **Seed Realista no Mercado de Trocas:**
+  - Povoamento do mercado com treinadores emblemáticos (Red, Cynthia, Steven, Lance, Misty) ofertando cartas lendárias e místicas autênticas com valores e descrições temáticas.
+
+- [x] **Ativação do React Scan:**
+  - Script do React Scan ativado em `apps/www/src/app/layout.tsx` para auditoria contínua de performance e renderizações.
+
+- [x] **Fluxo de Convidado Humanizado & Customização de Avatar:**
+  - Nicknames personalizados, botão 🎲 aleatório e endpoint `POST /auth/upgrade-guest`.
+  - Modal `AvatarPickerModal` integrado ao perfil (`perfil/page.tsx`).
 
 ---
 
-## 🚨 Prioridade 0: Débito Técnico & Alinhamento de Infraestrutura
+## 🚀 Próximas Entregas Planejadas
 
-- [x] **Alinhar Dockerfile com arquitetura Bun e Fly.io**
-  - *Arquivo:* `Dockerfile` e `.dockerignore`
-  - *Ação:* Atualizado `COPY bun.lockb` para `bun.lock*` e incluído `apps/www/package.json` para resolução de workspaces do Bun com `.dockerignore` otimizado.
-- [ ] **Refatorar inconsistência de Foreign Keys no Prisma**
-  - *Arquivo:* `prisma/schema.prisma`
-  - *Ação:* Padronizar camelCase ou snake_case em migração controlada (`Cards_user.userId` vs `User_Purchase.user_id`).
-- [ ] **Deduplicação de missões redundantes no seed (#67)**
-  - *Arquivo:* `prisma/seed/quests.ts`
-  - *Ação:* Remover missões com critérios duplicados ou IDs conflitantes.
-
----
-
-## 🎮 Prioridade 1: Economia e Gameplay Avançado
-
-- [ ] **Sistema de Caça / Safari Zone — Hunting System (#52)**
-  - *Descrição:* Área especial onde cartas selvagens raras aparecem periodicamente. O jogador consome "Iscas" ou "Safari Balls" obtidas em missões para tentar capturá-las com taxa de captura dinâmica baseada em raridade e HP.
-- [ ] **Compra direta de cartas promocionais (#63)**
-  - *Descrição:* Permitir que o jogador adquira cartas promocionais em destaque na loja diretamente por moedas ou insígnias, sem depender de pacotes.
-- [ ] **Modo de Batalha de Decks TCG (PVP/PVE)**
-  - *Descrição:* Construtor de Decks (mínimo 60 cartas) e motor de regras simplificado por turnos contra IA ou treinadores amigos.
-
----
-
-## 🎴 Prioridade 2: Colecionismo e Recursos Sociais
-
-- [ ] **Filtros Avançados na Coleção (#66)**
-  - *Descrição:* Filtros combinados por Coleção/Série (Base Set, Scarlet & Violet), tipo elemental (Fogo, Água, etc.), HP mínimo/máximo e filtro "Apenas Repetidas" para reciclagem em lote.
+### 🎴 Colecionismo e Recursos Sociais
 - [ ] **Compartilhamento Público de Pasta / Binder Virtual (#44)**
   - *Descrição:* Rota pública compartilhável (`/binder/:username` ou `/colecao/:id`) com visualização de fichário folheável para exibir coleções em redes sociais.
 - [ ] **Menu Lateral / Sidebar Moderna (#48)**
@@ -72,11 +102,8 @@
 
 ---
 
-## 🌐 Prioridade 3: Internacionalização Completa (i18n)
-*(Planejado e documentado — **NÃO IMPLEMENTAR CÓDIGO** até aprovação final)*
-
-### Visão Geral da Arquitetura de i18n
-O simulador já utiliza dados de cartas do **TCGdex**, que nativamente possui suporte a múltiplos idiomas (`/pt/`, `/en/`, `/es/`, `/ja/`, `/fr/`, `/de/`). A internacionalização tornará a plataforma 100% acessível para a comunidade global de Pokémon TCG.
+## 🌐 Internacionalização Completa (i18n)
+*(Planejado e documentado em `docs/i18n-architecture.md`)*
 
 ### Escopo de Idiomas Planejados:
 1. 🇧🇷 **Português do Brasil (`pt-BR`)** — Idioma padrão.
@@ -84,34 +111,6 @@ O simulador já utiliza dados de cartas do **TCGdex**, que nativamente possui su
 3. 🇪🇸 **Espanhol (`es-ES`)** — Comunidade hispanofalante (#75).
 4. 🇯🇵 **Japonês (`ja-JP`)** — Cartas originais e público asiático (#76).
 5. 🇫🇷 **Francês (`fr-FR`)** e 🇩🇪 **Alemão (`de-DE`)** (#77).
-
-### Estrutura Arquitetural Proposta:
-- **Biblioteca Recomendada:** `next-intl` (leve, nativo para Next.js 15 App Router com zero overhead de cliente).
-- **Estrutura de Diretórios de Dicionários:**
-  ```
-  apps/www/src/messages/
-  ├── pt.json
-  ├── en.json
-  ├── es.json
-  ├── ja.json
-  ├── fr.json
-  └── de.json
-  ```
-- **Namespaces de Tradução:**
-  - `common`: Botões genéricos ("Confirmar", "Cancelar", "Fechar", "Salvar", "Voltar").
-  - `auth`: Telas de login, registro, modo convidado e upgrade de conta.
-  - `header`: Itens de menu, moedas, notificações e perfil.
-  - `packs`: Rasgar pacote, virar carta, raridades ("Comum", "Rara", "Lendária", "God Pull").
-  - `cards`: Tipos de Pokémon, HP, ataques, descrições e fraquezas.
-  - `trades`: Mercado de trocas, filtros, criar oferta, aceitar proposta.
-  - `social`: Amigos, solicitações, chat, status online e doações.
-  - `quests`: Missões diárias, objetivos, cronômetro de rotação.
-  - `areas`: Biomas de Kanto e expedições.
-- **Integração com TCGdex Dinâmico:**
-  - Parâmetro de locale injetado nas requisições da API de cartas: `https://api.tcgdex.net/v2/{lang}/cards/{id}`.
-  - CDN de imagens adaptada para o idioma ativo: `https://assets.tcgdex.net/{lang}/{set}/{cardId}/high.webp`.
-- **Componente Seletor de Idioma:**
-  - Dropdown com bandeiras no `HeaderMenu` e nas `Configurações`, com persistência em cookie `NEXT_LOCALE`.
 
 ---
 
@@ -133,6 +132,6 @@ bun dev:front
 # Executar suite completa de testes unitários
 bun test
 
-# Executar migrações e seeds do banco
-bun seed
+# Executar migrações e sincronizar schema no banco
+bun x prisma db push
 ```

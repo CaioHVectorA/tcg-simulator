@@ -137,6 +137,27 @@ export function PackOpeningModal({
             });
           prefetchPromiseRef.current = promise;
         }
+      } else if (phase === "summary" && pack?.id && pack.quantity > 1) {
+        if (!prefetchedCardsRef.current && !prefetchPromiseRef.current) {
+          setIsPrefetching(true);
+          const promise = post("/packages/open", { packageId: pack.id })
+            .then((res) => {
+              const list = res.data.data || res.data || [];
+              prefetchedCardsRef.current = list;
+              if (Array.isArray(list)) {
+                list.forEach((c: OpenedCard) => {
+                  if (c.image_url) {
+                    const img = new Image();
+                    img.src = loadTcgImg(c.image_url);
+                  }
+                });
+              }
+              return list;
+            })
+            .catch(() => [])
+            .finally(() => setIsPrefetching(false));
+          prefetchPromiseRef.current = promise;
+        }
       }
     } else {
       // Ao fechar o modal, sincroniza dados se algum pacote foi aberto
@@ -184,9 +205,12 @@ export function PackOpeningModal({
         });
       }
 
+      // Ordena rigorosamente do MENOR nível de raridade para o MAIOR (Tier 1 -> Tier 5) para suspense máximo!
+      const orderedCards = [...cardsGetted].sort((a, b) => (a.rarity || 1) - (b.rarity || 1));
+
       // Transição fluida de 350ms sem interrupções
       setTimeout(() => {
-        setCards(cardsGetted);
+        setCards(orderedCards);
         setCurrentCardIndex(0);
         setIsFlipped(false);
         setPhase("revealing");
@@ -268,10 +292,8 @@ export function PackOpeningModal({
     }, 1000);
   };
 
-  // Abrir mais um pacote do mesmo tipo
+  // Abrir mais um pacote do mesmo tipo (aproveitando prefetch em segundo plano)
   const handleOpenAnother = () => {
-    prefetchedCardsRef.current = null;
-    prefetchPromiseRef.current = null;
     setCards([]);
     setCurrentCardIndex(0);
     setIsFlipped(false);
@@ -365,10 +387,11 @@ export function PackOpeningModal({
                     {isStandardPack ? (
                       <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
                     ) : (
-                      <img
-                        src={loadTcgImg(pack.image_url)}
-                        alt={pack.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      <BoosterPackArt 
+                        name={pack.name} 
+                        logoUrl={loadTcgImg(pack.image_url)} 
+                        cardsQuantity={pack.cards_quantity} 
+                        className="w-full h-full" 
                       />
                     )}
 
@@ -411,11 +434,14 @@ export function PackOpeningModal({
                         <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
                       </div>
                     ) : (
-                      <img
-                        src={loadTcgImg(pack.image_url)}
-                        alt={pack.name}
-                        className="w-full h-72 object-cover"
-                      />
+                      <div className="w-full h-72">
+                        <BoosterPackArt 
+                          name={pack.name} 
+                          logoUrl={loadTcgImg(pack.image_url)} 
+                          cardsQuantity={pack.cards_quantity} 
+                          className="w-full h-full" 
+                        />
+                      </div>
                     )}
                   </motion.div>
 

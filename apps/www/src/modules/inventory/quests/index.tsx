@@ -12,6 +12,7 @@ import { Check, Clock, Coins, Flame, Sparkles, Trophy } from "lucide-react";
 import { RewardModal } from "@/components/ui/reward-modal";
 import { soundFx } from "@/lib/sound-fx";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoaderSimple } from "@/components/loading-spinner";
 
 export type Quest = {
   name: string;
@@ -152,10 +153,20 @@ function QuestCard({
             <Button
               size="sm"
               disabled={isClaiming}
-              className="font-bold text-xs bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/20 h-8 px-4 animate-pulse"
+              className="font-bold text-xs bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/20 h-8 px-4 active:scale-95 transition-all"
               onClick={() => onClaim(quest)}
             >
-              <Sparkles className="size-3.5 mr-1.5" /> Coletar Recompensa
+              {isClaiming ? (
+                <div className="flex items-center gap-1.5">
+                  <LoaderSimple className="size-3.5 animate-spin" />
+                  <span>Coletando...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="size-3.5" />
+                  <span>Coletar Recompensa</span>
+                </div>
+              )}
             </Button>
           ) : (
             <Button variant="outline" disabled size="sm" className="text-xs h-8">
@@ -219,12 +230,20 @@ export function Quests() {
   });
 
   const isMutating = isClaimingSingle || isClaimingAll;
+  const [claimingQuestId, setClaimingQuestId] = useState<number | null>(null);
 
-  const handleClaim = (quest: Quest) => {
-    claimSingleQuest(quest);
+  const handleClaim = async (quest: Quest) => {
+    soundFx.playCardFlip();
+    setClaimingQuestId(quest.id);
+    try {
+      await claimSingleQuest(quest);
+    } finally {
+      setClaimingQuestId(null);
+    }
   };
 
   const handleClaimAllAvailable = () => {
+    soundFx.playRareChime();
     claimAllQuests();
   };
 
@@ -344,7 +363,7 @@ export function Quests() {
               key={quest.id}
               quest={quest}
               onClaim={handleClaim}
-              isClaiming={isMutating}
+              isClaiming={claimingQuestId === quest.id || isClaimingAll}
             />
           ))}
         </AnimatePresence>

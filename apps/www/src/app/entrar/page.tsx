@@ -22,6 +22,7 @@ import { api } from '@/lib/api'
 import { soundFx } from '@/lib/sound-fx'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { BoosterPackArt } from '@/components/booster-pack-art'
 
 const loginSchema = z.object({
     username: z.string().min(2, { message: "Informe seu nome de usuário ou e-mail" }),
@@ -262,24 +263,17 @@ const GuestForm = ({ onSubmit, loading }: {
             </div>
 
             {/* Banner Informativo com Contraste Apropriado */}
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/40 p-3.5 text-xs text-amber-900 dark:text-amber-200 leading-relaxed shadow-xs">
-                <div className="flex items-start gap-2">
-                    <Sparkles className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                        <strong className="font-semibold block mb-0.5 text-amber-950 dark:text-amber-100">
-                            Acesso Instantâneo Sem Cadastro:
-                        </strong>
-                        Abra pacotes, colecione cartas e ganhe moedas na hora! Seu progresso é salvo no dispositivo e você pode transformá-lo em uma conta definitiva a qualquer momento sem perder nada.
-                    </div>
-                </div>
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5 shadow-xs">
+                <Sparkles className="size-4 text-amber-500 shrink-0" />
+                <span>Progresso salvo no dispositivo. Crie uma conta definitiva a qualquer momento.</span>
             </div>
 
             <Button 
                 type="submit" 
                 disabled={loading} 
-                className="w-full h-11 font-syne font-black text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                className="w-full h-11 font-syne font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
             >
-                {loading ? <LoaderSimple /> : "Começar a Jogar Imediatamente"}
+                {loading ? <LoaderSimple /> : "Jogar Imediatamente"}
             </Button>
         </form>
     )
@@ -384,28 +378,23 @@ export default function LoginRegisterPage() {
                             <span>Simulador Oficial Pokémon</span>
                         </div>
 
-                        <h1 className="font-syne text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-tight mb-3">
+                        <h1 className="font-syne text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-tight mb-2">
                             SimTCG
                         </h1>
-                        <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-                            O simulador completo onde você abre boosters, coleciona cartas ultra raras e negocia com outros treinadores.
+                        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+                            Abra boosters, colecione cartas raras e monte sua coleção oficial.
                         </p>
                     </div>
 
-                    {/* Badge Animado de Vantagens */}
-                    <div className="space-y-3 bg-muted/40 border border-border/40 p-4 rounded-2xl font-sans text-xs">
-                        <div className="flex items-center gap-2 text-foreground font-medium">
-                            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                            <span>Abertura cinematográfica com áudio</span>
+                    {/* Visual Booster Pack Showcase */}
+                    <div className="my-auto flex flex-col items-center justify-center py-2">
+                        <div className="w-36 drop-shadow-2xl hover:scale-105 transition-transform duration-300">
+                            <BoosterPackArt name="Pacote lendário" cardsQuantity={10} showCrimp={true} />
                         </div>
-                        <div className="flex items-center gap-2 text-foreground font-medium">
-                            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                            <span>Trocas P2P ativas na comunidade</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-foreground font-medium">
-                            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                            <span>Missões diárias com recompensas</span>
-                        </div>
+                        <span className="text-[11px] font-mono text-muted-foreground mt-3 flex items-center gap-1.5">
+                            <Sparkles className="size-3 text-amber-400" />
+                            Milhares de cartas e pacotes oficiais
+                        </span>
                     </div>
 
                     <Link href="/" className="font-sans text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">

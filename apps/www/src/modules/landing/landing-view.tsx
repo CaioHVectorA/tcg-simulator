@@ -30,34 +30,34 @@ const FEATURE_CARDS = [
     icon: Flame,
     title: "Abertura Imersiva",
     badge: "God Pulls & Áudio",
-    desc: "Rasgue boosters físicos virtuais com física de rasgo, efeitos sonoros sintetizados via Web Audio API e celebrações cinematográficas para raridades máximas.",
+    desc: "Rasgue boosters com física realista, revelação progressiva e efeitos vibrantes para cartas de raridade máxima.",
     accent: "from-amber-500/20 to-orange-500/10",
     border: "hover:border-amber-500/50",
     iconColor: "text-amber-400",
   },
   {
     icon: Repeat,
-    title: "Mercado P2P de Trocas",
-    badge: "100% Funcional",
-    desc: "Negocie diretamente com outros treinadores da comunidade. Crie ofertas públicas, defina o que procura e feche acordos justos para completar seu binder.",
+    title: "Mercado de Trocas",
+    badge: "P2P Ativo",
+    desc: "Negocie com outros treinadores da comunidade, publique suas cartas repetidas e complete sua coleção.",
     accent: "from-sky-500/20 to-blue-500/10",
     border: "hover:border-sky-500/50",
     iconColor: "text-sky-400",
   },
   {
     icon: Users,
-    title: "Social & Amizades",
-    badge: "Chat em Tempo Real",
-    desc: "Adicione amigos pelo ID ou nome, visualize quem está online em tempo real via WebSocket, envie doações de moedas diárias e converse no chat privado.",
+    title: "Social & Amigos",
+    badge: "Tempo Real",
+    desc: "Adicione amigos, acompanhe quem está online, envie presentes diários de moedas e converse no chat.",
     accent: "from-emerald-500/20 to-teal-500/10",
     border: "hover:border-emerald-500/50",
     iconColor: "text-emerald-400",
   },
   {
     icon: Trophy,
-    title: "Rankings & Economia",
+    title: "Rankings & Conquistas",
     badge: "Competitivo",
-    desc: "Acumule pontos de raridade conforme tira cartas secretas, místicas e lendárias. Dispute a liderança no Ranking Global de Colecionadores e Magnatas.",
+    desc: "Acumule pontos ao colecionar cartas raras e dispute as melhores posições no ranking de colecionadores.",
     accent: "from-purple-500/20 to-fuchsia-500/10",
     border: "hover:border-purple-500/50",
     iconColor: "text-purple-400",
@@ -157,7 +157,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/80 backdrop-blur-xs text-xs font-semibold text-foreground mb-6 shadow-xs">
               <span className="size-2 rounded-full bg-amber-400 animate-ping" />
-              <span>Plataforma 100% Gratuita para Colecionadores</span>
+              <span>Simulador Pokémon TCG</span>
             </div>
           </motion.div>
 
@@ -182,7 +182,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="font-sans text-sm sm:text-lg text-muted-foreground mt-6 max-w-2xl leading-relaxed"
           >
-            A experiência definitiva de simulação de Pokémon TCG. Abra boosters com áudio espacial imersivo, monte sua coleção com milhares de cartas oficiais e negocie no mercado P2P.
+            Abra boosters, descubra cartas secretas e monte sua coleção completa com milhares de cartas oficiais do universo Pokémon.
           </motion.p>
 
           {/* CTAs Táteis */}
@@ -260,10 +260,6 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                     </motion.div>
                   ))}
                 </div>
-
-                <p className="text-xs text-muted-foreground font-sans mt-6">
-                  Passe o cursor sobre as cartas para inspecionar com rotação interativa.
-                </p>
               </div>
 
               {/* Coluna da Direita: Pacote Interativo com BoosterPackArt */}
@@ -318,7 +314,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               Tudo o que um Treinador Precisa
             </h2>
             <p className="text-muted-foreground font-sans text-sm sm:text-base mt-2">
-              Desenvolvido com tecnologia de ponta, animações a 60fps e arquitetura focada em diversão.
+              Tudo o que você precisa para colecionar, abrir pacotes e interagir com outros treinadores.
             </p>
           </div>
 
