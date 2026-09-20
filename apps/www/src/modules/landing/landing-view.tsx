@@ -38,7 +38,7 @@ const FEATURE_CARDS = [
   {
     icon: Repeat,
     title: "Mercado de Trocas",
-    badge: "P2P Ativo",
+    badge: "Entre Treinadores",
     desc: "Negocie com outros treinadores da comunidade, publique suas cartas repetidas e complete sua coleção.",
     accent: "from-sky-500/20 to-blue-500/10",
     border: "hover:border-sky-500/50",

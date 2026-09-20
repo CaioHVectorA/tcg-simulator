@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "./card-detail-modal";
-import { MaxRarityCelebration } from "./max-rarity-celebration";
+import { TcgCardImage } from "./tcg-card-image";
 import { Sparkles, Eye, ArrowRight, CheckCircle2, RotateCcw, Flame, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
@@ -239,9 +239,7 @@ export function PackOpeningModal({
     const rarity = currentCard.rarity || 1;
     if (rarity === 5) {
       soundFx.playMaxRarityAura();
-      setTimeout(() => {
-        setMaxRarityCard(currentCard);
-      }, 500);
+      // God pull modal disabled per user request
     } else if (rarity >= 4) {
       setTimeout(() => soundFx.playLegendaryFanfare(), 150);
     } else if (rarity === 3) {
@@ -259,18 +257,6 @@ export function PackOpeningModal({
     } else {
       soundFx.playSuccess();
       setPhase("summary");
-      // Inicia contagem regressiva auto-close de 10s
-      setSummaryCountdown(10);
-      summaryTimerRef.current = setInterval(() => {
-        setSummaryCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(summaryTimerRef.current!);
-            onClose();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
     }
   };
 
@@ -278,22 +264,11 @@ export function PackOpeningModal({
   const handleRevealAll = () => {
     soundFx.playSuccess();
     setPhase("summary");
-    // Inicia contagem regressiva auto-close de 10s
-    setSummaryCountdown(10);
-    summaryTimerRef.current = setInterval(() => {
-      setSummaryCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(summaryTimerRef.current!);
-          onClose();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
-  // Abrir mais um pacote do mesmo tipo (aproveitando prefetch em segundo plano)
   const handleOpenAnother = () => {
+    prefetchedCardsRef.current = null;
+    prefetchPromiseRef.current = null;
     setCards([]);
     setCurrentCardIndex(0);
     setIsFlipped(false);
@@ -549,8 +524,8 @@ export function PackOpeningModal({
                             : "border-slate-600 shadow-[0_0_20px_rgba(0,0,0,0.6)]"
                         }`}
                       >
-                        <img
-                          src={loadTcgImg(currentCard.image_url)}
+                        <TcgCardImage
+                          src={currentCard.image_url}
                           alt={currentCard.name}
                           className="w-full h-full object-cover rounded-2xl"
                         />
@@ -662,8 +637,8 @@ export function PackOpeningModal({
                         onClick={() => setInspectCard(card)}
                         className="group relative aspect-[2.5/3.5] rounded-xl overflow-hidden border border-white/10 hover:border-amber-400 hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg"
                       >
-                        <img
-                          src={loadTcgImg(card.image_url)}
+                        <TcgCardImage
+                          src={card.image_url}
                           alt={card.name}
                           className="w-full h-full object-cover rounded-xl"
                         />
@@ -725,13 +700,7 @@ export function PackOpeningModal({
                   }}
                   className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20"
                 >
-                  <CheckCircle2 className="size-4 mr-2" />
-                  Concluir & Fechar
-                  {summaryCountdown > 0 && (
-                    <span className="ml-2 text-xs bg-slate-950/30 px-2 py-0.5 rounded-full font-mono">
-                      {summaryCountdown}s
-                    </span>
-                  )}
+                  <CheckCircle2 className="size-4 mr-2" /> Concluir e Ver Coleção
                 </Button>
 
                 {/* Opções secundárias */}
@@ -774,13 +743,6 @@ export function PackOpeningModal({
         isOpen={Boolean(inspectCard)}
         onClose={() => setInspectCard(null)}
         card={inspectCard}
-      />
-
-      {/* Celebração Cinemática de Máxima Raridade (Tier 5 / God Pull) */}
-      <MaxRarityCelebration
-        card={maxRarityCard}
-        isOpen={Boolean(maxRarityCard)}
-        onClose={() => setMaxRarityCard(null)}
       />
     </>
   );

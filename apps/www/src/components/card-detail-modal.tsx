@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { loadTcgImg } from "@/lib/load-tcg-img";
+import { TcgCardImage } from "./tcg-card-image";
 import { Sparkles, Shield, Heart, Tag, Layers, Coins } from "lucide-react";
 
 export interface CardModalData {
@@ -96,8 +96,8 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 : "perspective(800px) rotateY(0deg) rotateX(0deg) scale3d(1, 1, 1)",
             }}
           >
-            <img
-              src={loadTcgImg(card.image_url)}
+            <TcgCardImage
+              src={card.image_url}
               alt={card.name}
               className="w-full aspect-[2.5/3.5] object-cover rounded-2xl border border-white/10"
             />

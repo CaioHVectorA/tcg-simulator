@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
-import { MaxRarityCelebration } from "@/components/max-rarity-celebration";
+import { TcgCardImage } from "@/components/tcg-card-image";
 import { Sparkles, Eye, ArrowRight, CheckCircle2, RotateCcw, Trophy, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -72,9 +72,7 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
     const rarity = currentCard?.rarity || 1;
     if (rarity === 5) {
       soundFx.playMaxRarityAura();
-      setTimeout(() => {
-        setMaxRarityCard(currentCard);
-      }, 500);
+      // God pull modal disabled per user request
     } else if (rarity >= 4) {
       setTimeout(() => soundFx.playLegendaryFanfare(), 150);
     } else if (rarity === 3) {
@@ -205,8 +203,8 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                       : "border-slate-600 shadow-[0_0_20px_rgba(0,0,0,0.6)]"
                   }`}
                 >
-                  <img
-                    src={loadTcgImg(currentCard.image_url)}
+                  <TcgCardImage
+                    src={currentCard.image_url}
                     alt={currentCard.name}
                     className="w-full h-full object-cover rounded-2xl"
                   />
@@ -307,8 +305,8 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                   onClick={() => setInspectCard(card)}
                   className="group relative aspect-[2.5/3.5] rounded-xl overflow-hidden border border-white/10 hover:border-amber-400 hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg"
                 >
-                  <img
-                    src={loadTcgImg(card.image_url)}
+                  <TcgCardImage
+                    src={card.image_url}
                     alt={card.name}
                     className="w-full h-full object-cover rounded-xl"
                   />
@@ -375,12 +373,6 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
         isOpen={Boolean(inspectCard)}
         onClose={() => setInspectCard(null)}
         card={inspectCard}
-      />
-
-      <MaxRarityCelebration
-        card={maxRarityCard as any}
-        isOpen={Boolean(maxRarityCard)}
-        onClose={() => setMaxRarityCard(null)}
       />
     </div>
   );

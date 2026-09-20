@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { DialogHeader } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { loadTcgImg } from "@/lib/load-tcg-img"
+import { TcgCardImage } from "@/components/tcg-card-image"
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useState } from "react"
 import { Label } from "@/components/ui/label"
@@ -346,8 +347,8 @@ export function PackCard({ pack, withDialog = false }: {
                                                     key={`${card.id}-${idx}`}
                                                     className="overflow-hidden rounded-xl bg-secondary/30 border border-border p-1 hover:border-primary/50 transition-colors"
                                                 >
-                                                    <img
-                                                        src={loadTcgImg(card.image_url)}
+                                                    <TcgCardImage
+                                                        src={card.image_url}
                                                         alt={card.name}
                                                         className="w-full h-full object-contain"
                                                     />

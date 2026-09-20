@@ -39,6 +39,26 @@ async function grantStarterPacks(userId: number) {
   }
 }
 
+async function setupUserDefaultQuests(userId: number) {
+  try {
+    const standardQuests = await prisma.quest.findMany({
+      where: { isDiary: false },
+      select: { id: true },
+    });
+    if (standardQuests.length === 0) return;
+
+    await prisma.questUser.createMany({
+      data: standardQuests.map((q) => ({
+        user_id: userId,
+        quest_id: q.id,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (err) {
+    console.error("Erro ao conceder missões padrão:", err);
+  }
+}
+
 export const authController = new Elysia({}).group("/auth", (app) => {
   return app
     .use(jwt)
@@ -147,6 +167,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           });
         }
         await grantStarterPacks(user.id);
+        await setupUserDefaultQuests(user.id);
         const token = await jwt.sign({ id: user.id });
         return sucessResponse({ token }, "Usuário criado com sucesso!");
       },
@@ -232,6 +253,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         }
 
         await grantStarterPacks(newUser.id);
+        await setupUserDefaultQuests(newUser.id);
         const token = await jwt.sign({ id: newUser.id });
         return sucessResponse(
           { token, user: newUser },
@@ -372,6 +394,8 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             });
           }
         }
+        await grantStarterPacks(newUser.id);
+        await setupUserDefaultQuests(newUser.id);
         const token = await jwt.sign({ id: newUser.id });
         return sucessResponse({ token });
       },

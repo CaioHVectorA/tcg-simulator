@@ -26,11 +26,15 @@ import {
   Lock,
   CheckCircle2,
   Package as PackageIcon,
+  Handshake,
+  ArrowRight,
+  Copy,
 } from "lucide-react";
+import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { loadTcgImg } from "@/lib/load-tcg-img";
+import { TcgCardImage } from "@/components/tcg-card-image";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
 import { AvatarPickerModal } from "@/components/avatar-picker-modal";
@@ -499,8 +503,8 @@ export default function PerfilPage() {
                 className="group relative bg-card border border-border/80 hover:border-amber-400/60 rounded-2xl p-2.5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
                 <div className="relative rounded-xl overflow-hidden aspect-[2.5/3.5] mb-2">
-                  <img
-                    src={loadTcgImg(card.image_url)}
+                  <TcgCardImage
+                    src={card.image_url}
                     alt={card.name}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -513,6 +517,38 @@ export default function PerfilPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Seção de Afiliados e Convites integrada ao Perfil */}
+      <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="size-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+              <Handshake className="size-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-foreground">Programa de Afiliados</h3>
+                <Badge variant="outline" className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px] font-mono">
+                  Bônus & Moedas
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-sans mt-0.5 max-w-xl">
+                Convide amigos para se tornarem treinadores. Você ganha moedas a cada amigo que se cadastrar usando o seu link exclusivo!
+              </p>
+            </div>
+          </div>
+
+          <Button
+            asChild
+            className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-syne text-xs h-10 px-5 rounded-xl shrink-0 shadow-md shadow-amber-500/15"
+          >
+            <Link href="/afiliado">
+              <span>Acessar Painel de Afiliado</span>
+              <ArrowRight className="size-3.5 ml-1.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Modal de Edição de Perfil */}

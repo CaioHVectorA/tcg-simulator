@@ -35,7 +35,7 @@ import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { loadTcgImg } from "@/lib/load-tcg-img";
+import { TcgCardImage } from "@/components/tcg-card-image";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
 import { ChatDialog } from "@/components/chat-dialog";
@@ -419,7 +419,7 @@ export default function TrocasPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-secondary-foreground text-xs font-semibold mb-2 shadow-xs">
             <ArrowLeftRight className="size-3.5 text-amber-500" />
-            <span>Mesa de Negociações P2P</span>
+            <span>Mesa de Trocas entre Treinadores</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
             <span>Estação de Trocas</span>
@@ -748,8 +748,8 @@ export default function TrocasPage() {
                                   className={`relative group cursor-pointer w-20 aspect-[2.5/3.5] rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 hover:z-20 ${style.border} ${style.glow}`}
                                   title={`Clique para inspecionar ${card.name}`}
                                 >
-                                  <img
-                                    src={loadTcgImg(card.image_url)}
+                                  <TcgCardImage
+                                    src={card.image_url}
                                     alt={card.name}
                                     className="w-full h-full object-cover"
                                   />
@@ -815,8 +815,8 @@ export default function TrocasPage() {
                                     }`}
                                     title={`${card.name} — ${ownsCard ? "Você possui esta carta no seu binder!" : "Falta na sua coleção"}`}
                                   >
-                                    <img
-                                      src={loadTcgImg(card.image_url)}
+                                    <TcgCardImage
+                                      src={card.image_url}
                                       alt={card.name}
                                       className="w-full h-full object-cover"
                                     />
@@ -1020,8 +1020,8 @@ export default function TrocasPage() {
                               : "border-border/60 hover:border-border hover:scale-105"
                           }`}
                         >
-                          <img
-                            src={loadTcgImg(card.image_url)}
+                          <TcgCardImage
+                            src={card.image_url}
                             alt={card.name}
                             className="w-full h-full object-cover"
                           />
@@ -1131,8 +1131,8 @@ export default function TrocasPage() {
                               : "border-border/60 hover:border-border hover:scale-105"
                           }`}
                         >
-                          <img
-                            src={loadTcgImg(card.image_url)}
+                          <TcgCardImage
+                            src={card.image_url}
                             alt={card.name}
                             className="w-full h-full object-cover"
                           />
@@ -1445,7 +1445,7 @@ export default function TrocasPage() {
           <DialogHeader className="text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono mb-1 w-fit">
               <ArrowLeftRight className="size-3.5" />
-              <span>Confirmar Negociação P2P</span>
+              <span>Confirmar Troca Direta</span>
             </div>
             <DialogTitle className="text-xl font-black text-foreground">
               Finalizar Troca de Cartas
@@ -1520,7 +1520,7 @@ export default function TrocasPage() {
           <DialogHeader className="text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold font-mono mb-1 w-fit">
               <Sparkles className="size-3.5" />
-              <span>Contraproposta P2P</span>
+              <span>Contraproposta entre Treinadores</span>
             </div>
             <DialogTitle className="text-xl font-black text-foreground">
               Sugerir Acordo Alternativo
@@ -1562,8 +1562,8 @@ export default function TrocasPage() {
                             : "border-border/60 hover:border-border hover:scale-105"
                         }`}
                       >
-                        <img
-                          src={loadTcgImg(card.image_url)}
+                        <TcgCardImage
+                          src={card.image_url}
                           alt={card.name}
                           className="w-full h-full object-cover"
                         />

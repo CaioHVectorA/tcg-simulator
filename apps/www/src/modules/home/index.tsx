@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { HeaderHome } from './header-home'
 import { DailyRoadSection } from './daily-road-section'
 import { loadTcgImg } from '@/lib/load-tcg-img'
+import { TcgCardImage } from '@/components/tcg-card-image'
 import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
 import { LoaderSimple } from '@/components/loading-spinner'
@@ -190,9 +191,9 @@ export function HomePage() {
                 className="rotate-[-16deg] hover:z-30 h-60 sm:h-76 mb-4 sm:mb-6 aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-xl border-2 border-border/80 cursor-pointer"
                 onMouseEnter={() => soundFx.playCardFlip()}
               >
-                <img
+                <TcgCardImage
                   className="w-full h-full object-cover"
-                  src={loadTcgImg(data.topCards[0])}
+                  src={data.topCards[0]}
                   alt="Top Card 1"
                 />
               </motion.div>
@@ -206,9 +207,9 @@ export function HomePage() {
                 className="h-72 sm:h-88 -mx-8 sm:-mx-12 hover:z-30 z-20 aspect-[2.5/3.5] rounded-2xl overflow-hidden shadow-2xl border-2 border-amber-400/80 shadow-amber-500/20 cursor-pointer"
                 onMouseEnter={() => soundFx.playRareChime()}
               >
-                <img
+                <TcgCardImage
                   className="w-full h-full object-cover"
-                  src={loadTcgImg(data.topCards[1])}
+                  src={data.topCards[1]}
                   alt="Top Card 2"
                 />
               </motion.div>
@@ -222,9 +223,9 @@ export function HomePage() {
                 className="rotate-[16deg] hover:z-30 h-60 sm:h-76 mb-4 sm:mb-6 aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-xl border-2 border-border/80 cursor-pointer"
                 onMouseEnter={() => soundFx.playCardFlip()}
               >
-                <img
+                <TcgCardImage
                   className="w-full h-full object-cover"
-                  src={loadTcgImg(data.topCards[2])}
+                  src={data.topCards[2]}
                   alt="Top Card 3"
                 />
               </motion.div>

@@ -133,6 +133,26 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           orderBy: { Quest: { id: "asc" } },
         });
 
+        // Garante que o usuário possua todas as missões padrão
+        const standardQuests = await prisma.quest.findMany({
+          where: { isDiary: false },
+          select: { id: true },
+        });
+        const userStandardQuestIds = new Set(
+          questsUser.filter((q) => !q.Quest.isDiary).map((q) => q.quest_id)
+        );
+        const missingQuests = standardQuests.filter((q) => !userStandardQuestIds.has(q.id));
+        if (missingQuests.length > 0) {
+          const newStandard = await prisma.questUser.createManyAndReturn({
+            data: missingQuests.map((q) => ({
+              user_id: user.id,
+              quest_id: q.id,
+            })),
+            include: { Quest: true },
+          });
+          questsUser = questsUser.concat(newStandard);
+        }
+
         // Filtra as missões diárias do usuário
         let diaryUser = questsUser.filter(
           (quest) => quest.Quest.isDiary && quest.Quest.isDiaryActive
@@ -252,19 +272,29 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           return errorResponse("Quest não encontrada para o usuário.");
         }
 
-        // Run the query to check if the quest is completed
-        const query = runQuery(
-          questUser.Quest.queryCheck,
-          questUser.Quest.levelGoals[questUser.currentLevel],
-          user.id
-        );
+        const cacheKey = `quest-${user.id}-${questUser.quest_id}`;
+        let isMissionComplete = false;
+        if (questsCache.has(cacheKey)) {
+          const [cachedQuest, lastUpdate] = questsCache.get(cacheKey) || [];
+          if (cachedQuest && cachedQuest.completed && new Date().getTime() - lastUpdate.getTime() < 60000) {
+            isMissionComplete = true;
+          }
+        }
 
-        const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
-          mission_complete: boolean;
-          progress: number | bigint;
-        }[];
+        if (!isMissionComplete) {
+          const query = runQuery(
+            questUser.Quest.queryCheck,
+            questUser.Quest.levelGoals[questUser.currentLevel],
+            user.id
+          );
+          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
+            mission_complete: boolean;
+            progress: number | bigint;
+          }[];
+          isMissionComplete = Boolean(queryRes?.mission_complete);
+        }
 
-        if (!queryRes.mission_complete) {
+        if (!isMissionComplete) {
           return errorResponse("A missão ainda não foi completada.");
         }
 

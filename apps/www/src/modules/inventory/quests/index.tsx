@@ -203,29 +203,83 @@ export function Quests() {
   const { mutateAsync: claimSingleQuest, isPending: isClaimingSingle } = useMutation({
     mutationKey: ["quests", "claim"],
     mutationFn: async (quest: Quest) => {
-      const res = await patch(`/quests/get-reward/${quest.id}`, {});
+      // Feedback imediato e tátil (0ms)
       soundFx.playSuccess();
       setRewardAmount(quest.actualReward);
       setRewardTitle(`Missão: ${quest.name}`);
       setRewardModalOpen(true);
-      await qClient.invalidateQueries({ queryKey: ["user"] });
-      await refetch();
-      return res.data.data;
+
+      // Otimisticamente marca como coletada no cache
+      qClient.setQueryData<Quest[]>(["quests"], (old) => {
+        if (!old) return [];
+        return old.map((q) => {
+          if (q.id === quest.id) {
+            return {
+              ...q,
+              completed: false,
+              fullCompleted: true,
+            };
+          }
+          return q;
+        });
+      });
+
+      // Otimisticamente incrementa moedas do usuário
+      qClient.setQueryData<any>(["user"], (oldUser: any) => {
+        if (!oldUser) return oldUser;
+        return {
+          ...oldUser,
+          money: (oldUser.money || 0) + quest.actualReward,
+        };
+      });
+
+      const res = await patch(`/quests/get-reward/${quest.id}`, {});
+      qClient.invalidateQueries({ queryKey: ["user"] });
+      qClient.invalidateQueries({ queryKey: ["quests"] });
+      return res.data?.data;
     },
   });
 
   const { mutateAsync: claimAllQuests, isPending: isClaimingAll } = useMutation({
     mutationKey: ["quests", "claim-all"],
     mutationFn: async () => {
-      const res = await post("/quests/claim-all", {});
-      const result = res.data.data as { totalClaimed: number; count: number };
+      const readyQuests = (data || []).filter((q) => q.completed && !q.fullCompleted);
+      const totalClaimable = readyQuests.reduce((sum, q) => sum + q.actualReward, 0);
+
+      // Feedback imediato e tátil (0ms)
       soundFx.playLegendaryFanfare();
-      setRewardAmount(result.totalClaimed);
-      setRewardTitle(`${result.count} Missões Coletadas!`);
+      setRewardAmount(totalClaimable || 0);
+      setRewardTitle(`${readyQuests.length} Missões Coletadas!`);
       setRewardModalOpen(true);
-      await qClient.invalidateQueries({ queryKey: ["user"] });
-      await refetch();
-      return result;
+
+      // Otimisticamente marca todas prontas como coletadas
+      qClient.setQueryData<Quest[]>(["quests"], (old) => {
+        if (!old) return [];
+        return old.map((q) => {
+          if (q.completed && !q.fullCompleted) {
+            return {
+              ...q,
+              completed: false,
+              fullCompleted: true,
+            };
+          }
+          return q;
+        });
+      });
+
+      // Otimisticamente incrementa moedas
+      qClient.setQueryData<any>(["user"], (oldUser: any) => {
+        if (!oldUser) return oldUser;
+        return {
+          ...oldUser,
+          money: (oldUser.money || 0) + totalClaimable,
+        };
+      });
+
+      const res = await post("/quests/claim-all", {});
+      qClient.invalidateQueries({ queryKey: ["user"] });
+      qClient.invalidateQueries({ queryKey: ["quests"] });
+      return res.data?.data;
     },
   });
 

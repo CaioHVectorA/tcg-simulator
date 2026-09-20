@@ -35,6 +35,7 @@ import { balanceTranslate } from '@/lib/balance-translate'
 import { Avatar } from './avatar'
 import { NotificationsPopover } from './notifications-popover'
 import { SocialHub } from '@/modules/social/social-hub'
+import { Crown } from 'lucide-react'
 
 const menuItems = [
     { name: 'Loja', href: '/loja', icon: Store },
@@ -42,11 +43,12 @@ const menuItems = [
     { name: 'Coleção', href: '/colecao', icon: Layers },
     { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
     { name: "Missões", href: "/missoes", icon: Trophy },
-    { name: "Afiliado", href: "/afiliado", icon: Handshake },
+    { name: "Ranking", href: "/ranking", icon: Crown },
 ]
 
 const profileItems = [
-    { name: 'Perfil', href: '/perfil', icon: User },
+    { name: 'Meu Perfil', href: '/perfil', icon: User },
+    { name: 'Afiliados & Convites', href: '/afiliado', icon: Handshake },
     { name: 'Configurações', href: '/config', icon: Settings },
     { name: 'Sair', href: '/sair', icon: LogOut },
 ]

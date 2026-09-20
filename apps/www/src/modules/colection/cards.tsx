@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { loadTcgImg } from "@/lib/load-tcg-img";
+import { TcgCardImage } from "@/components/tcg-card-image";
 import { useApi } from "@/hooks/use-api";
 import { soundFx } from "@/lib/sound-fx";
 import Link from "next/link";
@@ -528,10 +529,10 @@ export function Cards({
 
                       {/* Imagem da Carta */}
                       <div className="relative aspect-[1/1.4] w-full flex items-center justify-center overflow-hidden bg-slate-950">
-                        <img
-                          src={loadTcgImg(card.image_url, true)}
+                        <TcgCardImage
+                          src={card.image_url}
                           alt={card.name}
-                          loading="lazy"
+                          lowQuality={true}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
@@ -607,8 +608,8 @@ export function Cards({
             {selectedCard && (
               <div className="space-y-4">
                 <div className="relative aspect-[1/1.4] max-h-[65vh] w-full rounded-xl overflow-hidden shadow-2xl mx-auto flex items-center justify-center bg-black border border-zinc-800">
-                  <img
-                    src={loadTcgImg(selectedCard.image_url)}
+                  <TcgCardImage
+                    src={selectedCard.image_url}
                     alt={selectedCard.name}
                     className="w-full h-full object-contain"
                   />

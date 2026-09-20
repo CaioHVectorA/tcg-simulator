@@ -216,7 +216,7 @@ export const messageController = new Elysia({}).group("/messages", (app) => {
           payload: { byUserId: user.id },
         });
 
-        return sucessResponse(null, "Mensagens marcadas como lidas");
+        return sucessResponse(null);
       },
       {
         detail: { tags: ["Messages"], description: "Marca mensagens como lidas" },

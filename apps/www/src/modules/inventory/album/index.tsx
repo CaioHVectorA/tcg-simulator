@@ -10,6 +10,7 @@ import { useApi } from "@/hooks/use-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { soundFx } from "@/lib/sound-fx";
 import { loadTcgImg } from "@/lib/load-tcg-img";
+import { TcgCardImage } from "@/components/tcg-card-image";
 import { balanceTranslate } from "@/lib/balance-translate";
 import { RewardModal } from "@/components/ui/reward-modal";
 import { LoaderSimple } from "@/components/loading-spinner";
@@ -176,10 +177,10 @@ export function AlbumView() {
                       >
                         {slot.isOwned ? (
                           <>
-                            <img
-                              src={loadTcgImg(slot.card.image_url, true)}
+                            <TcgCardImage
+                              src={slot.card.image_url}
                               alt={slot.card.name}
-                              loading="lazy"
+                              lowQuality={true}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                             />
                             <div className="absolute top-1 right-1 z-10 size-4 rounded-full bg-emerald-500 flex items-center justify-center text-slate-950 shadow">

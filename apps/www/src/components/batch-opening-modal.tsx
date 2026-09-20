@@ -21,6 +21,7 @@ import {
   Eye,
 } from "lucide-react";
 import { BoosterPackArt } from "./booster-pack-art";
+import { TcgCardImage } from "./tcg-card-image";
 
 export interface BatchCard {
   id: number;
@@ -56,7 +57,8 @@ export function BatchOpeningModal({
   const { post, loading } = useApi();
   const qClient = useQueryClient();
 
-  const [phase, setPhase] = useState<"opening" | "revealed">("opening");
+  const [phase, setPhase] = useState<"opening" | "revealed" | "error">("opening");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [cards, setCards] = useState<BatchCard[]>([]);
   const [activeFilter, setActiveFilter] = useState<number | "all">("all");
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
@@ -89,22 +91,26 @@ export function BatchOpeningModal({
             setCards(allCards);
             setPhase("revealed");
 
-            const maxRarity = Math.max(...allCards.map((c) => c.rarity || 1));
-            if (maxRarity >= 5) {
-              soundFx.playGodPullFanfare();
-            } else if (maxRarity >= 4) {
-              soundFx.playLegendaryFanfare();
-            } else {
-              soundFx.playSuccess();
+            if (allCards.length > 0) {
+              const maxRarity = Math.max(...allCards.map((c) => c.rarity || 1));
+              if (maxRarity >= 5) {
+                soundFx.playGodPullFanfare();
+              } else if (maxRarity >= 4) {
+                soundFx.playLegendaryFanfare();
+              } else {
+                soundFx.playSuccess();
+              }
             }
 
             qClient.invalidateQueries({ queryKey: ["packages"] });
             qClient.invalidateQueries({ queryKey: ["user"] });
             qClient.invalidateQueries({ queryKey: ["cards"] });
           }, 800);
-        } catch (err) {
+        } catch (err: any) {
           console.error("Batch open error:", err);
-          onClose();
+          const msg = err?.response?.data?.toast || err?.response?.data?.error || "Erro ao abrir pacotes em lote. Verifique se você ainda possui esses pacotes em seu inventário.";
+          setErrorMessage(msg);
+          setPhase("error");
         }
       };
 
@@ -196,6 +202,28 @@ export function BatchOpeningModal({
                       Rasgando lacres e sorteando cartas para seu deck.
                     </p>
                   </div>
+                </motion.div>
+              ) : phase === "error" ? (
+                /* FASE DE ERRO */
+                <motion.div
+                  key="error-screen"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto"
+                >
+                  <div className="size-16 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                    <PackageIcon className="size-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Falha ao Abrir Pacotes</h3>
+                  <p className="text-sm text-slate-400">
+                    {errorMessage || "Não foi possível abrir os pacotes selecionados. Verifique se possui unidades suficientes no inventário."}
+                  </p>
+                  <Button
+                    onClick={onClose}
+                    className="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-6 h-10 rounded-xl"
+                  >
+                    Fechar
+                  </Button>
                 </motion.div>
               ) : (
                 /* FASE REVELADA: RESUMO COMPLETO EM LOTE */
@@ -301,8 +329,8 @@ export function BatchOpeningModal({
                             }`}
                           >
                             <div className="relative aspect-[2.5/3.5] rounded-lg overflow-hidden bg-slate-950">
-                              <img
-                                src={loadTcgImg(card.image_url)}
+                              <TcgCardImage
+                                src={card.image_url}
                                 alt={card.name}
                                 className="w-full h-full object-cover"
                               />

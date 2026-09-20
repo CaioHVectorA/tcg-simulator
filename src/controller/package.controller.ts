@@ -311,19 +311,26 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           },
         });
         const isAdmin = user.email === "admin@gmail.com";
-        if (!isAdmin && packagesUser.length < packagesId.length) {
-          set.status = 400;
-          return errorResponse(
-            "Pacote não encontrado",
-            "Pacote não encontrado"
-          );
+        if (!isAdmin) {
+          for (const [pkgIdStr, neededQty] of Object.entries(quantities)) {
+            const pkgId = Number(pkgIdStr);
+            const userCount = packagesUser.filter((p) => p.packageId === pkgId).length;
+            if (userCount < neededQty) {
+              set.status = 400;
+              return errorResponse(
+                "Quantidade insuficiente de pacotes no inventário",
+                "Você não possui pacotes suficientes para abrir esta quantidade."
+              );
+            }
+          }
         }
         const allCards = [] as Card[];
         for (const package_ of packages) {
           const cardsByRarity = await getByRarityCluster({ pkg: package_, prisma });
           const countToOpen = quantities[package_.id] || 0;
+          const qtyPerPack = package_.cards_quantity || 5;
           for (let i = 0; i < countToOpen; i++) {
-            for (let j = 0; j < package_.cards_quantity; j++) {
+            for (let j = 0; j < qtyPerPack; j++) {
               const card = getRandomCardFromPackage(package_, cardsByRarity);
               if (card) {
                 rarityPointsGain += card.rarity;

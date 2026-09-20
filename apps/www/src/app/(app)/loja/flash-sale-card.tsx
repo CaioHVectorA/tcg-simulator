@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { balanceTranslate } from "@/lib/balance-translate"
-import { loadTcgImg } from "@/lib/load-tcg-img"
+import { TcgCardImage } from "@/components/tcg-card-image"
 import { useKart } from "./use-kart"
 import { ShoppingCart, Check, Coins, Tag, Lock } from "lucide-react"
 
@@ -51,8 +51,8 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
             <Card className="overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 rounded-xl flex flex-col justify-between h-full">
                 <div>
                     <div className="relative aspect-[1/1.35] overflow-hidden bg-secondary/50">
-                        <img 
-                            src={loadTcgImg(card.card.image_url)} 
+                        <TcgCardImage 
+                            src={card.card.image_url} 
                             alt={card.card.name} 
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                         />
