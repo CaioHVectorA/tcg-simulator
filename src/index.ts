@@ -137,8 +137,8 @@ export const server: Elysia = new Elysia({
 console.log("Server running");
 warmupCardsCache(prisma);
 //@ts-ignore
-RankingCron().run();
+// RankingCron().run();
 //@ts-ignore
-CardsCron().run();
+// CardsCron().run();
 //@ts-ignore
-DiaryQuestsCron().run();
+// DiaryQuestsCron().run();
