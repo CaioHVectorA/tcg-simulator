@@ -12,16 +12,19 @@ import {
   Volume2,
   VolumeX,
   LogOut,
-  Shield,
+  Globe,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
+import { useTranslation, Locale } from "@/i18n/LanguageContext";
 
 export default function ConfigPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const { username = "", email = "" } = useUser() || {};
+  const { t, locale, setLocale } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
@@ -35,27 +38,83 @@ export default function ConfigPage() {
     if (next) soundFx.playRareChime();
   };
 
+  const changeLocale = (newLoc: Locale) => {
+    setLocale(newLoc);
+    soundFx.playCardFlip();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl font-syne">
       <div className="mb-8 pb-4 border-b border-border">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold mb-1.5">
           <Settings className="size-3.5" />
-          <span>Preferências</span>
+          <span>{t("config.title")}</span>
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Configurações da Conta
+          {t("config.title")}
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-          Personalize seu tema visual, sons e opções de acesso.
+          {t("config.subtitle")}
         </p>
       </div>
 
       <div className="space-y-6">
-        {/* Seção 1: Tema Visual */}
+        {/* Seção 1: Idioma da Interface */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs">
-          <h2 className="text-base font-bold text-foreground mb-1">Tema da Interface</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <Globe className="size-4 text-primary" />
+            <h2 className="text-base font-bold text-foreground">{t("config.languageSection")}</h2>
+          </div>
           <p className="text-xs text-muted-foreground font-sans mb-4">
-            Escolha como prefere visualizar o Pokémon TCG Simulator.
+            {t("config.languageDesc")}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => changeLocale("pt")}
+              className={`h-16 rounded-xl flex items-center justify-between px-4 text-xs ${
+                locale === "pt"
+                  ? "border-primary bg-primary/10 text-primary font-bold ring-2 ring-primary/30"
+                  : "border-border/80"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🇧🇷</span>
+                <div className="text-left">
+                  <p className="font-bold text-sm">Português</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">Brasil (pt-BR)</p>
+                </div>
+              </div>
+              {locale === "pt" && <Check className="size-4 text-primary stroke-[3]" />}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => changeLocale("en")}
+              className={`h-16 rounded-xl flex items-center justify-between px-4 text-xs ${
+                locale === "en"
+                  ? "border-primary bg-primary/10 text-primary font-bold ring-2 ring-primary/30"
+                  : "border-border/80"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🇺🇸</span>
+                <div className="text-left">
+                  <p className="font-bold text-sm">English</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">United States (en-US)</p>
+                </div>
+              </div>
+              {locale === "en" && <Check className="size-4 text-primary stroke-[3]" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Seção 2: Tema Visual */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs">
+          <h2 className="text-base font-bold text-foreground mb-1">{t("config.themeSection")}</h2>
+          <p className="text-xs text-muted-foreground font-sans mb-4">
+            {t("config.themeDesc")}
           </p>
 
           {mounted && (
@@ -68,7 +127,7 @@ export default function ConfigPage() {
                 }`}
               >
                 <Sun className="size-5" />
-                <span>Claro</span>
+                <span>{t("config.themeLight")}</span>
               </Button>
 
               <Button
@@ -79,7 +138,7 @@ export default function ConfigPage() {
                 }`}
               >
                 <Moon className="size-5" />
-                <span>Escuro</span>
+                <span>{t("config.themeDark")}</span>
               </Button>
 
               <Button
@@ -90,18 +149,18 @@ export default function ConfigPage() {
                 }`}
               >
                 <Laptop className="size-5" />
-                <span>Sistema</span>
+                <span>{t("config.themeSystem")}</span>
               </Button>
             </div>
           )}
         </div>
 
-        {/* Seção 2: Áudio & Efeitos */}
+        {/* Seção 3: Áudio & Efeitos */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-foreground mb-0.5">Efeitos Sonoros</h2>
+            <h2 className="text-base font-bold text-foreground mb-0.5">{t("config.audioSection")}</h2>
             <p className="text-xs text-muted-foreground font-sans">
-              Sons sintetizados ao abrir boosters, virar cartas e encontrar lendárias.
+              {t("config.audioDesc")}
             </p>
           </div>
 
@@ -113,17 +172,17 @@ export default function ConfigPage() {
           >
             {soundEnabled ? (
               <>
-                <Volume2 className="size-4" /> Ativado
+                <Volume2 className="size-4" /> {t("config.soundEnabled")}
               </>
             ) : (
               <>
-                <VolumeX className="size-4" /> Mudo
+                <VolumeX className="size-4" /> {t("config.soundDisabled")}
               </>
             )}
           </Button>
         </div>
 
-        {/* Seção 3: Conta & Sessão */}
+        {/* Seção 4: Conta & Sessão */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs">
           <h2 className="text-base font-bold text-foreground mb-1">Informações da Conta</h2>
           <div className="font-sans text-xs text-muted-foreground space-y-1 mb-4">
@@ -138,7 +197,7 @@ export default function ConfigPage() {
               className="rounded-xl text-xs h-10 font-bold w-full sm:w-auto"
             >
               <Link href="/sair">
-                <LogOut className="size-4 mr-2" /> Encerrar Sessão
+                <LogOut className="size-4 mr-2" /> {t("nav.logout")}
               </Link>
             </Button>
           </div>

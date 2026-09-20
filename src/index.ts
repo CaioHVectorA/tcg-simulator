@@ -45,8 +45,8 @@ export const server: Elysia = new Elysia({
     cors({
       origin: process.env.CLIENT_URL || true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-      exposeHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "Accept-Language", "X-Locale"],
+      exposeHeaders: ["Content-Type", "Authorization", "Accept-Language", "X-Locale"],
       credentials: true,
     })
   )

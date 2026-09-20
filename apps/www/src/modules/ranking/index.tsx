@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { balanceTranslate } from "@/lib/balance-translate";
 import { Avatar } from "@/components/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export type RankingItem = {
   id: number;
@@ -26,6 +27,7 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
   const { post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const {
     data: ranking = data || [],
@@ -75,13 +77,11 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
               <Trophy className="size-5" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-foreground">
-                Mural de Campeões
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+                {t("ranking.title")}
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground font-sans">
-                {tab === "rarity"
-                  ? "Treinadores com as coleções mais raras do simulador"
-                  : "Os maiores magnatas da economia do jogo"}
+                {t("ranking.subtitle")}
               </p>
             </div>
           </div>
@@ -107,13 +107,13 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
                 value="rarity"
                 className="text-xs font-bold data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 rounded-lg"
               >
-                <Crown className="size-3.5 mr-1.5" /> Colecionadores
+                <Crown className="size-3.5 mr-1.5" /> {t("ranking.rarityTab")}
               </TabsTrigger>
               <TabsTrigger
                 value="budget"
                 className="text-xs font-bold data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 rounded-lg"
               >
-                <Coins className="size-3.5 mr-1.5" /> Magnatas
+                <Coins className="size-3.5 mr-1.5" /> {t("ranking.budgetTab")}
               </TabsTrigger>
             </TabsList>
           </Tabs>

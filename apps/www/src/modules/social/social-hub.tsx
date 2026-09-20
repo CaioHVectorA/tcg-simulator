@@ -282,11 +282,11 @@ export const SocialHub: React.FC = () => {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="size-8 rounded-lg"
-                      title="Abrir Chat"
-                      onClick={() => setChatFriend(friend)}
+                      className="size-8 rounded-lg opacity-40 cursor-not-allowed"
+                      title="Chat temporariamente em manutenção"
+                      disabled
                     >
-                      <MessageSquare className="size-4 text-blue-500" />
+                      <MessageSquare className="size-4 text-muted-foreground" />
                     </Button>
                     <Button
                       size="icon"

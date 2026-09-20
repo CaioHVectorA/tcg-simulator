@@ -13,6 +13,15 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const savedLocale = localStorage.getItem("tcg_locale") || "pt";
+    config.headers["X-Locale"] = savedLocale;
+    config.headers["Accept-Language"] = savedLocale === "en" ? "en-US,en;q=0.9" : "pt-BR,pt;q=0.9";
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => {
     if (response.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/entrar")) {

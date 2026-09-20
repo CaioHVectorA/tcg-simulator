@@ -36,29 +36,32 @@ import { Avatar } from './avatar'
 import { NotificationsPopover } from './notifications-popover'
 import { SocialHub } from '@/modules/social/social-hub'
 import { Crown } from 'lucide-react'
-
-const menuItems = [
-    { name: 'Loja', href: '/loja', icon: Store },
-    { name: 'Inventário', href: '/inventario', icon: Box },
-    { name: 'Coleção', href: '/colecao', icon: Layers },
-    { name: 'Trocas', href: '/trocas', icon: RefreshCcw },
-    { name: "Missões", href: "/missoes", icon: Trophy },
-    { name: "Ranking", href: "/ranking", icon: Crown },
-]
-
-const profileItems = [
-    { name: 'Meu Perfil', href: '/perfil', icon: User },
-    { name: 'Afiliados & Convites', href: '/afiliado', icon: Handshake },
-    { name: 'Configurações', href: '/config', icon: Settings },
-    { name: 'Sair', href: '/sair', icon: LogOut },
-]
+import { useTranslation } from '@/i18n/LanguageContext'
+import { LanguageSwitcher } from './language-switcher'
 
 export function HeaderMenu() {
     const pathname = usePathname()
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = React.useState(false)
     const [upgradeOpen, setUpgradeOpen] = React.useState(false)
     const user = useUser()
     const { picture, username, money, email, isGuest } = user || {}
+
+    const menuItems = [
+        { name: t('nav.store'), href: '/loja', icon: Store },
+        { name: t('nav.inventory'), href: '/inventario', icon: Box },
+        { name: t('nav.collection'), href: '/colecao', icon: Layers },
+        { name: t('nav.trades'), href: '/trocas', icon: RefreshCcw },
+        { name: t('nav.quests'), href: '/missoes', icon: Trophy },
+        { name: t('nav.ranking'), href: '/ranking', icon: Crown },
+    ]
+
+    const profileItems = [
+        { name: t('nav.profile'), href: '/perfil', icon: User },
+        { name: t('nav.affiliate'), href: '/afiliado', icon: Handshake },
+        { name: t('nav.settings'), href: '/config', icon: Settings },
+        { name: t('nav.logout'), href: '/sair', icon: LogOut },
+    ]
     return (
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
@@ -107,9 +110,12 @@ export function HeaderMenu() {
                                     className="w-full mt-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5"
                                 >
                                     <Sparkles className="size-3.5" />
-                                    Salvar Conta (Convidado)
+                                    {t('common.saveGuestAccount')}
                                 </Button>
                             )}
+                            <div className="py-2">
+                                <LanguageSwitcher />
+                            </div>
                             <Separator />
                         </SheetHeader>
                         <nav className="flex flex-col space-y-4 mt-4">
@@ -197,6 +203,7 @@ export function HeaderMenu() {
                             <span className='text-sm font-bold font-mono'>{balanceTranslate(money)}</span>
                             <Coins color='gold' className="size-4 shrink-0 text-amber-400" />
                         </div>
+                        <LanguageSwitcher />
                         <NotificationsPopover />
                         <Sheet>
                             <SheetTrigger asChild>

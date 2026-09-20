@@ -13,6 +13,7 @@ const syne = Syne({
 })
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 
 export default function RootLayout({
   children,
@@ -21,18 +22,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script src="https://unpkg.com/react-scan/dist/auto.global.js" async />
-      </head>
       <body
         className={`${syne.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <Suspense fallback={<Loader />}>
-            {children}
-          </Suspense>
-          <Analytics />
-          <Toaster />
+          <LanguageProvider>
+            <Suspense fallback={<Loader />}>
+              {children}
+            </Suspense>
+            <Analytics />
+            <Toaster />
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -705,11 +705,11 @@ export default function TrocasPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 rounded-xl hover:bg-secondary"
-                              title={`Conversar com ${trade.creator.username}`}
-                              onClick={() => setChatFriend(trade.creator)}
+                              className="size-8 rounded-xl opacity-30 cursor-not-allowed"
+                              title="Chat temporariamente em manutenção"
+                              disabled
                             >
-                              <MessageSquare className="size-4 text-sky-400" />
+                              <MessageSquare className="size-4 text-muted-foreground" />
                             </Button>
                           )}
                         </div>
