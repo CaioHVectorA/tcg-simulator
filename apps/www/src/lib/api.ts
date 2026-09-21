@@ -1,6 +1,6 @@
 import axios, { AxiosError } from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "https://poke-tcg-center.fly.dev";
 export const API_URL = baseURL;
 export const WS_URL = baseURL.replace(/^http/, "ws");
 
