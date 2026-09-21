@@ -13,6 +13,10 @@ import { RewardModal } from "@/components/ui/reward-modal";
 import { soundFx } from "@/lib/sound-fx";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoaderSimple } from "@/components/loading-spinner";
+import { useUser } from "@/context/UserContext";
+import { useTranslation } from "@/i18n/LanguageContext";
+
+
 
 export type Quest = {
   name: string;
@@ -28,12 +32,35 @@ export type Quest = {
 };
 
 // Hook de Countdown até as 10h da manhã (horário do reset diário)
-function useDailyResetCountdown() {
+function useDailyResetCountdown(lastDailyBounty?: string | null) {
   const [timeLeft, setTimeLeft] = useState("");
+  const [isAvailable, setIsAvailable] = useState(false);
 
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
+
+      // Se nunca coletou a bounty diária, mostrar como disponível
+      if (!lastDailyBounty) {
+        setIsAvailable(true);
+        setTimeLeft("");
+        return;
+      }
+
+      // Verifica se a última coleta foi antes do reset de hoje (10h)
+      const lastBounty = new Date(lastDailyBounty);
+      const todayReset = new Date();
+      todayReset.setHours(10, 0, 0, 0);
+
+      if (lastBounty < todayReset && now >= todayReset) {
+        // Já passou das 10h e a última coleta foi antes — disponível!
+        setIsAvailable(true);
+        setTimeLeft("");
+        return;
+      }
+
+      setIsAvailable(false);
+
       const nextReset = new Date();
       nextReset.setHours(10, 0, 0, 0);
 
@@ -54,9 +81,9 @@ function useDailyResetCountdown() {
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [lastDailyBounty]);
 
-  return timeLeft;
+  return { timeLeft, isAvailable };
 }
 
 function QuestCard({
@@ -68,6 +95,7 @@ function QuestCard({
   onClaim: (quest: Quest) => void;
   isClaiming: boolean;
 }) {
+  const { t } = useTranslation();
   const isReadyToClaim = quest.completed && !quest.fullCompleted;
   const progressPercent = Math.min((quest.progress / quest.total) * 100, 100);
 
@@ -97,7 +125,7 @@ function QuestCard({
                 </CardTitle>
                 {quest.isDiary && (
                   <Badge variant="outline" className="text-[10px] uppercase font-mono border-sky-500/40 text-sky-400 bg-sky-500/10">
-                    Diária
+                    {t('quests.daily')}
                   </Badge>
                 )}
               </div>
@@ -108,11 +136,11 @@ function QuestCard({
 
             {quest.fullCompleted ? (
               <Badge className="rounded-full bg-emerald-600 text-white font-mono text-xs px-2 py-0.5">
-                <Check className="size-3.5 mr-1" /> Concluída
+                <Check className="size-3.5 mr-1" /> {t('quests.completed')}
               </Badge>
             ) : (
               <Badge variant="outline" className="rounded-full font-mono text-xs border-border">
-                Nível {quest.currentLevel}
+                {t('quests.level')} {quest.currentLevel}
               </Badge>
             )}
           </div>
@@ -142,12 +170,12 @@ function QuestCard({
             variant="secondary"
             className="text-xs font-bold font-mono bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2.5 py-1 flex items-center gap-1.5"
           >
-            <Coins className="size-3.5" /> +{quest.actualReward} Moedas
+            <Coins className="size-3.5" /> +{quest.actualReward} {t('common.coins')}
           </Badge>
 
           {quest.fullCompleted ? (
             <Button variant="outline" disabled size="sm" className="text-xs text-muted-foreground h-8">
-              Recompensa Coletada
+              {t('quests.rewardModalTitle')}
             </Button>
           ) : isReadyToClaim ? (
             <Button
@@ -159,18 +187,18 @@ function QuestCard({
               {isClaiming ? (
                 <div className="flex items-center gap-1.5">
                   <LoaderSimple className="size-3.5 animate-spin" />
-                  <span>Coletando...</span>
+                  <span>{t('quests.collecting')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="size-3.5" />
-                  <span>Coletar Recompensa</span>
+                  <span>{t('quests.claimReward')}</span>
                 </div>
               )}
             </Button>
           ) : (
             <Button variant="outline" disabled size="sm" className="text-xs h-8">
-              Em Progresso
+              {t('quests.inProgress')}
             </Button>
           )}
         </CardFooter>
@@ -181,12 +209,14 @@ function QuestCard({
 
 export function Quests() {
   const { get, post, patch } = useApi();
+  const { t } = useTranslation();
   const [rewardModalOpen, setRewardModalOpen] = useState(false);
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
   const [rewardTitle, setRewardTitle] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const dailyResetTime = useDailyResetCountdown();
+  const user = useUser();
+  const { timeLeft: dailyResetTime, isAvailable: isBountyAvailable } = useDailyResetCountdown(user?.last_daily_bounty);
 
   const { data, isLoading, refetch } = useQuery<Quest[]>({
     queryKey: ["quests"],
@@ -279,6 +309,13 @@ export function Quests() {
       const res = await post("/quests/claim-all", {});
       qClient.invalidateQueries({ queryKey: ["user"] });
       qClient.invalidateQueries({ queryKey: ["quests"] });
+
+      // Update modal with actual value returned by backend (may differ from optimistic estimate)
+      const realTotal = res.data?.data?.totalClaimed;
+      if (typeof realTotal === "number" && realTotal !== totalClaimable) {
+        setRewardAmount(realTotal);
+      }
+
       return res.data?.data;
     },
   });
@@ -341,16 +378,23 @@ export function Quests() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card/60 backdrop-blur-md border border-border/80 rounded-2xl p-5 shadow-xs">
         {/* Reset Diário */}
         <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          <div className={`p-3 rounded-xl border ${isBountyAvailable ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-sky-500/10 text-sky-400 border-sky-500/20"}`}>
             <Clock className="size-6" />
           </div>
           <div>
             <span className="text-xs text-muted-foreground font-semibold block">
-              Próximo Reset Diário
+              {isBountyAvailable ? "Bônus Diário" : "Próximo Reset Diário"}
             </span>
-            <span className="text-base font-bold font-mono text-sky-400">
-              {dailyResetTime || "Calculando..."}
-            </span>
+            {isBountyAvailable ? (
+              <span className="text-base font-bold font-mono text-emerald-400 flex items-center gap-1">
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                Disponível agora!
+              </span>
+            ) : (
+              <span className="text-base font-bold font-mono text-sky-400">
+                {dailyResetTime || "Calculando..."}
+              </span>
+            )}
           </div>
         </div>
 
@@ -377,12 +421,12 @@ export function Quests() {
               disabled={isMutating}
               className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20 text-xs px-4 py-2"
             >
-              <Sparkles className="size-4 mr-1.5" /> Coletar Todas ({totalCoinsAvailableToClaim} moedas)
+              <Sparkles className="size-4 mr-1.5" /> {t('quests.claimAll')} ({totalCoinsAvailableToClaim} {t('common.coins')})
             </Button>
           ) : (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Check className="size-4 text-emerald-500" />
-              <span>Nenhuma recompensa pendente</span>
+              <span>{t('quests.noPending')}</span>
             </div>
           )}
         </div>
@@ -392,19 +436,19 @@ export function Quests() {
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/60 p-1 rounded-xl">
           <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">
-            Todas ({questsList.length})
+            {t('quests.all')} ({questsList.length})
           </TabsTrigger>
           <TabsTrigger value="daily" className="rounded-lg text-xs font-semibold">
-            Diárias ({diaryQuests.length})
+            {t('quests.daily')} ({diaryQuests.length})
             {diaryQuests.some((q) => q.completed && !q.fullCompleted) && (
               <span className="ml-1.5 size-2 rounded-full bg-amber-400 animate-ping" />
             )}
           </TabsTrigger>
           <TabsTrigger value="general" className="rounded-lg text-xs font-semibold">
-            Progressão ({generalQuests.length})
+            {t('quests.progression')} ({generalQuests.length})
           </TabsTrigger>
           <TabsTrigger value="completed" className="rounded-lg text-xs font-semibold">
-            Concluídas ({completedQuests.length})
+            {t('quests.completedTab')} ({completedQuests.length})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -425,7 +469,7 @@ export function Quests() {
 
       {filteredQuests.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-sm font-mono">Nenhuma missão encontrada nesta categoria.</p>
+          <p className="text-sm font-mono">{t('quests.noQuestsFound')}</p>
         </div>
       )}
 

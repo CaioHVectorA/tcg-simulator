@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { UpgradeAccountModal } from '@/components/upgrade-account-modal'
 import {
@@ -30,7 +31,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet'
 import { Separator } from './ui/separator'
-import { useUser } from '@/context/UserContext'
+import { useUser, useUserLoading } from '@/context/UserContext'
 import { balanceTranslate } from '@/lib/balance-translate'
 import { Avatar } from './avatar'
 import { NotificationsPopover } from './notifications-popover'
@@ -45,6 +46,7 @@ export function HeaderMenu() {
     const [isOpen, setIsOpen] = React.useState(false)
     const [upgradeOpen, setUpgradeOpen] = React.useState(false)
     const user = useUser()
+    const isUserLoading = useUserLoading()
     const { picture, username, money, email, isGuest } = user || {}
 
     const menuItems = [
@@ -200,7 +202,11 @@ export function HeaderMenu() {
                             </Button>
                         )}
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/60 border border-border">
-                            <span className='text-sm font-bold font-mono'>{balanceTranslate(money)}</span>
+                            {isUserLoading && !money ? (
+                                <Skeleton className="h-4 w-16 rounded-full" />
+                            ) : (
+                                <span className='text-sm font-bold font-mono'>{balanceTranslate(money ?? 0)}</span>
+                            )}
                             <Coins color='gold' className="size-4 shrink-0 text-amber-400" />
                         </div>
                         <LanguageSwitcher />

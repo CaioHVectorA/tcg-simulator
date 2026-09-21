@@ -21,20 +21,42 @@ type User = {
     authProvider?: string;
 };
 
-const UserContext = createContext<{ user: User | null } | null>(null);
+const USER_CACHE_KEY = "tcg_user_cache";
+
+function getCachedUser(): Partial<User> | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const cached = localStorage.getItem(USER_CACHE_KEY);
+        return cached ? JSON.parse(cached) : null;
+    } catch {
+        return null;
+    }
+}
+
+function setCachedUser(user: User) {
+    if (typeof window === "undefined") return;
+    try {
+        // Only cache non-sensitive display fields
+        const toCache = {
+            username: user.username,
+            picture: user.picture,
+            isGuest: user.isGuest,
+        };
+        localStorage.setItem(USER_CACHE_KEY, JSON.stringify(toCache));
+    } catch {
+        // ignore storage errors
+    }
+}
+
+const UserContext = createContext<{ user: User | null; isLoading: boolean } | null>(null);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-    // const [user, setUser] = useState<User | null>(null);
-    const { get, error } = useApi()
-    // Exemplo de carregamento inicial
-    // useEffect(() => {
-    //     get("/user/me").then((response) => {
-    //         setUser(response.data.data);
-    //     }).catch(err => {
-    //         console.log({ err })
-    //     });
-    // }, []);
+    const { get } = useApi()
     const { push } = useRouter()
+
+    // Use cached user data for instant render (prevents NaN/wrong avatar on F5)
+    const cachedUser = getCachedUser();
+
     const { isLoading, data: user } = useQuery({
         queryKey: ['user'],
         queryFn: async () => {
@@ -44,17 +66,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     push('/entrar')
                     return null
                 }
-                return response.data?.data ?? response.data
+                const userData = response.data?.data ?? response.data;
+                if (userData) setCachedUser(userData);
+                return userData;
             } catch (e) {
                 return null
             }
         },
         staleTime: 60 * 1000,
         refetchOnWindowFocus: false,
+        // Use cached display data as placeholder while fetching
+        placeholderData: cachedUser ? (cachedUser as User) : undefined,
     })
 
     return (
-        <UserContext.Provider value={{ user: user || null }}>
+        <UserContext.Provider value={{ user: user || null, isLoading }}>
             {children}
         </UserContext.Provider>
     );
@@ -63,4 +89,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 export const useUser = () => {
     const context = useContext(UserContext);
     return (context?.user || {}) as User;
+};
+
+export const useUserLoading = () => {
+    const context = useContext(UserContext);
+    return context?.isLoading ?? false;
 };

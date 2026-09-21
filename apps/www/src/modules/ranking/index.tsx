@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApi } from "@/hooks/use-api";
-import { Loader2, RefreshCw, Trophy, Coins, Crown, Medal } from "lucide-react";
+import { Loader2, RefreshCw, Trophy, Coins, Crown, Medal, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { balanceTranslate } from "@/lib/balance-translate";
@@ -80,9 +81,15 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
                 {t("ranking.title")}
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground font-sans">
-                {t("ranking.subtitle")}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground font-sans">
+                  {t("ranking.subtitle")}
+                </p>
+                <Badge variant="outline" className="text-[10px] font-mono px-2 py-0 border-sky-500/40 text-sky-400 bg-sky-500/8 flex items-center gap-1 shrink-0">
+                  <Clock className="size-3" />
+                  Atualizado diariamente às 10h
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
