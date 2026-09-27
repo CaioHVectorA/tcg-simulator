@@ -42,6 +42,7 @@ import { ChatDialog } from "@/components/chat-dialog";
 import { useUser } from "@/context/UserContext";
 import { GuestRestrictionCard } from "@/components/guest-restriction-card";
 import { UpgradeAccountModal } from "@/components/upgrade-account-modal";
+import { useTranslation } from "@/i18n/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -145,6 +146,7 @@ const RARITY_STYLING: Record<
 };
 
 export default function TrocasPage() {
+  const { t } = useTranslation();
   const user = useUser();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { get, post, delete: del } = useApi();
@@ -419,16 +421,16 @@ export default function TrocasPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-secondary-foreground text-xs font-semibold mb-2 shadow-xs">
             <ArrowLeftRight className="size-3.5 text-amber-500" />
-            <span>Mesa de Trocas entre Treinadores</span>
+            <span>{t("trades.negotiationTable")}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
-            <span>Estação de Trocas</span>
+            <span>{t("trades.stationTitle")}</span>
             <span className="text-xs font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500 px-2.5 py-0.5 rounded-lg">
-              {rawTrades.length} Ofertas Ativas
+              {t("trades.activeOffersCount").replace("{count}", String(rawTrades.length))}
             </span>
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm mt-1 max-w-2xl font-sans">
-            Negocie diretamente com outros treinadores. Descubra cartas que faltam no seu binder, compare raridades e feche acordos justos.
+            {t("trades.subtitle")}
           </p>
         </div>
 
@@ -440,7 +442,7 @@ export default function TrocasPage() {
             }}
             className="rounded-xl h-11 px-6 font-syne font-bold shadow-lg shadow-amber-500/15 gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition-all hover:scale-105 active:scale-95"
           >
-            <PlusCircle className="size-4" /> Criar Nova Oferta
+            <PlusCircle className="size-4" /> {t("trades.newTrade")}
           </Button>
         </div>
       </div>
@@ -459,25 +461,25 @@ export default function TrocasPage() {
             value="market"
             className="rounded-xl text-xs sm:text-sm font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
           >
-            <RefreshCw className="size-3.5" /> Mercado
+            <RefreshCw className="size-3.5" /> {t("trades.tabMarket")}
           </TabsTrigger>
           <TabsTrigger
             value="create"
             className="rounded-xl text-xs sm:text-sm font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
           >
-            <PlusCircle className="size-3.5" /> Criar Oferta
+            <PlusCircle className="size-3.5" /> {t("trades.tabCreate")}
           </TabsTrigger>
           <TabsTrigger
             value="my"
             className="rounded-xl text-xs sm:text-sm font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm relative"
           >
-            <Clock className="size-3.5" /> Minhas ({myTrades.length})
+            <Clock className="size-3.5" /> {t("trades.tabMyTrades").replace("{count}", String(myTrades.length))}
           </TabsTrigger>
           <TabsTrigger
             value="history"
             className="rounded-xl text-xs sm:text-sm font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm"
           >
-            <History className="size-3.5" /> Histórico
+            <History className="size-3.5" /> {t("trades.tabHistory")}
           </TabsTrigger>
         </TabsList>
 

@@ -55,29 +55,15 @@ export const KartProvider = ({ children, setData }: {
         const exists = kart.find((i) => (i.id === item.id && i.type === item.type));
         if (exists) {
             editItem(item.id, { quantity: exists.quantity + item.quantity });
-            toast({
-                title: "Carrinho Atualizado 🛒",
-                description: `Ajustado para ${exists.quantity + item.quantity}x ${item.name}.`
-            });
             return;
         }
         add(item);
-        toast({
-            title: "Adicionado ao Carrinho 🛒",
-            description: `${item.quantity}x ${item.name} adicionado.`
-        });
     };
 
     const removeItem = (id: number) => {
-        const item = kart.find(i => i.id === id);
         setKart((prevKart) => prevKart.filter((item) => item.id !== id));
-        if (item) {
-            toast({
-                title: "Item Removido 🗑️",
-                description: `"${item.name}" removido.`
-            });
-        }
     };
+
 
     const editItem = (id: number, data: Partial<KartItem>) => {
         if (data.quantity !== undefined && data.quantity <= 0) {

@@ -14,6 +14,7 @@ import { TcgCardImage } from "@/components/tcg-card-image";
 import { balanceTranslate } from "@/lib/balance-translate";
 import { RewardModal } from "@/components/ui/reward-modal";
 import { LoaderSimple } from "@/components/loading-spinner";
+import { useTranslation } from "@/i18n/LanguageContext";
 import {
   Book,
   Sparkles,
@@ -57,10 +58,12 @@ export type OfficialAlbum = {
 };
 
 export function AlbumView() {
+  const { t } = useTranslation();
   const { get, post } = useApi();
   const qClient = useQueryClient();
 
   const [rewardModalOpen, setRewardModalOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | "claimable" | "in_progress" | "claimed">("all");
   const [claimedReward, setClaimedReward] = useState<{
     title: string;
     gold: number;
@@ -92,11 +95,20 @@ export function AlbumView() {
     },
   });
 
+  const claimableCount = albums.filter((a) => a.canClaim && !a.isClaimed).length;
+
+  const displayedAlbums = albums.filter((album) => {
+    if (filterStatus === "claimable") return album.canClaim && !album.isClaimed;
+    if (filterStatus === "in_progress") return !album.isCompleted;
+    if (filterStatus === "claimed") return album.isClaimed;
+    return true;
+  });
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <LoaderSimple className="size-8 mb-4" />
-        <p className="text-xs font-mono text-muted-foreground">Carregando seus álbuns...</p>
+        <p className="text-xs font-mono text-muted-foreground">{t("common.loading")}</p>
       </div>
     );
   }
@@ -105,26 +117,104 @@ export function AlbumView() {
     <div className="space-y-6">
       {/* Sub-Tabs de Navegação: Prontos vs Customizados */}
       <Tabs defaultValue="official" className="w-full">
-        <div className="flex items-center justify-between mb-6">
-          <TabsList className="bg-secondary/80 border border-border p-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <TabsList className="bg-secondary/80 border border-border p-1 w-fit">
             <TabsTrigger value="official" className="text-xs sm:text-sm font-semibold gap-2">
               <Book className="size-4 text-amber-500" />
-              <span>Álbuns Oficiais ({albums.length})</span>
+              <span>{t("albums.tabOfficial")} ({albums.length})</span>
             </TabsTrigger>
             <TabsTrigger value="custom" className="text-xs sm:text-sm font-semibold gap-2">
               <Wrench className="size-4 text-purple-400" />
-              <span>Customizados</span>
+              <span>{t("albums.tabCustom")}</span>
               <Badge variant="outline" className="text-[9px] font-mono border-purple-500/40 text-purple-400 py-0 px-1">
                 WIP
               </Badge>
             </TabsTrigger>
           </TabsList>
+
+          {/* Filtros de Resgate e Status */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <Button
+              size="sm"
+              variant={filterStatus === "all" ? "default" : "outline"}
+              onClick={() => setFilterStatus("all")}
+              className="h-8 text-xs font-semibold rounded-full gap-1.5"
+            >
+              <span>{t("albums.filterAll")}</span>
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px] ml-0.5">
+                {albums.length}
+              </Badge>
+            </Button>
+
+            <Button
+              size="sm"
+              variant={filterStatus === "claimable" ? "default" : "outline"}
+              onClick={() => setFilterStatus("claimable")}
+              className={`h-8 text-xs font-semibold rounded-full gap-1.5 transition-all ${
+                claimableCount > 0
+                  ? "border-amber-500/60 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-sm"
+                  : ""
+              } ${filterStatus === "claimable" ? "!bg-amber-500 !text-slate-950 font-bold" : ""}`}
+            >
+              <Sparkles className="size-3.5" />
+              <span>{t("albums.filterClaimable")}</span>
+              {claimableCount > 0 && (
+                <Badge className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0 font-bold animate-pulse">
+                  {claimableCount}
+                </Badge>
+              )}
+            </Button>
+
+            <Button
+              size="sm"
+              variant={filterStatus === "in_progress" ? "default" : "outline"}
+              onClick={() => setFilterStatus("in_progress")}
+              className="h-8 text-xs font-semibold rounded-full"
+            >
+              <span>{t("albums.filterInProgress")}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant={filterStatus === "claimed" ? "default" : "outline"}
+              onClick={() => setFilterStatus("claimed")}
+              className="h-8 text-xs font-semibold rounded-full"
+            >
+              <span>{t("albums.filterClaimed")}</span>
+            </Button>
+          </div>
         </div>
 
         {/* ABA 1: ÁLBUNS OFICIAIS */}
         <TabsContent value="official" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {albums.map((album) => (
+          {displayedAlbums.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-border bg-card/50">
+              <Book className="size-10 text-muted-foreground/50 mb-3" />
+              <h3 className="text-base font-bold font-syne mb-1">
+                {filterStatus === "claimable"
+                  ? t("albums.emptyClaimable")
+                  : t("albums.emptyCategory")}
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-md">
+                {filterStatus === "claimable"
+                  ? t("albums.emptyClaimableDesc")
+                  : "Tente selecionar outro filtro para ver os álbuns."}
+              </p>
+              {filterStatus !== "all" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFilterStatus("all")}
+                  className="mt-4 text-xs rounded-full"
+                >
+                  {t("albums.filterAll")}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+              {displayedAlbums.map((album) => (
+
               <Card
                 key={album.id}
                 className={`overflow-hidden border bg-card/90 transition-all duration-300 rounded-2xl flex flex-col justify-between ${
@@ -188,7 +278,7 @@ export function AlbumView() {
                             </div>
                             <div className="absolute bottom-0 inset-x-0 bg-black/80 px-1 py-0.5 text-center">
                               <span className="text-[9px] font-mono text-emerald-400 font-bold truncate block">
-                                Obtida
+                                {t("albums.obtained")}
                               </span>
                             </div>
                           </>
@@ -197,7 +287,7 @@ export function AlbumView() {
                             {slot.card.image_url && (
                               <img
                                 src={loadTcgImg(slot.card.image_url, true)}
-                                alt="Faltante"
+                                alt={t("albums.missing")}
                                 loading="lazy"
                                 className="absolute inset-0 w-full h-full object-cover opacity-10 filter grayscale blur-[1px]"
                               />
@@ -217,7 +307,7 @@ export function AlbumView() {
                   {/* Barra de Progresso */}
                   <div>
                     <div className="flex items-center justify-between text-xs font-mono mb-1.5 text-muted-foreground">
-                      <span>Progresso do Álbum</span>
+                      <span>{t("albums.progress")}</span>
                       <span className="font-bold text-foreground">
                         {album.collectedCount} / {album.totalCount} ({album.progressPercent}%)
                       </span>
@@ -252,7 +342,7 @@ export function AlbumView() {
                   {/* Botão de Resgate */}
                   {album.isClaimed ? (
                     <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 py-1 px-2">
-                      <CheckCircle2 className="size-4" /> Recompensa Coletada
+                      <CheckCircle2 className="size-4" /> {t("albums.claimed")}
                     </span>
                   ) : album.canClaim ? (
                     <Button
@@ -262,18 +352,19 @@ export function AlbumView() {
                       className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans text-xs px-4 h-9 rounded-xl shadow-lg shadow-amber-500/20 animate-pulse"
                     >
                       <Sparkles className="size-3.5 mr-1.5" />
-                      <span>Resgatar Recompensas</span>
+                      <span>{isClaiming ? t("albums.claiming") : t("albums.claimReward")}</span>
                     </Button>
                   ) : (
                     <Button variant="outline" disabled size="sm" className="text-xs text-muted-foreground h-9">
-                      Em Progresso ({album.collectedCount}/{album.totalCount})
+                      {t("albums.filterInProgress")} ({album.collectedCount}/{album.totalCount})
                     </Button>
                   )}
                 </CardFooter>
               </Card>
             ))}
           </div>
-        </TabsContent>
+        )}
+      </TabsContent>
 
         {/* ABA 2: ÁLBUNS CUSTOMIZADOS (WIP) */}
         <TabsContent value="custom" className="mt-0">
@@ -282,17 +373,14 @@ export function AlbumView() {
               <Wrench className="size-8 text-purple-400" />
             </div>
             <Badge variant="outline" className="mb-2 font-mono text-[10px] text-purple-400 border-purple-500/40">
-              EM DESENVOLVIMENTO • WIP
+              WIP
             </Badge>
             <h3 className="font-syne text-xl sm:text-2xl font-bold text-foreground mb-2">
-              Álbuns Customizados
+              {t("albums.tabCustom")}
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-6">
-              Em breve você poderá criar seus próprios biders e álbuns temáticos customizados, definir suas cartas dos sonhos e compartilhar publicamente com a comunidade Pokémon!
+              Custom thematic binders and albums are in active development. Soon you will be able to assemble dream collections and share publicly with other trainers!
             </p>
-            <Button variant="outline" disabled className="text-xs font-semibold">
-              Criador de Álbum Customizado (Em Breve)
-            </Button>
           </Card>
         </TabsContent>
       </Tabs>
@@ -302,8 +390,8 @@ export function AlbumView() {
         open={rewardModalOpen}
         onOpenChange={setRewardModalOpen}
         iconType="general"
-        title="Álbum Concluído! 🎉"
-        description={`Parabéns! Você completou o álbum "${claimedReward?.title}" com maestria.`}
+        title={t("quests.rewardModalTitle")}
+        description={claimedReward ? `${claimedReward.title}` : ""}
         rewardAmount={claimedReward?.gold}
       />
     </div>

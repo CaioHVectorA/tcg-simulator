@@ -23,7 +23,7 @@ type User = {
 
 const USER_CACHE_KEY = "tcg_user_cache";
 
-function getCachedUser(): Partial<User> | null {
+export function getCachedUser(): Partial<User> | null {
     if (typeof window === "undefined") return null;
     try {
         const cached = localStorage.getItem(USER_CACHE_KEY);
@@ -33,20 +33,24 @@ function getCachedUser(): Partial<User> | null {
     }
 }
 
-function setCachedUser(user: User) {
+export function setCachedUser(user: Partial<User>) {
     if (typeof window === "undefined") return;
     try {
-        // Only cache non-sensitive display fields
+        const prev = getCachedUser() || {};
         const toCache = {
-            username: user.username,
-            picture: user.picture,
-            isGuest: user.isGuest,
+            ...prev,
+            id: user.id ?? prev.id,
+            username: user.username ?? prev.username,
+            picture: user.picture !== undefined ? user.picture : prev.picture,
+            money: user.money !== undefined ? user.money : (prev.money ?? 0),
+            isGuest: user.isGuest !== undefined ? user.isGuest : prev.isGuest,
         };
         localStorage.setItem(USER_CACHE_KEY, JSON.stringify(toCache));
     } catch {
         // ignore storage errors
     }
 }
+
 
 const UserContext = createContext<{ user: User | null; isLoading: boolean } | null>(null);
 

@@ -463,14 +463,20 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         // Quantidade de cartas proporcional ao ouro depositado (mínimo 3, escala até 25 cartas em 1M)
         const cardsCount = Math.min(25, Math.max(3, Math.floor(Math.sqrt(goldAmount / 35)) + 1));
 
-        // Sorte e raridade escalam com o investimento
+        // Sorte e raridade escalam com o investimento de forma sustentável (EV <= 60%)
         const goldRatio = Math.min(30, Math.max(1, goldAmount / 1000));
+        const p5 = Math.min(0.0015, Math.max(0.00002, 0.00002 + 0.000049 * (goldAmount / 35000)));
+        const p4 = Math.min(0.02, Math.max(0.0003, 0.0003 + 0.00065 * (goldAmount / 35000)));
+        const p3 = Math.min(0.38, 0.05 + 0.06 * Math.sqrt(goldRatio));
+        const p2 = Math.min(0.40, 0.25 + 0.005 * goldRatio);
+        const p1 = Math.max(0.20, 1 - (p5 + p4 + p3 + p2));
+
         const weights: { rarity: number; weight: number }[] = [
-          { rarity: 5, weight: Math.min(0.35, 0.015 * goldRatio * 1.4) }, // full_legendary
-          { rarity: 4, weight: Math.min(0.40, 0.04 * goldRatio * 1.3) }, // legendary
-          { rarity: 3, weight: Math.min(0.45, 0.18 * Math.sqrt(goldRatio)) }, // epic
-          { rarity: 2, weight: Math.max(0.12, 0.35 - (goldRatio * 0.008)) }, // rare
-          { rarity: 1, weight: Math.max(0.02, 0.45 - (goldRatio * 0.02)) }, // common
+          { rarity: 5, weight: p5 }, // full_legendary (God Pull - 10M moedas)
+          { rarity: 4, weight: p4 }, // legendary (350k moedas)
+          { rarity: 3, weight: p3 }, // epic (3.5k moedas)
+          { rarity: 2, weight: p2 }, // rare (250 moedas)
+          { rarity: 1, weight: p1 }, // common (40 moedas)
         ];
 
         // Buscar pool de cartas da temática

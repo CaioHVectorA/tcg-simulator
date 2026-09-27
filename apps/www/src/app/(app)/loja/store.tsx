@@ -36,6 +36,7 @@ type Promotional = {
 }
 
 import { RewardModal } from "@/components/ui/reward-modal"
+import { useTranslation } from "@/i18n/LanguageContext"
 
 export function StorePage({ data: { standard, tematics, promotionalCards } }: {
     data: {
@@ -44,6 +45,7 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
         promotionalCards: Promotional[]
     }
 }) {
+    const { t } = useTranslation()
     const { data, loading, setData } = useFetch('/store/bought-promotional/') as unknown as { data: number[], loading: boolean, setData: React.Dispatch<React.SetStateAction<number[]>> }
     const isInPurchased = (id: number) => data?.includes(id) ?? false
 
@@ -58,13 +60,13 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                         <div>
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold mb-1.5">
                                 <ShoppingBag className="size-3.5" />
-                                <span>Loja TCG</span>
+                                <span>{t("nav.store")}</span>
                             </div>
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                                Loja de Pacotes & Cartas
+                                {t("store.title")}
                             </h1>
                             <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 max-w-xl">
-                                Adquira booster packs clássicos, pacotes sob medida e garanta cartas em oferta para turbinar seu deck.
+                                {t("store.subtitle")}
                             </p>
                         </div>
                     </div>
@@ -75,8 +77,8 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                             <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                 <Zap className="size-4 sm:size-5 text-amber-500 shrink-0" />
                                 <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Promoções de Hoje</h2>
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground">Descontos especiais em cartas selecionadas</p>
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">{t("store.flashSale")}</h2>
+                                    <p className="text-[11px] sm:text-xs text-muted-foreground">{t("store.subtitle")}</p>
                                 </div>
                             </div>
 
@@ -94,8 +96,8 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                             <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                 <PackageIcon className="size-4 sm:size-5 text-primary shrink-0" />
                                 <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Pacotes Padrão</h2>
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground">Booster packs clássicos ({standard.length} disponíveis)</p>
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">{t("store.standardPacks")}</h2>
+                                    <p className="text-[11px] sm:text-xs text-muted-foreground">({standard.length} {t("store.cardsQuantity")})</p>
                                 </div>
                             </div>
 
@@ -113,8 +115,8 @@ export function StorePage({ data: { standard, tematics, promotionalCards } }: {
                             <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                 <Sparkles className="size-4 sm:size-5 text-purple-400 shrink-0" />
                                 <div>
-                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Pacotes Temáticos Personalizados</h2>
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground">Deposite a quantia de ouro desejada (teto de 1.000.000 / 1M) • Bônus de sorte proporcional e proteção anti-duplicatas!</p>
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">{t("store.thematicPacks")}</h2>
+                                    <p className="text-[11px] sm:text-xs text-muted-foreground">{t("store.maxLimit")}</p>
                                 </div>
                             </div>
 

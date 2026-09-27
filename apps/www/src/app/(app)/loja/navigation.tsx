@@ -3,14 +3,17 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Gift, Zap, Package, Sparkles } from "lucide-react"
 
-const SECTIONS = [
-    { id: "flashcards", label: "Promoções", icon: Zap },
-    { id: "standard", label: "Padrão", icon: Package },
-    { id: "themed", label: "Temáticos", icon: Sparkles },
-]
+import { useTranslation } from "@/i18n/LanguageContext"
 
 export function Navigation() {
+    const { t } = useTranslation()
     const [activeSection, setActiveSection] = useState("standard")
+
+    const SECTIONS = [
+        { id: "flashcards", label: t("store.flashSale"), icon: Zap },
+        { id: "standard", label: t("store.standardPacks"), icon: Package },
+        { id: "themed", label: t("store.thematicPacks"), icon: Sparkles },
+    ]
 
     useEffect(() => {
         const handleScroll = () => {
