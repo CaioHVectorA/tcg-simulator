@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { TcgCardImage } from "./tcg-card-image";
 import { Sparkles, Shield, Heart, Tag, Layers, Coins } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export interface CardModalData {
   id: number;
@@ -28,22 +29,6 @@ interface CardDetailModalProps {
   onClose: () => void;
 }
 
-const RARITY_LABELS: Record<number, { label: string; color: string; stars: string }> = {
-  1: { label: "Comum", color: "bg-slate-500/20 text-slate-300 border-slate-500/40", stars: "★" },
-  2: { label: "Rara", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", stars: "★★" },
-  3: { label: "Épica", color: "bg-purple-500/20 text-purple-400 border-purple-500/40", stars: "★★★" },
-  4: { label: "Mística", color: "bg-amber-500/20 text-amber-300 border-amber-500/40", stars: "★★★★" },
-  5: { label: "Lendária / God Pull", color: "bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-amber-500/20 text-rose-300 border-rose-400/50", stars: "★★★★★" },
-};
-
-const VALUATION_CONFIG: Record<number, { text: string; subtext: string; isLuxury: boolean }> = {
-  1: { text: "100 ~ 500", subtext: "Moedas", isLuxury: false },
-  2: { text: "1.500 ~ 5.000", subtext: "Moedas", isLuxury: false },
-  3: { text: "35.000 ~ 120.000", subtext: "Moedas", isLuxury: false },
-  4: { text: "1.200.000 ~ 4.500.000", subtext: "Moedas (7 dígitos)", isLuxury: true },
-  5: { text: "8.000.000 ~ 25.000.000", subtext: "Moedas (8 dígitos)", isLuxury: true },
-};
-
 const TYPE_COLORS: Record<string, string> = {
   FIRE: "bg-red-500/20 text-red-400 border-red-500/40",
   WATER: "bg-blue-500/20 text-blue-400 border-blue-500/40",
@@ -60,10 +45,27 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
   if (!card) return null;
+
+  const RARITY_LABELS: Record<number, { label: string; color: string; stars: string }> = {
+    1: { label: t("rarities.tier1"), color: "bg-slate-500/20 text-slate-300 border-slate-500/40", stars: "★" },
+    2: { label: t("rarities.tier2"), color: "bg-blue-500/20 text-blue-400 border-blue-500/40", stars: "★★" },
+    3: { label: t("rarities.tier3"), color: "bg-purple-500/20 text-purple-400 border-purple-500/40", stars: "★★★" },
+    4: { label: t("rarities.tier4"), color: "bg-amber-500/20 text-amber-300 border-amber-500/40", stars: "★★★★" },
+    5: { label: t("rarities.tier5"), color: "bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-amber-500/20 text-rose-300 border-rose-400/50", stars: "★★★★★" },
+  };
+
+  const VALUATION_CONFIG: Record<number, { text: string; subtext: string; isLuxury: boolean }> = {
+    1: { text: "100 ~ 500", subtext: t("common.coins"), isLuxury: false },
+    2: { text: "1.500 ~ 5.000", subtext: t("common.coins"), isLuxury: false },
+    3: { text: "35.000 ~ 120.000", subtext: t("common.coins"), isLuxury: false },
+    4: { text: "1.200.000 ~ 4.500.000", subtext: `${t("common.coins")} (7 ${t("collection.digits")})`, isLuxury: true },
+    5: { text: "8.000.000 ~ 25.000.000", subtext: `${t("common.coins")} (8 ${t("collection.digits")})`, isLuxury: true },
+  };
 
   const rarityInfo = RARITY_LABELS[card.rarity] || RARITY_LABELS[1];
   const typeKey = (card.type || "NORMAL").toUpperCase();
@@ -141,7 +143,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               <div className="flex items-center gap-2.5 bg-accent/40 rounded-xl p-3">
                 <Heart className="size-5 text-red-500" />
                 <div>
-                  <span className="text-[11px] text-muted-foreground block font-sans">Pontos de Vida</span>
+                  <span className="text-[11px] text-muted-foreground block font-sans">{t("collection.hpLabel")}</span>
                   <span className="text-lg font-bold font-mono">{card.hp ? `${card.hp} HP` : "N/A"}</span>
                 </div>
               </div>
@@ -149,7 +151,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               <div className="flex items-center gap-2.5 bg-accent/40 rounded-xl p-3">
                 <Sparkles className="size-5 text-amber-400" />
                 <div>
-                  <span className="text-[11px] text-muted-foreground block font-sans">Raridade</span>
+                  <span className="text-[11px] text-muted-foreground block font-sans">{t("common.rarity")}</span>
                   <span className="text-lg font-bold font-mono">Tier {card.rarity}</span>
                 </div>
               </div>
@@ -163,11 +165,11 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             }`}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Coins className="size-4 text-amber-500" /> Valuation de Mercado
+                  <Coins className="size-4 text-amber-500" /> {t("collection.marketValuation")}
                 </span>
                 {(VALUATION_CONFIG[card.rarity] || VALUATION_CONFIG[1]).isLuxury && (
                   <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-sm">
-                    ✨ Artigo de Luxo
+                    ✨ {t("collection.luxuryItem")}
                   </Badge>
                 )}
               </div>
@@ -184,7 +186,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             {card.ownedCount !== undefined && (
               <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-3">
                 <span className="text-sm font-semibold flex items-center gap-2">
-                  <Layers className="size-4 text-primary" /> Cópias na sua coleção:
+                  <Layers className="size-4 text-primary" /> {t("collection.copiesInCollection")}
                 </span>
                 <Badge className="font-mono text-sm px-2.5 py-0.5 bg-primary text-primary-foreground">
                   {card.ownedCount}

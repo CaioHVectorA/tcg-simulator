@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,10 +63,19 @@ export function BatchOpeningModal({
   const [activeFilter, setActiveFilter] = useState<number | "all">("all");
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
 
+  // Prevents the opening effect from re-firing when parent re-renders during reveal
+  const hasExecutedRef = useRef(false);
+
   const isStandardPack = !pack.tcg_id || !pack.image_url || pack.image_url.includes("placeholder");
 
   useEffect(() => {
-    if (isOpen && quantityToOpen > 0) {
+    if (!isOpen) {
+      // Reset for next open session
+      hasExecutedRef.current = false;
+      return;
+    }
+    if (isOpen && quantityToOpen > 0 && !hasExecutedRef.current) {
+      hasExecutedRef.current = true;
       setPhase("opening");
       setCards([]);
       setActiveFilter("all");

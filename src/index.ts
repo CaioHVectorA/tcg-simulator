@@ -28,6 +28,7 @@ import { DiaryQuestsCron } from "./lib/diary-quests-cron";
 import { messageController } from "./controller/message.controller";
 import { notificationController } from "./controller/notification.controller";
 import { albumController } from "./controller/album.controller";
+import { battleController } from "./controller/battle.controller";
 import { wsManager } from "./lib/ws-manager";
 import { jwt } from "./middlewares/jwt/jwt";
 import { warmupCardsCache } from "./lib/open-package";
@@ -117,6 +118,7 @@ export const server: Elysia = new Elysia({
   .use(messageController)
   .use(notificationController)
   .use(albumController)
+  .use(battleController)
   // .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(cron(DiaryQuestsCron()))

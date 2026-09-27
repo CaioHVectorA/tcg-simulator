@@ -10,8 +10,10 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } 
 import { useState } from "react"
 import { Label } from "@/components/ui/label"
 import { useApi } from "@/hooks/use-api"
+import { useQueryClient } from "@tanstack/react-query"
 import InfiniteScroll from "@/components/ui/infinite-scroll"
-import { Loader2, ShoppingCart, Eye, Coins, Sparkles, Package as PackageIcon, Info } from "lucide-react"
+import { generateUUID } from "@/lib/uuid"
+import { Loader2, ShoppingCart, Eye, Coins, Sparkles, Package as PackageIcon, Info, Zap, LoaderCircle } from "lucide-react"
 import { useKart } from "../use-kart"
 import { NumberQuantityInput } from "@/components/ui/quantity-input"
 import { balanceTranslate } from "@/lib/balance-translate"
@@ -23,6 +25,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { useTranslation } from "@/i18n/LanguageContext"
 
 type Package = {
     price: number
@@ -92,6 +95,7 @@ function BuyPack({ pack }: { pack: Package }) {
 }
 
 import { ThematicLootboxDialog } from "../thematic-lootbox-dialog"
+import { PackOpeningModal } from "@/components/pack-opening-modal"
 
 function getPackMiniDescription(pack: Package): string {
     if (pack.description && pack.description.trim().length > 0) {
@@ -144,13 +148,45 @@ export function PackCard({ pack, withDialog = false }: {
     pack: Package,
     withDialog?: boolean
 }) {
+    const { t } = useTranslation()
     const [cards, setCards] = useState<CardType[]>([])
-    const { get, loading, data } = useApi<{ cards: CardType[], pages: number, currentPage: number }>({ cache: true })
+    const { get, post, loading, data } = useApi<{ cards: CardType[], pages: number, currentPage: number }>({ cache: true })
+    const { post: buyPost, loading: buyLoading } = useApi()
+    const qClient = useQueryClient()
     const [hasMore, setHasMore] = useState(true)
     const [lootboxOpen, setLootboxOpen] = useState(false)
+    const [buyAndOpenModalOpen, setBuyAndOpenModalOpen] = useState(false)
+    const [buyAndOpenPack, setBuyAndOpenPack] = useState<UserPackage | null>(null)
 
     const isThematic = !!pack.tcg_id
     const isStandardPack = !pack.tcg_id
+
+    const handleBuyAndOpen = async () => {
+        try {
+            const key = generateUUID();
+            const res = await buyPost("/store/checkout?key=" + key, {
+                items: [{ type: 'package', id: pack.id, name: pack.name, price: pack.price, quantity: 1 }]
+            });
+            if (res.data?.ok) {
+                qClient.invalidateQueries({ queryKey: ["user"] });
+                qClient.invalidateQueries({ queryKey: ["packages"] });
+                // Create a UserPackage to pass to the opening modal
+                const userPack: UserPackage = {
+                    id: res.data?.data?.packageUserIds?.[0] ?? pack.id,
+                    name: pack.name,
+                    image_url: pack.image_url,
+                    tcg_id: pack.tcg_id,
+                    cards_quantity: pack.cards_quantity ?? 5,
+                    quantity: 1,
+                    description: pack.name,
+                };
+                setBuyAndOpenPack(userPack);
+                setBuyAndOpenModalOpen(true);
+            }
+        } catch (err) {
+            console.error("Buy and open error:", err);
+        }
+    };
 
     const next = async () => {
         const page = data?.currentPage || 1
@@ -272,7 +308,7 @@ export function PackCard({ pack, withDialog = false }: {
                                 size="sm"
                             >
                                 <Sparkles className="size-3.5 shrink-0" />
-                                <span>Personalizar & Abrir</span>
+                                <span>{t("store.customOpen") || "Personalizar & Abrir"}</span>
                             </Button>
                             <ThematicLootboxDialog
                                 open={lootboxOpen}
@@ -281,26 +317,54 @@ export function PackCard({ pack, withDialog = false }: {
                             />
                         </>
                     ) : (
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button className="flex-1 font-bold text-[11px] sm:text-xs h-9 gap-1.5" size="sm">
-                                    <ShoppingCart className="size-3.5 shrink-0" />
-                                    <span>Comprar</span>
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent className="font-syne bg-background border-border text-foreground w-full sm:max-w-md">
-                                <SheetHeader>
-                                    <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-foreground">
-                                        <PackageIcon className="size-4 sm:size-5 text-primary" />
-                                        <span className="truncate">Comprar {pack.name}</span>
-                                    </SheetTitle>
-                                    <SheetDescription className="text-xs">
-                                        Escolha a quantidade desejada.
-                                    </SheetDescription>
-                                </SheetHeader>
-                                <BuyPack pack={pack} />
-                            </SheetContent>
-                        </Sheet>
+                        <div className="flex flex-col gap-2 w-full">
+                            <div className="flex items-center gap-2">
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <Button className="flex-1 font-bold text-[11px] sm:text-xs h-9 gap-1.5" size="sm">
+                                            <ShoppingCart className="size-3.5 shrink-0" />
+                                            <span>{t("store.buy") || "Comprar"}</span>
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent className="font-syne bg-background border-border text-foreground w-full sm:max-w-md">
+                                        <SheetHeader>
+                                            <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-foreground">
+                                                <PackageIcon className="size-4 sm:size-5 text-primary" />
+                                                <span className="truncate">{t("store.buy")} {pack.name}</span>
+                                            </SheetTitle>
+                                            <SheetDescription className="text-xs">
+                                                {t("store.chooseQuantity")}
+                                            </SheetDescription>
+                                        </SheetHeader>
+                                        <BuyPack pack={pack} />
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+                            {/* Buy and Open immediately button */}
+                            <Button
+                                onClick={handleBuyAndOpen}
+                                disabled={buyLoading}
+                                variant="outline"
+                                size="sm"
+                                className="w-full font-bold text-[11px] sm:text-xs h-9 gap-1.5 border-amber-500/40 text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/60"
+                            >
+                                {buyLoading ? (
+                                    <LoaderCircle className="size-3.5 shrink-0 animate-spin" />
+                                ) : (
+                                    <Zap className="size-3.5 shrink-0" />
+                                )}
+                                <span>{t("store.buyAndOpen")}</span>
+                            </Button>
+                        </div>
+                    )}
+
+                    {buyAndOpenPack && (
+                        <PackOpeningModal
+                            isOpen={buyAndOpenModalOpen}
+                            onClose={() => { setBuyAndOpenModalOpen(false); setBuyAndOpenPack(null); }}
+                            pack={buyAndOpenPack}
+                            initialQuantity={1}
+                        />
                     )}
 
                     {withDialog && (

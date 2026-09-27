@@ -1,19 +1,20 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Package, Book, ExternalLink, ShoppingBag, Sparkles } from "lucide-react";
+import React from "react";
+import { Package, ShoppingBag, Sparkles } from "lucide-react";
 import { PackageCard } from "../packages/pkg-card";
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AlbumView } from "../album";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function InventoryPage({
   data: initialData,
 }: {
   data: UserPackage[];
 }) {
+  const { t } = useTranslation();
   const { get } = useApi();
   const { data = [] } = useQuery<UserPackage[]>({
     initialData,
@@ -31,13 +32,13 @@ export function InventoryPage({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-xs font-semibold mb-2">
             <Package className="size-3.5 text-primary" />
-            <span>Mochila do Treinador</span>
+            <span>{t("inventory.trainerBackpack")}</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-bold font-syne tracking-tight">
-            Seu Inventário
+            {t("inventory.title")}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Abra seus boosters lacrados e acompanhe o progresso de coleção nos seus Álbuns.
+            {t("inventory.subtitle")}
           </p>
         </div>
       </div>
@@ -55,19 +56,19 @@ export function InventoryPage({
             <div className="size-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
               <Package className="size-10 text-primary" />
             </div>
-            <h3 className="text-xl font-bold font-syne mb-2">Nenhum pacote fechado</h3>
+            <h3 className="text-xl font-bold font-syne mb-2">{t("inventory.emptyTitle")}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed">
-              Você já abriu todos os seus pacotes ou ainda não adquiriu nenhum. Passe na loja ou colete seus bônus diários para abrir novas cartas!
+              {t("inventory.emptyDesc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
               <Button asChild className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans text-xs h-10">
                 <Link href="/loja">
-                  <ShoppingBag className="size-4" /> Comprar Novos Boosters
+                  <ShoppingBag className="size-4" /> {t("inventory.buyNewBoosters")}
                 </Link>
               </Button>
               <Button asChild variant="outline" className="font-semibold text-xs h-10">
                 <Link href="/colecao">
-                  <Sparkles className="size-4 mr-1 text-amber-500" /> Ver Minha Coleção & Álbuns
+                  <Sparkles className="size-4 mr-1 text-amber-500" /> {t("inventory.viewCollectionAlbums")}
                 </Link>
               </Button>
             </div>

@@ -34,6 +34,8 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AlbumView } from "@/modules/inventory/album";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/LanguageContext";
+import { Badge } from "@/components/ui/badge";
 
 export type CardItem = {
   id: number;
@@ -58,45 +60,97 @@ interface CollectionProps {
   isLoading?: boolean;
 }
 
-const RARITY_MAP: Record<number, { label: string; color: string }> = {
-  1: { label: "Comum", color: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
-  2: { label: "Rara", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  3: { label: "Épica", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
-  4: { label: "Mística", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
-  5: { label: "Lendária", color: "bg-rose-500/20 text-rose-400 border-rose-500/40" },
+const RARITY_MAP: Record<number, { labelKey: string; fallbackLabel: string; color: string }> = {
+  1: { labelKey: "rarities.tier1", fallbackLabel: "Comum", color: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
+  2: { labelKey: "rarities.tier2", fallbackLabel: "Rara", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
+  3: { labelKey: "rarities.tier3", fallbackLabel: "Épica", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+  4: { labelKey: "rarities.tier4", fallbackLabel: "Mística", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+  5: { labelKey: "rarities.tier5", fallbackLabel: "Lendária", color: "bg-rose-500/20 text-rose-400 border-rose-500/40" },
 };
 
 const POKEMON_TYPES = [
-  { value: "", label: "Todos os Tipos" },
-  { value: "FOGO", label: "🔥 Fogo" },
-  { value: "ÁGUA", label: "💧 Água" },
-  { value: "GRAMA", label: "🌿 Grama" },
-  { value: "ELÉTRICO", label: "⚡ Elétrico" },
-  { value: "PSÍQUICO", label: "🔮 Psíquico" },
-  { value: "NOTURNO", label: "🌑 Noturno" },
-  { value: "LUTADOR", label: "🥊 Lutador" },
-  { value: "METAL", label: "⚙️ Metal" },
-  { value: "DRAGÃO", label: "🐉 Dragão" },
-  { value: "INCOLOR", label: "⚪ Incolor" },
+  { value: "", labelKey: "common.all", fallback: "Todos os Tipos" },
+  { value: "FOGO", labelKey: "Fogo", fallback: "🔥 Fogo / Fire" },
+  { value: "ÁGUA", labelKey: "Água", fallback: "💧 Água / Water" },
+  { value: "GRAMA", labelKey: "Grama", fallback: "🌿 Grama / Grass" },
+  { value: "ELÉTRICO", labelKey: "Elétrico", fallback: "⚡ Elétrico / Lightning" },
+  { value: "PSÍQUICO", labelKey: "Psíquico", fallback: "🔮 Psíquico / Psychic" },
+  { value: "NOTURNO", labelKey: "Noturno", fallback: "🌑 Noturno / Darkness" },
+  { value: "LUTADOR", labelKey: "Lutador", fallback: "🥊 Lutador / Fighting" },
+  { value: "METAL", labelKey: "Metal", fallback: "⚙️ Metal / Metal" },
+  { value: "DRAGÃO", labelKey: "Dragão", fallback: "🐉 Dragão / Dragon" },
+  { value: "INCOLOR", labelKey: "Incolor", fallback: "⚪ Incolor / Colorless" },
 ];
 
 export function Cards({
   data = [],
   currentPage = 1,
   totalPages = 1,
-  totalCards = 0,
+  totalCards,
   search = "",
   filters = {},
   isLoading = false,
 }: CollectionProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const { post } = useApi();
   const { toast } = useToast();
 
   const [selectedCard, setSelectedCard] = useState<CardItem | null>(null);
   const [searchTerm, setSearchTerm] = useState(search);
-  const [currentView, setCurrentView] = useState<"cards" | "albums">("cards");
+
+  // Cache persistente para nunca piscar (0) no início
+  const [cachedTotal, setCachedTotal] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const val = localStorage.getItem("tcg_total_cards_count");
+      return val ? Number(val) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  React.useEffect(() => {
+    if (totalCards !== undefined && totalCards !== null && totalCards > 0) {
+      setCachedTotal(totalCards);
+      try {
+        localStorage.setItem("tcg_total_cards_count", String(totalCards));
+      } catch {}
+    }
+  }, [totalCards]);
+
+  const displayTotalCards =
+    totalCards !== undefined && totalCards !== null
+      ? totalCards
+      : cachedTotal !== null
+      ? cachedTotal
+      : "...";
+
+  // Suporte a view na URL (?view=albums ou ?view=cards)
+  const initialView = searchParams.get("view") === "albums" ? "albums" : "cards";
+  const [currentView, setCurrentView] = useState<"cards" | "albums">(initialView);
+
+  React.useEffect(() => {
+    const v = searchParams.get("view");
+    if (v === "albums" && currentView !== "albums") {
+      setCurrentView("albums");
+    } else if (v !== "albums" && currentView === "albums" && !searchParams.has("view")) {
+      setCurrentView("cards");
+    }
+  }, [searchParams]);
+
+  const handleViewChange = (v: "cards" | "albums") => {
+    setCurrentView(v);
+    const params = new URLSearchParams(searchParams.toString());
+    if (v === "albums") {
+      params.set("view", "albums");
+    } else {
+      params.delete("view");
+    }
+    const query = params.toString();
+    window.history.pushState(null, "", `/colecao${query ? `?${query}` : ""}`);
+  };
 
   const [favoritesList, setFavoritesList] = useState<Record<number, boolean>>(() => {
     const initial: Record<number, boolean> = {};
@@ -188,13 +242,8 @@ export function Cards({
     soundFx.playCardFlip();
 
     try {
-      const res = await post(`/cards/toggle-trade-mark/${card.id}`, {});
-      if (res?.data?.toast) {
-        toast({
-          title: newMarked ? "Marcada para Troca! ⇄" : "Removida da Troca",
-          description: res.data.toast,
-        });
-      }
+      await post(`/cards/toggle-trade-mark/${card.id}`, {});
+      // Sem toast barulhento a cada toggle — feedback é visual instantâneo e tátil via áudio
     } catch {
       setTradeMarkedList((prev) => ({ ...prev, [card.id]: currentMarked }));
       toast({
@@ -214,36 +263,86 @@ export function Cards({
   return (
     <div className="min-h-screen bg-background text-foreground py-6 sm:py-10">
       <div className="container mx-auto px-4 max-w-7xl">
-        <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as any)} className="w-full">
-          {/* Cabeçalho */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-border/60">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-xs font-semibold mb-2">
-                <Layers className="size-3.5 text-amber-500" />
-                <span>Coleção & Conquistas</span>
+        {/* GRANDE SELETOR DUAL-MODE DESTACADO: MINHAS CARTAS ⇄ ÁLBUNS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <button
+            type="button"
+            onClick={() => handleViewChange("cards")}
+            className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-300 group ${
+              currentView === "cards"
+                ? "bg-gradient-to-br from-card via-card to-primary/10 border-primary shadow-xl shadow-primary/10 ring-2 ring-primary/40"
+                : "bg-card/50 hover:bg-card border-border hover:border-border/80 opacity-75 hover:opacity-100"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-xl transition-colors ${currentView === "cards" ? "bg-primary text-primary-foreground shadow" : "bg-secondary text-muted-foreground"}`}>
+                  <Layers className="size-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-xl font-bold font-syne">
+                      {t("collection.title")}
+                    </h2>
+                    {currentView === "cards" && (
+                      <span className="size-2 rounded-full bg-primary animate-ping" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("collection.subtitle")}
+                  </p>
+                </div>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-bold font-syne tracking-tight">
-                {currentView === "cards" ? "Sua Coleção" : "Álbuns Oficiais & Missões"}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                {currentView === "cards"
-                  ? `Cartas que você possui (${totalCards} no total) • Inspecione, filtre e marque cartas para trocas`
-                  : "Complete os conjuntos temáticos de todas as regiões para reivindicar recompensas em ouro e XP!"}
-              </p>
+              <Badge variant={currentView === "cards" ? "default" : "secondary"} className="text-xs font-mono font-bold px-3 py-1 shrink-0">
+                {displayTotalCards} {t("common.cards")}
+              </Badge>
             </div>
+          </button>
 
-            {/* Alternador de Abas */}
-            <TabsList className="bg-secondary/80 border border-border p-1">
-              <TabsTrigger value="cards" className="text-xs sm:text-sm font-semibold gap-2">
-                <Layers className="size-4 text-primary" />
-                <span>Minhas Cartas ({totalCards})</span>
-              </TabsTrigger>
-              <TabsTrigger value="albums" className="text-xs sm:text-sm font-semibold gap-2">
-                <Book className="size-4 text-amber-500" />
-                <span>Álbuns & Conquistas</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleViewChange("albums")}
+            className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-300 group ${
+              currentView === "albums"
+                ? "bg-gradient-to-br from-card via-card to-amber-500/10 border-amber-500 shadow-xl shadow-amber-500/10 ring-2 ring-amber-500/40"
+                : "bg-card/50 hover:bg-card border-border hover:border-border/80 opacity-75 hover:opacity-100"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-xl transition-colors ${currentView === "albums" ? "bg-amber-500 text-slate-950 shadow" : "bg-secondary text-muted-foreground"}`}>
+                  <Book className="size-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-xl font-bold font-syne text-amber-500 dark:text-amber-400">
+                      {t("albums.title")}
+                    </h2>
+                    {currentView === "albums" && (
+                      <span className="size-2 rounded-full bg-amber-400 animate-ping" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("albums.subtitle")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge variant="outline" className="border-amber-500/40 text-amber-500 dark:text-amber-400 text-xs font-mono font-bold px-2.5 py-1">
+                  ✨ {t("quests.rewardModalTitle") || "Recompensas"}
+                </Badge>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <Tabs value={currentView} onValueChange={(v) => handleViewChange(v as any)} className="w-full">
+          {/* Header Oculto da TabList (substituído pelo seletor visual acima) */}
+          <TabsList className="hidden">
+            <TabsTrigger value="cards">Cards</TabsTrigger>
+            <TabsTrigger value="albums">Albums</TabsTrigger>
+          </TabsList>
+
 
           {/* ABA: MINHAS CARTAS */}
           <TabsContent value="cards" className="mt-0 space-y-6">
@@ -261,7 +360,7 @@ export function Cards({
                         : "bg-secondary/70 text-muted-foreground hover:text-foreground border border-border"
                     }`}
                   >
-                    Todas ({totalCards})
+                    {t("common.all")} ({displayTotalCards})
                   </button>
 
                   <button
@@ -274,7 +373,7 @@ export function Cards({
                     }`}
                   >
                     <Heart className={`size-3.5 ${isFavoritesOnly ? "fill-white" : "text-rose-500"}`} />
-                    <span>Favoritas</span>
+                    <span>{t("collection.favorites") || "Favoritas"}</span>
                   </button>
 
                   <button
@@ -287,7 +386,7 @@ export function Cards({
                     }`}
                   >
                     <ArrowLeftRight className="size-3.5 text-teal-400" />
-                    <span>Marcadas p/ Troca</span>
+                    <span>{t("collection.markedForTrade")}</span>
                   </button>
                 </div>
 
@@ -299,12 +398,12 @@ export function Cards({
                       type="search"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Buscar por nome do Pokémon..."
+                      placeholder={t("collection.searchPlaceholder")}
                       className="pl-9 h-10 text-xs sm:text-sm bg-background border-border text-foreground"
                     />
                   </div>
                   <Button type="submit" size="sm" className="h-10 px-4 font-bold text-xs shrink-0 bg-primary text-primary-foreground hover:opacity-90">
-                    Buscar
+                    {t("common.search")}
                   </Button>
                 </form>
               </div>
@@ -313,7 +412,7 @@ export function Cards({
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/50">
                 {/* Raridades */}
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground mr-1">Raridade:</span>
+                  <span className="text-xs font-semibold text-muted-foreground mr-1">{t("common.filter")}:</span>
                   <button
                     type="button"
                     onClick={() => updateFilters({ rarity: null })}
@@ -323,7 +422,7 @@ export function Cards({
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Todas
+                    {t("common.all")}
                   </button>
                   {[1, 2, 3, 4, 5].map((r) => {
                     const info = RARITY_MAP[r];
@@ -339,7 +438,7 @@ export function Cards({
                             : "border-border/60 text-muted-foreground hover:text-foreground bg-secondary/40"
                         }`}
                       >
-                        {info.label}
+                        {t(info.labelKey) || info.fallbackLabel}
                       </button>
                     );
                   })}
@@ -347,15 +446,15 @@ export function Cards({
 
                 {/* Tipos Elementais */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground shrink-0">Tipo:</span>
+                  <span className="text-xs font-semibold text-muted-foreground shrink-0">{t("collection.filterType")}:</span>
                   <select
                     value={currentType}
                     onChange={(e) => updateFilters({ type: e.target.value || null })}
                     className="h-8 px-2.5 py-0.5 rounded-lg text-xs bg-background border border-border text-foreground font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
                   >
-                    {POKEMON_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
+                    {POKEMON_TYPES.map((pt) => (
+                      <option key={pt.value} value={pt.value}>
+                        {pt.value ? pt.fallback : (t("common.all") + " (" + t("collection.filterType") + ")")}
                       </option>
                     ))}
                   </select>
@@ -370,7 +469,7 @@ export function Cards({
                       }}
                       className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      <X className="size-3 mr-1" /> Limpar filtros
+                      <X className="size-3 mr-1" /> {t("collection.clearFilters")}
                     </Button>
                   )}
                 </div>
@@ -380,9 +479,7 @@ export function Cards({
             {/* Aviso Informativo sobre Trocas & Batalhas */}
             <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 flex items-center gap-3 text-xs text-teal-300">
               <ArrowLeftRight className="size-4 shrink-0 text-teal-400" />
-              <span>
-                <strong>Sistema de Trocas Ativo:</strong> Apenas cartas marcadas para troca aparecem na criação de ofertas no Mercado. Cartas marcadas para troca <u>não poderão ser usadas em decks de batalha</u> futuros.
-              </span>
+              <span>{t("collection.filterTradeRules")}</span>
             </div>
 
             {/* Loading Skeleton ou Empty State */}
@@ -403,16 +500,16 @@ export function Cards({
                     <div className="size-20 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4">
                       <ArrowLeftRight className="size-10 text-teal-400" />
                     </div>
-                    <h3 className="text-xl font-bold font-syne mb-2">Nenhuma carta marcada para troca</h3>
+                    <h3 className="text-xl font-bold font-syne mb-2">{t("collection.noTradeCards")}</h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-                      Você ainda não marcou nenhuma carta para troca. Clique em qualquer carta da sua coleção e selecione "Marcar para Troca"!
+                      {t("collection.noTradeCardsDesc")}
                     </p>
                     <Button
                       onClick={() => updateFilters({ tradeOnly: null })}
                       variant="outline"
                       className="gap-2 font-semibold text-xs text-foreground"
                     >
-                      <Filter className="size-4" /> Ver Todas as Minhas Cartas
+                      <Filter className="size-4" /> {t("common.all")} {t("collection.title")}
                     </Button>
                   </>
                 ) : isFavoritesOnly ? (
@@ -420,16 +517,16 @@ export function Cards({
                     <div className="size-20 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-4">
                       <Heart className="size-10 text-rose-500 animate-pulse" />
                     </div>
-                    <h3 className="text-xl font-bold font-syne mb-2">Nenhuma favorita ainda</h3>
+                    <h3 className="text-xl font-bold font-syne mb-2">{t("collection.noFavorites")}</h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-                      Você ainda não favoritou nenhuma carta. Clique no ícone de coração sobre as suas cartas para fixá-las aqui!
+                      {t("collection.noFavoritesDesc")}
                     </p>
                     <Button
                       onClick={() => updateFilters({ favorites: null })}
                       variant="outline"
                       className="gap-2 font-semibold text-xs text-foreground"
                     >
-                      <Filter className="size-4" /> Ver Todas as Minhas Cartas
+                      <Filter className="size-4" /> {t("common.all")} {t("collection.title")}
                     </Button>
                   </>
                 ) : search || currentRarity || currentType ? (
@@ -437,9 +534,9 @@ export function Cards({
                     <div className="size-20 rounded-full bg-secondary border border-border flex items-center justify-center mb-4">
                       <Search className="size-10 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold font-syne mb-2">Nenhum Pokémon encontrado</h3>
+                    <h3 className="text-xl font-bold font-syne mb-2">{t("collection.noCardsFound")}</h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-                      Não encontramos nenhuma carta que combine com seus filtros de busca atuais.
+                      {t("collection.noCardsFoundDesc")}
                     </p>
                     <Button
                       onClick={() => {
@@ -449,7 +546,7 @@ export function Cards({
                       variant="outline"
                       className="text-xs font-semibold text-foreground"
                     >
-                      Limpar Filtros
+                      {t("collection.clearFilters")}
                     </Button>
                   </>
                 ) : (
@@ -457,19 +554,19 @@ export function Cards({
                     <div className="size-24 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5">
                       <PackageOpen className="size-12 text-amber-500" />
                     </div>
-                    <h3 className="text-2xl font-bold font-syne mb-2">Seu deck está vazio!</h3>
+                    <h3 className="text-2xl font-bold font-syne mb-2">{t("collection.emptyDeckTitle")}</h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed">
-                      Você ainda não possui cartas na sua coleção. Adquira pacotes na loja ou complete missões diárias para abrir seus primeiros boosters!
+                      {t("collection.emptyDeckDesc")}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
                       <Button asChild className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans">
                         <Link href="/loja">
-                          <ShoppingBag className="size-4" /> Ir para a Loja de Pacotes
+                          <ShoppingBag className="size-4" /> {t("collection.goToStore")}
                         </Link>
                       </Button>
                       <Button asChild variant="outline" className="font-semibold text-xs text-foreground">
                         <Link href="/missoes">
-                          <Sparkles className="size-4 mr-1 text-amber-500" /> Ver Missões
+                          <Sparkles className="size-4 mr-1 text-amber-500" /> {t("collection.viewQuests")}
                         </Link>
                       </Button>
                     </div>
@@ -485,7 +582,8 @@ export function Cards({
                   const isFav = favoritesList[card.id] ?? !!card.isFavorite;
                   const isTrade = tradeMarkedList[card.id] ?? !!card.isTradeMarked;
                   const rarityInfo = RARITY_MAP[card.rarity] || {
-                    label: "Comum",
+                    labelKey: "rarities.tier1",
+                    fallbackLabel: "Comum",
                     color: "bg-slate-500/20 text-slate-300 border-slate-500/40",
                   };
 
@@ -506,10 +604,10 @@ export function Cards({
                       {isTrade && (
                         <div
                           className={`absolute ${card.quantity > 1 ? "top-7" : "top-2"} left-2 z-20 px-2 py-0.5 rounded-md bg-teal-600/90 text-white font-mono font-bold text-[9px] shadow flex items-center gap-1 border border-teal-400/40`}
-                          title="Marcada para Troca (indisponível para decks futuros)"
+                          title={t("collection.markedForTrade")}
                         >
                           <ArrowLeftRight className="size-2.5" />
-                          <span>TROCA</span>
+                          <span>{t("collection.markedForTrade")}</span>
                         </div>
                       )}
 
@@ -518,7 +616,7 @@ export function Cards({
                         type="button"
                         onClick={(e) => toggleFavorite(card, e)}
                         className="absolute top-2 right-2 z-20 size-7 rounded-full bg-black/60 backdrop-blur-xs border border-white/10 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all shadow"
-                        title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        title={isFav ? t("collection.favorited") : t("collection.favorite")}
                       >
                         <Heart
                           className={`size-4 transition-colors ${
@@ -546,7 +644,7 @@ export function Cards({
 
                         <div className="flex items-center justify-between mt-2">
                           <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${rarityInfo.color}`}>
-                            {rarityInfo.label}
+                            {t(rarityInfo.labelKey) || rarityInfo.fallbackLabel}
                           </span>
                           <span className="text-[10px] font-mono text-muted-foreground/70">
                             #{card.id}
@@ -573,7 +671,7 @@ export function Cards({
 
                     <PaginationItem>
                       <span className="text-xs font-mono font-bold px-3 py-1 text-muted-foreground">
-                        Página {currentPage} de {totalPages}
+                        {t("collection.pageIndicator", { current: currentPage, total: totalPages })}
                       </span>
                     </PaginationItem>
 
@@ -602,7 +700,7 @@ export function Cards({
               {selectedCard?.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-zinc-400 mb-3">
-              #{selectedCard?.id} • {selectedCard ? (RARITY_MAP[selectedCard.rarity]?.label || "Comum") : ""}
+              #{selectedCard?.id} • {selectedCard ? (t(RARITY_MAP[selectedCard.rarity]?.labelKey) || RARITY_MAP[selectedCard.rarity]?.fallbackLabel || "Comum") : ""}
             </DialogDescription>
 
             {selectedCard && (
@@ -628,7 +726,7 @@ export function Cards({
                     }`}
                   >
                     <Heart className={`size-4 ${favoritesList[selectedCard.id] ? "fill-rose-500 text-rose-500" : ""}`} />
-                    {favoritesList[selectedCard.id] ? "Favoritada" : "Favoritar"}
+                    {favoritesList[selectedCard.id] ? t("collection.favorited") : t("collection.favorite")}
                   </Button>
 
                   <Button
@@ -641,16 +739,14 @@ export function Cards({
                     }`}
                   >
                     <ArrowLeftRight className="size-4" />
-                    {tradeMarkedList[selectedCard.id] ? "✓ Marcada p/ Troca" : "Marcar p/ Troca"}
+                    {tradeMarkedList[selectedCard.id] ? t("collection.markedTradeBtn") : t("collection.markTradeBtn")}
                   </Button>
                 </div>
 
                 {/* Aviso sobre decks futuros */}
                 <div className="bg-amber-950/40 border border-amber-600/30 rounded-lg p-2.5 text-[11px] text-amber-200 text-left flex items-start gap-2">
                   <ShieldAlert className="size-4 text-amber-400 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Atenção às Regras de Batalha:</strong> Cartas marcadas para troca ficam visíveis no mercado de trocas e <u>não poderão</u> ser utilizadas nos seus decks de batalha.
-                  </span>
+                  <span>{t("collection.battleRulesNotice")}</span>
                 </div>
               </div>
             )}

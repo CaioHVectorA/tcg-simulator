@@ -129,7 +129,15 @@ export function AvatarPickerModal({
       const res = await patch("/user/profile", { picture: picUrl });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data, picUrl) => {
+      try {
+        const cached = localStorage.getItem("tcg_user_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.picture = picUrl;
+          localStorage.setItem("tcg_user_cache", JSON.stringify(parsed));
+        }
+      } catch {}
       toast({
         title: "Avatar atualizado!",
         description: "Sua foto de perfil foi alterada com sucesso.",
@@ -138,6 +146,7 @@ export function AvatarPickerModal({
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       onClose();
     },
+
     onError: (err: any) => {
       toast({
         title: "Erro ao atualizar avatar",

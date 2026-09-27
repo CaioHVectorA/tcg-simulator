@@ -87,7 +87,6 @@ export function useApi<T extends Record<string, any>>(
     setData(response.data.data || response.data);
     CACHE.set(url, response.data.data || response.data);
     setLoading(false);
-    if (response.data.toast) toast({ title: response.data.toast });
     return response;
   };
 
@@ -102,7 +101,6 @@ export function useApi<T extends Record<string, any>>(
     setResponse(response);
     setData(response.data.data || response.data);
     setLoading(false);
-    if (response.data.toast) toast({ title: response.data.toast });
     return response;
   };
 
@@ -117,7 +115,6 @@ export function useApi<T extends Record<string, any>>(
     setResponse(response);
     setData(response.data.data || response.data);
     setLoading(false);
-    if (response.data.toast) toast({ title: response.data.toast });
     return response;
   };
 
@@ -135,7 +132,6 @@ export function useApi<T extends Record<string, any>>(
     setResponse(response);
     setData(response.data.data || response.data);
     setLoading(false);
-    if (response.data.toast) toast({ title: response.data.toast });
     return response;
   };
 
@@ -150,9 +146,9 @@ export function useApi<T extends Record<string, any>>(
     setResponse(response);
     setData(response.data.data || response.data);
     setLoading(false);
-    if (response.data.toast) toast({ title: response.data.toast });
     return response;
   };
+
 
   return {
     get,

@@ -28,7 +28,9 @@ import {
   Package as PackageIcon,
   Handshake,
   ArrowRight,
-  Copy,
+  Dice5,
+  Image as ImageIcon,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
@@ -37,13 +39,16 @@ import { useToast } from "@/hooks/use-toast";
 import { TcgCardImage } from "@/components/tcg-card-image";
 import { soundFx } from "@/lib/sound-fx";
 import { CardDetailModal, CardModalData } from "@/components/card-detail-modal";
-import { AvatarPickerModal } from "@/components/avatar-picker-modal";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { setCachedUser } from "@/context/UserContext";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 interface LevelMilestone {
   level: number;
@@ -89,7 +94,32 @@ interface ProfileData {
   topCards: CardModalData[];
 }
 
+const PRESET_AVATARS = [
+  { name: "Pikachu", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png" },
+  { name: "Charizard", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png" },
+  { name: "Gengar", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/94.png" },
+  { name: "Mewtwo", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png" },
+  { name: "Eevee", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png" },
+  { name: "Lucario", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/448.png" },
+  { name: "Umbreon", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/197.png" },
+  { name: "Rayquaza", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png" },
+  { name: "Blastoise", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/9.png" },
+  { name: "Venusaur", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png" },
+  { name: "Mimikyu", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/778.png" },
+  { name: "Lugia", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/249.png" },
+  { name: "Greninja", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/658.png" },
+  { name: "Snorlax", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/143.png" },
+  { name: "Gardevoir", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/282.png" },
+  { name: "Tyranitar", url: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/248.png" },
+];
+
+const RANDOM_NAMES = [
+  "Red", "Blue", "Cynthia", "Steven", "Leon", "AshKetchum", "Misty", "Brock",
+  "Lance", "Volkner", "Diantha", "Alder", "Iris", "N_Reshiram", "Silver",
+];
+
 export default function PerfilPage() {
+  const { t, locale } = useTranslation();
   const { get, post, patch } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -98,7 +128,8 @@ export default function PerfilPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardModalData | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+
+  // Estados do modal de edição de perfil
   const [newUsername, setNewUsername] = useState("");
   const [newPicture, setNewPicture] = useState("");
 
@@ -114,12 +145,23 @@ export default function PerfilPage() {
     },
   });
 
-  const { data: levelRoad, isLoading: loadingLevelRoad } = useQuery<LevelRoadData>({
+  const { data: levelRoad } = useQuery<LevelRoadData>({
     queryKey: ["level-road"],
     queryFn: async () => {
       const res = await get("/user/level-road");
       return res.data.data;
     },
+  });
+
+  // User collection cards for avatar picker inside modal
+  const { data: userCards = [], isLoading: loadingCards } = useQuery<any[]>({
+    queryKey: ["user-cards-for-profile-avatar"],
+    queryFn: async () => {
+      const res = await get("/cards?page=1&limit=36");
+      const list = res.data?.data?.cards || res.data?.data || [];
+      return Array.isArray(list) ? list : [];
+    },
+    enabled: editModalOpen,
   });
 
   const { mutate: claimReward, isPending: claimingReward } = useMutation({
@@ -131,8 +173,8 @@ export default function PerfilPage() {
     onSuccess: (res) => {
       soundFx.playSuccess();
       toast({
-        title: "Recompensa Resgatada!",
-        description: res.toast || "Prêmios adicionados ao seu inventário com sucesso!",
+        title: t("common.success"),
+        description: res.toast || "Rewards claimed successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ["level-road"] });
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
@@ -141,8 +183,8 @@ export default function PerfilPage() {
     },
     onError: (err: any) => {
       toast({
-        title: "Falha ao resgatar",
-        description: err.response?.data?.toast || "Não foi possível resgatar esta recompensa.",
+        title: t("common.error"),
+        description: err.response?.data?.toast || "Could not claim this reward.",
         variant: "destructive",
       });
     },
@@ -154,9 +196,10 @@ export default function PerfilPage() {
       return res.data;
     },
     onSuccess: (res) => {
+      soundFx.playSuccess();
       toast({
-        title: "Cartas Recicladas!",
-        description: res.toast || "Cópias repetidas foram transformadas em moedas.",
+        title: t("profile.recycleDuplicates"),
+        description: res.toast || "Duplicate cards converted into coins!",
       });
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
@@ -164,8 +207,8 @@ export default function PerfilPage() {
     },
     onError: (err: any) => {
       toast({
-        title: "Erro ao reciclar",
-        description: err.response?.data?.toast || "Nenhuma carta repetida encontrada.",
+        title: t("common.error"),
+        description: err.response?.data?.toast || "No duplicate cards found to recycle.",
         variant: "destructive",
       });
     },
@@ -180,15 +223,23 @@ export default function PerfilPage() {
       return res.data;
     },
     onSuccess: () => {
-      toast({ title: "Perfil atualizado com sucesso!" });
+      // Atualiza cache local instantaneamente
+      setCachedUser({
+        username: newUsername.trim() || undefined,
+        picture: newPicture.trim() || undefined,
+      });
+
+      toast({
+        title: t("profileModal.success"),
+      });
       setEditModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
     onError: (err: any) => {
       toast({
-        title: "Falha na atualização",
-        description: err.response?.data?.toast || "Verifique os dados informados.",
+        title: t("common.error"),
+        description: err.response?.data?.toast || "Could not update profile.",
         variant: "destructive",
       });
     },
@@ -210,6 +261,12 @@ export default function PerfilPage() {
     setEditModalOpen(true);
   };
 
+  const generateRandomName = () => {
+    const random = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+    const suffix = Math.floor(Math.random() * 900) + 100;
+    setNewUsername(`${random}_${suffix}`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl font-syne">
       {/* Banner & Perfil do Treinador */}
@@ -217,13 +274,13 @@ export default function PerfilPage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div
             className="relative group cursor-pointer"
-            onClick={() => setAvatarPickerOpen(true)}
-            title="Clique para alterar avatar"
+            onClick={handleOpenEdit}
+            title={t("profileModal.title")}
           >
             <Avatar username={user.username} src={user.picture} className="size-24 sm:size-28 shadow-xl group-hover:opacity-85 transition-opacity" />
             <div className="absolute inset-0 rounded-full bg-black/45 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-bold gap-1">
               <Camera className="size-5" />
-              <span>Trocar</span>
+              <span>{t("common.edit")}</span>
             </div>
             <Badge className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono font-bold text-xs bg-primary text-primary-foreground px-2.5 shadow-sm pointer-events-none">
               NV. {stats.level}
@@ -237,7 +294,7 @@ export default function PerfilPage() {
                   {user.username}
                 </h1>
                 <p className="text-xs text-muted-foreground font-sans mt-0.5">
-                  Membro desde {new Date(user.createdAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+                  {t("profile.memberSince")} {new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "pt-BR", { month: "long", year: "numeric" })}
                 </p>
               </div>
 
@@ -246,9 +303,9 @@ export default function PerfilPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleOpenEdit}
-                  className="rounded-xl text-xs h-9"
+                  className="rounded-xl text-xs h-9 text-foreground font-semibold"
                 >
-                  <Edit2 className="size-3.5 mr-1.5" /> Editar Perfil
+                  <Edit2 className="size-3.5 mr-1.5" /> {t("profile.editProfile")}
                 </Button>
 
                 <Button
@@ -256,10 +313,10 @@ export default function PerfilPage() {
                   size="sm"
                   onClick={() => recycleDuplicates()}
                   disabled={recycling}
-                  className="rounded-xl text-xs h-9 bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
+                  className="rounded-xl text-xs h-9 bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20 font-semibold"
                 >
                   {recycling ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Trash2 className="size-3.5 mr-1.5" />}
-                  Reciclar Repetidas
+                  {recycling ? t("profile.recycling") : t("profile.recycleDuplicates")}
                 </Button>
               </div>
             </div>
@@ -267,7 +324,9 @@ export default function PerfilPage() {
             {/* Barra de XP */}
             <div className="mt-4 bg-accent/40 rounded-2xl p-3 border border-border/40">
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-sans text-muted-foreground font-semibold">Progresso para o Nível {stats.level + 1}</span>
+                <span className="font-sans text-muted-foreground font-semibold">
+                  {t("profile.progressToLevel").replace("{level}", String(stats.level + 1))}
+                </span>
                 <span className="font-mono font-bold text-foreground">{stats.xp} / {stats.nextLevelXp} XP</span>
               </div>
               <Progress value={stats.levelProgress} className="h-2.5" />
@@ -286,14 +345,14 @@ export default function PerfilPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-extrabold tracking-tight text-foreground">
-                  Trilha do Treinador
+                  {t("profile.levelRoadTitle")}
                 </h2>
                 <Badge variant="outline" className="text-[10px] font-mono border-amber-500/40 text-amber-500 bg-amber-500/10">
-                  XP & Nível
+                  {t("profile.levelRoadBadge")}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground font-sans mt-0.5">
-                Evolua seu nível de treinador para resgatar fortunas em moedas, pacotes booster raros e títulos honorários.
+                {t("profile.levelRoadSubtitle")}
               </p>
             </div>
           </div>
@@ -309,7 +368,7 @@ export default function PerfilPage() {
               ) : (
                 <Gift className="size-4 mr-1.5 animate-bounce" />
               )}
-              Resgatar Todas ({levelRoad.unclaimedCount})
+              {t("profile.claimAll").replace("{count}", String(levelRoad.unclaimedCount))}
             </Button>
           )}
         </div>
@@ -319,7 +378,6 @@ export default function PerfilPage() {
           {levelRoad?.milestones.map((m) => {
             const isClaimed = m.isClaimed;
             const isClaimable = m.isReached && !m.isClaimed;
-            const isLocked = !m.isReached;
 
             return (
               <div
@@ -357,13 +415,13 @@ export default function PerfilPage() {
                   <div className="space-y-1.5 mb-3.5 text-[11px] font-sans">
                     <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
                       <Coins className="size-3.5 shrink-0" />
-                      <span>+{m.coins.toLocaleString("pt-BR")} moedas</span>
+                      <span>+{m.coins.toLocaleString(locale === "en" ? "en-US" : "pt-BR")} {t("profile.coins")}</span>
                     </div>
 
                     {m.packCount > 0 && (
                       <div className="flex items-center gap-1.5 text-blue-400 font-semibold">
                         <PackageIcon className="size-3.5 shrink-0" />
-                        <span>+{m.packCount} Pacote{m.packCount > 1 ? "s" : ""}</span>
+                        <span>+{m.packCount} {m.packCount > 1 ? t("profile.packs") : t("profile.pack")}</span>
                       </div>
                     )}
                   </div>
@@ -372,7 +430,7 @@ export default function PerfilPage() {
                 <div>
                   {isClaimed ? (
                     <span className="flex items-center justify-center text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-xl py-1.5 px-2.5 w-full border border-emerald-500/20">
-                      <CheckCircle2 className="size-3 mr-1" /> Resgatado
+                      <CheckCircle2 className="size-3 mr-1" /> {t("profile.claimed")}
                     </span>
                   ) : isClaimable ? (
                     <Button
@@ -382,11 +440,11 @@ export default function PerfilPage() {
                       className="w-full text-xs font-bold rounded-xl h-8 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm"
                     >
                       {claimingReward ? <Loader2 className="size-3 animate-spin mr-1" /> : <Gift className="size-3 mr-1" />}
-                      Resgatar
+                      {t("profile.claim")}
                     </Button>
                   ) : (
                     <span className="flex items-center justify-center text-[10px] font-medium text-muted-foreground bg-muted/40 rounded-xl py-1.5 px-2.5 w-full border border-border/40">
-                      <Lock className="size-3 mr-1 opacity-70" /> Bloqueado
+                      <Lock className="size-3 mr-1 opacity-70" /> {t("profile.locked")}
                     </span>
                   )}
                 </div>
@@ -401,51 +459,51 @@ export default function PerfilPage() {
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <Layers className="size-5 mx-auto mb-1.5 text-blue-400" />
           <span className="text-2xl font-bold font-mono text-foreground block">{stats.totalCards}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Total de Cartas</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statTotalCards")}</span>
         </div>
 
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <Sparkles className="size-5 mx-auto mb-1.5 text-amber-400" />
           <span className="text-2xl font-bold font-mono text-foreground block">{stats.uniqueCards}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Cartas Únicas</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statUniqueCards")}</span>
         </div>
 
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <Trophy className="size-5 mx-auto mb-1.5 text-purple-400" />
           <span className="text-2xl font-bold font-mono text-foreground block">{user.rarityPoints}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Pts de Raridade</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statRarityPoints")}</span>
         </div>
 
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <Coins className="size-5 mx-auto mb-1.5 text-yellow-400" />
-          <span className="text-2xl font-bold font-mono text-foreground block">{user.money}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Moedas</span>
+          <span className="text-2xl font-bold font-mono text-foreground block">{user.money.toLocaleString()}</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statCoins")}</span>
         </div>
 
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <Award className="size-5 mx-auto mb-1.5 text-emerald-400" />
           <span className="text-2xl font-bold font-mono text-foreground block">{stats.completedQuests}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Missões Concluídas</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statQuests")}</span>
         </div>
 
         <div className="bg-card border border-border/80 rounded-2xl p-4 text-center shadow-xs">
           <RefreshCw className="size-5 mx-auto mb-1.5 text-pink-400" />
           <span className="text-2xl font-bold font-mono text-foreground block">{stats.tradesDone}</span>
-          <span className="text-[11px] text-muted-foreground font-sans">Trocas Feitas</span>
+          <span className="text-[11px] text-muted-foreground font-sans">{t("profile.statTrades")}</span>
         </div>
       </div>
 
-      {/* Seletor de Tema Visual: White Mode (Padrão) / Black Mode */}
+      {/* Seletor de Tema Visual: White Mode / Black Mode */}
       <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground">Tema da Interface</span>
+            <span className="text-sm font-bold text-foreground">{t("profile.themeTitle")}</span>
             <Badge variant="outline" className="text-[10px] font-mono">
-              {mounted && theme === "dark" ? "Black Mode Ativo" : "White Mode (Padrão)"}
+              {mounted && theme === "dark" ? t("profile.themeActiveDark") : t("profile.themeActiveLight")}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground font-sans mt-0.5">
-            O padrão da interface é o White Mode. Você pode alternar para o Black Mode quando desejar.
+            {t("profile.themeDesc")}
           </p>
         </div>
 
@@ -461,7 +519,7 @@ export default function PerfilPage() {
               }`}
             >
               <Sun className="size-3.5" />
-              <span>White Mode</span>
+              <span>{t("profile.themeWhite")}</span>
             </Button>
             <Button
               type="button"
@@ -473,26 +531,26 @@ export default function PerfilPage() {
               }`}
             >
               <Moon className="size-3.5" />
-              <span>Black Mode</span>
+              <span>{t("profile.themeBlack")}</span>
             </Button>
           </div>
         )}
       </div>
 
       {/* Top 5 Cartas Raras */}
-      <div className="space-y-4">
+      <div className="space-y-4 mb-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="size-5 text-amber-400" /> Suas Cartas Mais Raras
+            <Sparkles className="size-5 text-amber-400" /> {t("profile.rarestCards")}
           </h2>
-          <span className="text-xs text-muted-foreground font-sans">Clique para inspecionar</span>
+          <span className="text-xs text-muted-foreground font-sans">{t("profile.clickToInspect")}</span>
         </div>
 
         {topCards.length === 0 ? (
           <div className="bg-card border border-border/80 rounded-2xl p-12 text-center text-muted-foreground">
             <Layers className="size-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm font-semibold">Nenhuma carta descoberta ainda</p>
-            <p className="text-xs mt-1">Abra pacotes na Loja para começar sua coleção lendária!</p>
+            <p className="text-sm font-semibold">{t("profile.noCardsYet")}</p>
+            <p className="text-xs mt-1">{t("profile.noCardsYetDesc")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -519,7 +577,7 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {/* Seção de Afiliados e Convites integrada ao Perfil */}
+      {/* Seção de Afiliados */}
       <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-7 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -528,13 +586,13 @@ export default function PerfilPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-foreground">Programa de Afiliados</h3>
+                <h3 className="text-lg font-bold text-foreground">{t("profile.affiliateTitle")}</h3>
                 <Badge variant="outline" className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px] font-mono">
-                  Bônus & Moedas
+                  {t("profile.affiliateTag")}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground font-sans mt-0.5 max-w-xl">
-                Convide amigos para se tornarem treinadores. Você ganha moedas a cada amigo que se cadastrar usando o seu link exclusivo!
+                {t("profile.affiliateBannerDesc")}
               </p>
             </div>
           </div>
@@ -544,63 +602,208 @@ export default function PerfilPage() {
             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-syne text-xs h-10 px-5 rounded-xl shrink-0 shadow-md shadow-amber-500/15"
           >
             <Link href="/afiliado">
-              <span>Acessar Painel de Afiliado</span>
+              <span>{t("profile.accessAffiliate")}</span>
               <ArrowRight className="size-3.5 ml-1.5" />
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Modal de Edição de Perfil */}
+      {/* MODAL REDESENHADO DE EDIÇÃO DE PERFIL / TRAINER STUDIO */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-md bg-card/95 border-border backdrop-blur-xl font-syne p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Editar Perfil</DialogTitle>
+        <DialogContent className="max-w-lg bg-card/95 border-border backdrop-blur-2xl font-syne p-6 shadow-2xl rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
+              <Sparkles className="size-5 text-amber-400" />
+              {t("profileModal.title")}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans">
+              {t("profileModal.subtitle")}
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2 font-sans text-sm">
+          <div className="overflow-y-auto pr-1 space-y-5 pt-3 font-sans flex-1">
+            {/* Live Trainer Card Preview */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-card to-primary/10 border border-border/80 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
+              <div className="relative shrink-0">
+                <Avatar
+                  username={newUsername || user.username}
+                  src={newPicture || user.picture}
+                  className="size-16 sm:size-18 shadow-md ring-2 ring-primary/30"
+                />
+                <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0 shadow-xs">
+                  NV. {stats.level}
+                </Badge>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
+                  {t("profileModal.currentAvatar")}
+                </span>
+                <h4 className="text-base sm:text-lg font-bold font-syne text-foreground truncate">
+                  {newUsername.trim() || user.username}
+                </h4>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {user.email || "trainer@pokemon-tcg.com"}
+                </p>
+              </div>
+            </div>
+
+            {/* Trainer Name Input */}
             <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                Nome de Usuário (mín. 3 letras):
+              <label className="text-xs font-bold text-foreground flex items-center justify-between mb-1.5">
+                <span>{t("profileModal.usernameLabel")}</span>
+                <button
+                  type="button"
+                  onClick={generateRandomName}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <Dice5 className="size-3.5" /> 🎲 Sugerir Nome
+                </button>
               </label>
               <Input
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="Seu novo nome de treinador"
-                className="rounded-xl h-10 font-syne"
+                placeholder={t("profileModal.usernamePlaceholder")}
+                className="rounded-xl h-11 font-syne text-sm bg-background/60"
               />
             </div>
 
+            {/* Avatar Selector Tabs */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-muted-foreground block">
-                  Avatar do Perfil:
-                </label>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={() => setAvatarPickerOpen(true)}
-                  className="h-auto p-0 text-xs font-semibold text-primary"
-                >
-                  <Sparkles className="size-3 mr-1" /> Galeria / Cartas
-                </Button>
-              </div>
-              <Input
-                value={newPicture}
-                onChange={(e) => setNewPicture(e.target.value)}
-                placeholder="https://exemplo.com/avatar.jpg"
-                className="rounded-xl h-10 font-mono text-xs"
-              />
-            </div>
+              <label className="text-xs font-bold text-foreground block mb-2">
+                {t("profileModal.avatarLabel")}
+              </label>
 
+              <Tabs defaultValue="presets" className="w-full">
+                <TabsList className="w-full grid grid-cols-3 h-9 rounded-xl bg-muted/60 p-1 mb-3">
+                  <TabsTrigger value="presets" className="text-xs rounded-lg font-syne font-semibold">
+                    <Sparkles className="size-3.5 mr-1 text-amber-500" />
+                    {t("profileModal.tabTrainers")}
+                  </TabsTrigger>
+                  <TabsTrigger value="cards" className="text-xs rounded-lg font-syne font-semibold">
+                    <Layers className="size-3.5 mr-1 text-blue-500" />
+                    {t("profileModal.tabCards")}
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="text-xs rounded-lg font-syne font-semibold">
+                    <Link2 className="size-3.5 mr-1 text-purple-500" />
+                    {t("profileModal.tabUrl")}
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Tab: Presets */}
+                <TabsContent value="presets" className="m-0 focus-visible:outline-none">
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-thin">
+                    {PRESET_AVATARS.map((preset) => {
+                      const isSelected = newPicture === preset.url;
+                      return (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => setNewPicture(preset.url)}
+                          className={`relative rounded-xl p-1 border transition-all aspect-square flex flex-col items-center justify-center group ${
+                            isSelected
+                              ? "border-primary bg-primary/10 ring-2 ring-primary shadow-sm"
+                              : "border-border/70 bg-background/50 hover:border-primary/50 hover:bg-accent/40"
+                          }`}
+                          title={preset.name}
+                        >
+                          <img
+                            src={preset.url}
+                            alt={preset.name}
+                            className="size-9 object-contain group-hover:scale-110 transition-transform"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <span className="absolute top-0.5 right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[9px] shadow-xs">
+                              <Check className="size-2.5" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+
+                {/* Tab: My Cards */}
+                <TabsContent value="cards" className="m-0 focus-visible:outline-none">
+                  {loadingCards ? (
+                    <div className="h-36 flex items-center justify-center">
+                      <Loader2 className="size-5 animate-spin text-primary" />
+                    </div>
+                  ) : userCards.length === 0 ? (
+                    <div className="h-32 flex flex-col items-center justify-center text-center p-4 rounded-xl border border-dashed text-muted-foreground text-xs">
+                      <Layers className="size-6 mb-1 opacity-40" />
+                      <span>{t("profile.noCardsYet")}</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-thin">
+                      {userCards.map((c: any) => {
+                        const cardImg = c.card?.image_url || c.image_url;
+                        const cardName = c.card?.name || c.name || "Card";
+                        const isSelected = newPicture === cardImg;
+                        return (
+                          <button
+                            key={c.id || cardImg}
+                            type="button"
+                            onClick={() => setNewPicture(cardImg)}
+                            className={`relative rounded-xl overflow-hidden aspect-[2.5/3.5] border transition-all ${
+                              isSelected
+                                ? "border-primary ring-2 ring-primary shadow-sm scale-95"
+                                : "border-border/70 hover:border-primary/50"
+                            }`}
+                            title={cardName}
+                          >
+                            <img
+                              src={cardImg}
+                              alt={cardName}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            {isSelected && (
+                              <span className="absolute top-1 right-1 size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[9px] shadow-xs">
+                                <Check className="size-2.5" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Tab: Custom URL */}
+                <TabsContent value="url" className="m-0 focus-visible:outline-none space-y-2">
+                  <Input
+                    value={newPicture}
+                    onChange={(e) => setNewPicture(e.target.value)}
+                    placeholder={t("profileModal.urlPlaceholder")}
+                    className="rounded-xl h-10 font-mono text-xs bg-background/60"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Insira o link direto de uma imagem (JPG, PNG, WebP) para usá-la como seu avatar exclusivo.
+                  </p>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+
+          <div className="pt-4 shrink-0 flex items-center gap-3 border-t border-border/60 mt-2">
             <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              className="flex-1 rounded-xl h-11 text-xs font-semibold"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
               onClick={() => updateProfile()}
               disabled={updating || (!newUsername.trim() && !newPicture.trim())}
-              className="w-full h-11 rounded-xl font-syne font-bold bg-primary text-primary-foreground mt-2"
+              className="flex-1 rounded-xl h-11 font-syne font-bold bg-primary text-primary-foreground text-xs shadow-md"
             >
-              {updating ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
-              Salvar Alterações
+              {updating ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <Check className="size-4 mr-1.5" />}
+              {updating ? t("profileModal.saving") : t("profileModal.saveChanges")}
             </Button>
           </div>
         </DialogContent>
@@ -611,14 +814,6 @@ export default function PerfilPage() {
         card={selectedCard}
         isOpen={Boolean(selectedCard)}
         onClose={() => setSelectedCard(null)}
-      />
-
-      {/* Modal de Escolha de Avatar */}
-      <AvatarPickerModal
-        isOpen={avatarPickerOpen}
-        onClose={() => setAvatarPickerOpen(false)}
-        currentPicture={user.picture}
-        username={user.username}
       />
     </div>
   );

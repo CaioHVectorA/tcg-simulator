@@ -95,6 +95,33 @@
   - Nicknames personalizados, botão 🎲 aleatório e endpoint `POST /auth/upgrade-guest`.
   - Modal `AvatarPickerModal` integrado ao perfil (`perfil/page.tsx`).
 
+- [x] **Sistema Completo de Batalha Tática & Ginásios NPC:**
+  - **Prisma Schema & Banco de Dados:** Modelos `UserDeckCard` (`user_deck_cards` com slot 0-5) e `UserBattleRecord` (`user_battle_records` com histórico de vitórias/derrotas, placar e recompensas) sincronizados via `prisma db push`.
+  - **Battle Engine (`src/lib/battle-engine.ts`):**
+    - Teto Salarial de 20 Pontos de Recrutamento (PR) baseado em raridade (T1: 1 PR até T5: 8 PR).
+    - Cálculo dinâmico de Poder de Combate (CP): Base + Bônus de HP + Bônus de Subtipo (Mega +35, VMAX +30, VSTAR +25, ex/EX/GX +15) + Modificador de Terreno (+20% se tipo favorecido).
+    - 6 Terrenos Elementais com vantagens estratégicas.
+    - 5 Líderes de Ginásio (Brock, Misty, Lt. Surge, Erika e Giovanni) com decks completos, avatares, insígnias e escalonamento de moedas/XP.
+    - Simulação em 3 rotas (Alfa, Beta e Gama com 2 cartas por rota).
+  - **Regra de Isolamento de Trocas:** Cartas em `trade_marked_cards` são estritamente rejeitadas para inclusão em decks de batalha tanto na API quanto no frontend.
+  - **Backend Controller (`battle.controller.ts`):** Rotas `/battle/deck`, `/battle/npcs`, `/battle/fight-npc`, `/battle/history`, `/battle/recommend-deck` e `/battle/available-cards`.
+  - **Interface Web (`/batalha`):**
+    - Deck Builder com slots visuais, barra de progresso de PR, CP total e modal seletor de cartas com busca e bloqueio de cartas de troca.
+    - Botão "Auto-Recomendar Melhor Deck" com algoritmo guloso de otimização de CP por PR.
+    - Grade de Líderes de Ginásio com status de derrotado, terrenos favoritos e botão de desafio.
+    - Arena de Combate com replay animado rota a rota, placar, áudio com `soundFx` e modal de recompensas.
+    - Aba de Histórico de Batalhas da Liga.
+
+- [x] **Bateria Abrangente de Testes (Unitários, Integração & E2E):**
+  - 43 testes unitários e de integração executados em 10 suites (`bun test`) com 100% de aprovação.
+  - Validação de cap de 20 PR, cálculo de CP por subtipo e terreno, exclusão de cartas marcadas para troca e fluxo E2E de campanha contra os 5 ginásios.
+
+- [x] **Reconfirmação de Internacionalização (i18n):**
+  - Paridade estrita de 100% entre `pt.ts` e `en.ts` (299 chaves cada), com namespace `battle` completo.
+
+- [x] **Revalidação de Balanceamento Econômico:**
+  - God Pulls a 10M, retornos matemáticos de pacotes $\le 0.70 \times C_{\text{pack}}$, recompensas progressivas e finitas.
+
 ---
 
 ## 🚀 Próximas Entregas Planejadas

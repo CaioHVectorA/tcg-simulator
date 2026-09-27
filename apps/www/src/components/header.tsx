@@ -2,8 +2,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, Box, Layers, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles } from 'lucide-react'
+import { Store, Box, Layers, BookOpen, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles, Swords } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { UpgradeAccountModal } from '@/components/upgrade-account-modal'
 import {
@@ -30,7 +31,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet'
 import { Separator } from './ui/separator'
-import { useUser } from '@/context/UserContext'
+import { useUser, useUserLoading } from '@/context/UserContext'
 import { balanceTranslate } from '@/lib/balance-translate'
 import { Avatar } from './avatar'
 import { NotificationsPopover } from './notifications-popover'
@@ -45,13 +46,16 @@ export function HeaderMenu() {
     const [isOpen, setIsOpen] = React.useState(false)
     const [upgradeOpen, setUpgradeOpen] = React.useState(false)
     const user = useUser()
+    const isUserLoading = useUserLoading()
     const { picture, username, money, email, isGuest } = user || {}
 
     const menuItems = [
         { name: t('nav.store'), href: '/loja', icon: Store },
         { name: t('nav.inventory'), href: '/inventario', icon: Box },
         { name: t('nav.collection'), href: '/colecao', icon: Layers },
+        { name: t('nav.albums'), href: '/colecao?view=albums', icon: BookOpen },
         { name: t('nav.trades'), href: '/trocas', icon: RefreshCcw },
+        { name: t('nav.battle'), href: '/batalha', icon: Swords },
         { name: t('nav.quests'), href: '/missoes', icon: Trophy },
         { name: t('nav.ranking'), href: '/ranking', icon: Crown },
     ]
@@ -62,6 +66,7 @@ export function HeaderMenu() {
         { name: t('nav.settings'), href: '/config', icon: Settings },
         { name: t('nav.logout'), href: '/sair', icon: LogOut },
     ]
+
     return (
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
@@ -98,9 +103,9 @@ export function HeaderMenu() {
                         <SheetHeader className=' flex flex-col items-center'>
                             <SheetTitle className=' sr-only'>Menu</SheetTitle>
                             <Avatar username={username} src={picture} />
-                            <h3 className=' text-2xl font-syne'>{username}</h3>
+                            <h3 className=' text-2xl font-syne'>{username || "Treinador"}</h3>
                             <div className=' flex gap-1 items-center'>
-                                <p className='text-xl font-syne'>{balanceTranslate(money)}</p>
+                                <p className='text-xl font-syne'>{balanceTranslate(money ?? 0)}</p>
                                 <Coins color='gold' className="size-4" />
                             </div>
                             {isGuest && (
@@ -133,10 +138,11 @@ export function HeaderMenu() {
                                     {item.name}
                                 </Link>
                             ))}
-                            <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent">
+                            <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent" onClick={() => setIsOpen(false)}>
                                 <Users className="w-4 h-4 mr-2" />
-                                Social
+                                {t('nav.social')}
                             </Link>
+
                             <Separator />
                             {profileItems.map((item) => (
                                 <Link
@@ -196,31 +202,36 @@ export function HeaderMenu() {
                                 className="h-8 gap-1.5 border-amber-500/50 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:text-amber-400 font-semibold text-xs px-2.5 rounded-full animate-pulse hover:animate-none shadow-sm"
                             >
                                 <Sparkles className="size-3.5" />
-                                <span className="hidden lg:inline">Conta Convidado •</span> Salvar Conta
+                                <span className="hidden lg:inline">{t('common.guest')} •</span> {t('common.saveGuestAccount')}
                             </Button>
                         )}
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/60 border border-border">
-                            <span className='text-sm font-bold font-mono'>{balanceTranslate(money)}</span>
+                            {isUserLoading && !money ? (
+                                <Skeleton className="h-4 w-16 rounded-full" />
+                            ) : (
+                                <span className='text-sm font-bold font-mono'>{balanceTranslate(money ?? 0)}</span>
+                            )}
                             <Coins color='gold' className="size-4 shrink-0 text-amber-400" />
                         </div>
                         <LanguageSwitcher />
                         <NotificationsPopover />
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-10 rounded-full hover:bg-accent text-foreground transition-colors" title="Social & Treinadores">
+                                <Button variant="ghost" size="icon" className="size-10 rounded-full hover:bg-accent text-foreground transition-colors" title={t('nav.social')}>
                                     <Users className='size-5' />
-                                    <span className="sr-only">Social & Treinadores</span>
+                                    <span className="sr-only">{t('nav.social')}</span>
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[90vw] sm:max-w-md overflow-y-auto">
                                 <SheetHeader className="mb-4">
                                     <SheetTitle className="text-xl font-bold flex items-center gap-2">
-                                        <Users className="size-5 text-primary" /> Social & Treinadores
+                                        <Users className="size-5 text-primary" /> {t('nav.social')}
                                     </SheetTitle>
                                 </SheetHeader>
                                 <SocialHub />
                             </SheetContent>
                         </Sheet>
+
                     </div>
                 </div>
             </div>

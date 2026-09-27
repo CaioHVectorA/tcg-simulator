@@ -22,6 +22,7 @@ import {
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function CheckoutDialog({
   open,
@@ -30,6 +31,7 @@ export function CheckoutDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const { kart, checkout, loading } = useKart();
   const user = useUser();
 
@@ -142,7 +144,7 @@ export function CheckoutDialog({
               onClick={() => onOpenChange(false)}
               className="w-1/3 h-11 text-xs font-bold"
             >
-              Voltar
+              {t("common.back")}
             </Button>
 
             <Button
@@ -150,7 +152,7 @@ export function CheckoutDialog({
               disabled={!hasEnoughCoins || loading}
               className="flex-1 h-11 text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all gap-1.5"
             >
-              <span>Confirmar e Comprar</span>
+              <span>{t("store.confirmBuy")}</span>
               <ArrowRight className="size-4" />
             </Button>
           </div>

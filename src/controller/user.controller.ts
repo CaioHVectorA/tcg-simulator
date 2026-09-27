@@ -1029,11 +1029,11 @@ export const userController = new Elysia({}).group("/user", (app) => {
         }
 
         const rarityPrices: Record<number, number> = {
-          1: 30,
-          2: 200,
-          3: 2500,
-          4: 200000,
-          5: 1000000,
+          1: 40,
+          2: 250,
+          3: 3500,
+          4: 350000,
+          5: 10000000,
         };
 
         const idsToDelete: number[] = [];

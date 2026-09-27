@@ -13,9 +13,11 @@ import { useState } from "react";
 import { PackOpeningModal } from "@/components/pack-opening-modal";
 import { BatchOpeningModal } from "@/components/batch-opening-modal";
 import { BoosterPackArt } from "@/components/booster-pack-art";
-import { Sparkles, Layers, ArrowRight } from "lucide-react";
+import { Sparkles, Layers } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function PackageCard({ pack }: { pack: UserPackage }) {
+  const { t } = useTranslation();
   const [isOpeningModalOpen, setIsOpeningModalOpen] = useState(false);
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
   const [isBatchOpeningOpen, setIsBatchOpeningOpen] = useState(false);
@@ -63,14 +65,14 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                 onClick={() => setIsOpeningModalOpen(true)}
                 className="flex-1 bg-secondary hover:bg-secondary/80 text-foreground border border-border font-bold text-xs h-10"
               >
-                <Sparkles className="size-3.5 mr-1 text-amber-500" /> Abrir 1x
+                <Sparkles className="size-3.5 mr-1 text-amber-500" /> {t("inventory.openOne")}
               </Button>
 
               <Button
                 onClick={() => setIsBatchSelectorOpen(true)}
                 className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs h-10 shadow-md shadow-amber-500/10"
               >
-                <Layers className="size-3.5 mr-1" /> Abrir Vários
+                <Layers className="size-3.5 mr-1" /> {t("inventory.openMany")}
               </Button>
             </div>
           ) : (
@@ -78,7 +80,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
               onClick={() => setIsOpeningModalOpen(true)}
               className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/10 h-10 text-xs"
             >
-              <Sparkles className="size-4 mr-2" /> Abrir Pacote
+              <Sparkles className="size-4 mr-2" /> {t("inventory.openPack")}
             </Button>
           )}
         </CardFooter>
@@ -95,12 +97,12 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
           <DialogHeader className="text-left">
             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
               <Layers className="size-5 text-amber-500" />
-              <span>Abertura em Lote: {pack.name}</span>
+              <span>{t("inventory.openBatch", { name: pack.name })}</span>
             </DialogTitle>
           </DialogHeader>
 
           <p className="text-xs text-muted-foreground font-sans mt-1 mb-4">
-            Você possui <strong className="text-foreground">{pack.quantity} unidades</strong> deste booster. Escolha quantos deseja abrir de uma só vez:
+            {t("inventory.youHave", { qty: pack.quantity })} {t("inventory.chooseQuantity")}
           </p>
 
           <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -110,7 +112,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                 onClick={() => handleOpenBatch(2)}
                 className="h-12 text-xs font-bold border-border hover:border-amber-500/60"
               >
-                Abrir 2x ({2 * (pack.cards_quantity || 5)} cartas)
+                {t("inventory.openQtyCards", { qty: 2, cards: 2 * (pack.cards_quantity || 5) })}
               </Button>
             )}
             {pack.quantity >= 5 && (
@@ -119,7 +121,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                 onClick={() => handleOpenBatch(5)}
                 className="h-12 text-xs font-bold border-border hover:border-amber-500/60"
               >
-                Abrir 5x ({5 * (pack.cards_quantity || 5)} cartas)
+                {t("inventory.openQtyCards", { qty: 5, cards: 5 * (pack.cards_quantity || 5) })}
               </Button>
             )}
             {pack.quantity >= 10 && (
@@ -128,14 +130,17 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
                 onClick={() => handleOpenBatch(10)}
                 className="h-12 text-xs font-bold border-border hover:border-amber-500/60"
               >
-                Abrir 10x ({10 * (pack.cards_quantity || 5)} cartas)
+                {t("inventory.openQtyCards", { qty: 10, cards: 10 * (pack.cards_quantity || 5) })}
               </Button>
             )}
             <Button
               onClick={() => handleOpenBatch(pack.quantity)}
               className="h-12 text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 col-span-2 shadow-md shadow-amber-500/20"
             >
-              Abrir Todos os {pack.quantity}x Pacotes ({pack.quantity * (pack.cards_quantity || 5)} cartas)!
+              {t("inventory.openAllCards", {
+                qty: pack.quantity,
+                cards: pack.quantity * (pack.cards_quantity || 5),
+              })}
             </Button>
           </div>
         </DialogContent>
