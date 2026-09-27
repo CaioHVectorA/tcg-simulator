@@ -132,12 +132,12 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
         {isLoading && ranking.length === 0 ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="size-8 animate-spin text-amber-500" />
-            <p className="text-xs font-sans">Carregando posições do ranking...</p>
+            <p className="text-xs font-sans">{t("ranking.loadingPositions")}</p>
           </div>
         ) : ranking.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
-            <p className="text-base font-bold">Nenhum treinador no ranking ainda.</p>
-            <p className="text-xs font-sans mt-1">Abra pacotes ou negocie para entrar no placar!</p>
+            <p className="text-base font-bold">{t("ranking.emptyRanking")}</p>
+            <p className="text-xs font-sans mt-1">{t("ranking.emptyRankingDesc")}</p>
           </div>
         ) : (
           ranking.map((item, index) => {

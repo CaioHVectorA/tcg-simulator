@@ -15,7 +15,6 @@ import {
   Sparkles,
   Coins,
   CheckCircle2,
-  Calendar,
   Flame,
   Package as PackageIcon,
   ChevronRight,
@@ -24,6 +23,7 @@ import {
   Crown,
 } from "lucide-react";
 import { balanceTranslate } from "@/lib/balance-translate";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 interface DailyRewardItem {
   day: number;
@@ -44,8 +44,8 @@ interface DailyRoadData {
   todayReward: DailyRewardItem;
 }
 
-function formatCountdown(ms: number) {
-  if (ms <= 0) return "Disponível agora!";
+function formatCountdown(ms: number, readyText: string) {
+  if (ms <= 0) return readyText;
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -55,6 +55,7 @@ function formatCountdown(ms: number) {
 }
 
 export function DailyRoadSection() {
+  const { t } = useTranslation();
   const { get, post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -116,16 +117,16 @@ export function DailyRoadSection() {
         queryClient.invalidateQueries({ queryKey: ["packages"] });
       } else {
         toast({
-          title: "Não foi possível resgatar",
-          description: res?.toast || res?.error || "Aguarde o tempo de recarga.",
+          title: t("dailyRoad.claimErrorTitle"),
+          description: res?.toast || res?.error || t("dailyRoad.waitRecharge"),
           variant: "destructive",
         });
       }
     },
     onError: (err: any) => {
       toast({
-        title: "Recompensa Indisponível",
-        description: err.response?.data?.toast || "Aguarde o tempo de recarga.",
+        title: t("dailyRoad.claimUnavailableTitle"),
+        description: err.response?.data?.toast || t("dailyRoad.waitRecharge"),
         variant: "destructive",
       });
     },
@@ -167,27 +168,27 @@ export function DailyRoadSection() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold">
               <Flame className="size-3.5 fill-amber-500 text-amber-500" />
-              <span>Estrada de Ganho Diário</span>
+              <span>{t("dailyRoad.tag")}</span>
             </span>
             <Badge variant="outline" className="font-mono text-xs font-semibold border-border">
-              Ciclo {data.completedCycles + 1} • Dia {currentDay} de 30
+              {t("dailyRoad.cycleDay", { cycle: data.completedCycles + 1, day: currentDay })}
             </Badge>
             {isReady ? (
               <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs">
-                Prêmio Disponível!
+                {t("dailyRoad.prizeAvailable")}
               </Badge>
             ) : (
               <Badge variant="secondary" className="font-mono text-xs">
-                Recarga em andamento
+                {t("dailyRoad.rechargeInProgress")}
               </Badge>
             )}
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            Jornada do Treinador: Recompensas de 30 Dias
+            {t("dailyRoad.title")}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl font-sans">
-            Entre todos os dias para acumular montes de ouro e desbloquear boosters poderosos em cada marco da sua jornada!
+            {t("dailyRoad.subtitle")}
           </p>
         </div>
 
@@ -203,7 +204,7 @@ export function DailyRoadSection() {
             </div>
             <div>
               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block font-mono">
-                {isReady ? "Recompensa de Hoje" : "Próxima Coleta"}
+                {isReady ? t("dailyRoad.todayReward") : t("dailyRoad.nextClaim")}
               </span>
               <div className="flex items-center gap-1.5 font-black text-sm sm:text-base text-foreground">
                 <Coins className="size-4 text-amber-500 fill-amber-500/20" />
@@ -225,12 +226,12 @@ export function DailyRoadSection() {
                 className="w-full sm:w-auto h-11 px-6 font-black text-sm bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-lg shadow-amber-500/25 hover:scale-105 active:scale-95 transition-all"
               >
                 <Sparkles className="size-4 mr-1.5" />
-                <span>{claiming ? "Coletando..." : `Coletar Dia ${currentDay}`}</span>
+                <span>{claiming ? t("dailyRoad.collecting") : t("dailyRoad.claimDay", { day: currentDay })}</span>
               </Button>
             ) : (
               <div className="flex items-center gap-2 bg-card px-4 py-2.5 rounded-xl border border-border text-xs font-mono font-bold text-muted-foreground justify-center">
                 <Clock className="size-4 text-amber-500 shrink-0" />
-                <span>{formatCountdown(remainingMs || 0)}</span>
+                <span>{formatCountdown(remainingMs || 0, t("dailyRoad.availableNow"))}</span>
               </div>
             )}
           </div>
@@ -241,10 +242,10 @@ export function DailyRoadSection() {
       <div className="py-4 space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="text-muted-foreground font-sans">
-            Progresso Geral da Estrada: <strong>{data.totalClaimedDays} dias resgatados</strong>
+            {t("dailyRoad.overallProgress", { days: data.totalClaimedDays })}
           </span>
           <span className="font-mono text-primary font-bold">
-            {progressPercent}% Concluído
+            {t("dailyRoad.completedPercent", { percent: progressPercent })}
           </span>
         </div>
         <Progress value={progressPercent} className="h-2.5 bg-secondary" />
@@ -253,7 +254,7 @@ export function DailyRoadSection() {
       {/* Controles de Rolagem da Estrada */}
       <div className="flex items-center justify-between pt-2 pb-3">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          Trilha Completa de Recompensas
+          {t("dailyRoad.fullTrail")}
         </span>
         <div className="flex items-center gap-1.5">
           <Button
@@ -261,7 +262,7 @@ export function DailyRoadSection() {
             size="icon"
             onClick={() => scrollRoad("left")}
             className="size-8 rounded-lg border-border"
-            title="Rolar para a esquerda"
+            title="Scroll left"
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -270,7 +271,7 @@ export function DailyRoadSection() {
             size="icon"
             onClick={() => scrollRoad("right")}
             className="size-8 rounded-lg border-border"
-            title="Rolar para a direita"
+            title="Scroll right"
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -306,7 +307,7 @@ export function DailyRoadSection() {
                 <span className={`text-[11px] font-mono font-black ${
                   isCurrent ? "text-amber-500" : "text-muted-foreground"
                 }`}>
-                  DIA {reward.day}
+                  {t("dailyRoad.day", { day: reward.day })}
                 </span>
 
                 {isPast && (
@@ -314,7 +315,7 @@ export function DailyRoadSection() {
                 )}
                 {isCurrent && (
                   <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0">
-                    HOJE
+                    {t("dailyRoad.today")}
                   </Badge>
                 )}
                 {isFuture && reward.isMilestone && (
@@ -366,10 +367,11 @@ export function DailyRoadSection() {
       <RewardModal
         open={rewardModalOpen}
         onOpenChange={setRewardModalOpen}
-        title={`Dia ${currentDay} Resgatado com Sucesso! 🎉`}
-        description={`Você recebeu ${balanceTranslate(rewardAmount)} moedas${
-          rewardPack ? ` e 1x ${rewardPack} no seu inventário` : ""
-        }!`}
+        title={t("dailyRoad.modalSuccessTitle", { day: currentDay })}
+        description={t("dailyRoad.modalSuccessDesc", {
+          coins: balanceTranslate(rewardAmount),
+          pack: rewardPack ? t("dailyRoad.modalPackDesc", { pack: rewardPack }) : "",
+        })}
         rewardAmount={rewardAmount}
         iconType="general"
       />

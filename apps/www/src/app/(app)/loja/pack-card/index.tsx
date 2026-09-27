@@ -25,6 +25,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { useTranslation } from "@/i18n/LanguageContext"
 
 type Package = {
     price: number
@@ -147,6 +148,7 @@ export function PackCard({ pack, withDialog = false }: {
     pack: Package,
     withDialog?: boolean
 }) {
+    const { t } = useTranslation()
     const [cards, setCards] = useState<CardType[]>([])
     const { get, post, loading, data } = useApi<{ cards: CardType[], pages: number, currentPage: number }>({ cache: true })
     const { post: buyPost, loading: buyLoading } = useApi()
@@ -306,7 +308,7 @@ export function PackCard({ pack, withDialog = false }: {
                                 size="sm"
                             >
                                 <Sparkles className="size-3.5 shrink-0" />
-                                <span>Personalizar &amp; Abrir</span>
+                                <span>{t("store.customOpen") || "Personalizar & Abrir"}</span>
                             </Button>
                             <ThematicLootboxDialog
                                 open={lootboxOpen}
@@ -321,17 +323,17 @@ export function PackCard({ pack, withDialog = false }: {
                                     <SheetTrigger asChild>
                                         <Button className="flex-1 font-bold text-[11px] sm:text-xs h-9 gap-1.5" size="sm">
                                             <ShoppingCart className="size-3.5 shrink-0" />
-                                            <span>Comprar</span>
+                                            <span>{t("store.buy") || "Comprar"}</span>
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent className="font-syne bg-background border-border text-foreground w-full sm:max-w-md">
                                         <SheetHeader>
                                             <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-foreground">
                                                 <PackageIcon className="size-4 sm:size-5 text-primary" />
-                                                <span className="truncate">Comprar {pack.name}</span>
+                                                <span className="truncate">{t("store.buy")} {pack.name}</span>
                                             </SheetTitle>
                                             <SheetDescription className="text-xs">
-                                                Escolha a quantidade desejada.
+                                                {t("store.chooseQuantity")}
                                             </SheetDescription>
                                         </SheetHeader>
                                         <BuyPack pack={pack} />
@@ -351,7 +353,7 @@ export function PackCard({ pack, withDialog = false }: {
                                 ) : (
                                     <Zap className="size-3.5 shrink-0" />
                                 )}
-                                <span>Comprar e Abrir</span>
+                                <span>{t("store.buyAndOpen")}</span>
                             </Button>
                         </div>
                     )}

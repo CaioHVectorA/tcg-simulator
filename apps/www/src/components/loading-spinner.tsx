@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
+import { useTranslation } from "@/i18n/LanguageContext";
 
-const POKEMON_FLAVOR_TEXTS = [
+const DEFAULT_POKEMON_FLAVOR_TEXTS = [
   "Achando shinies...",
   "Embaralhando o deck...",
   "Polindo as cartas raras...",
@@ -23,17 +24,24 @@ export function LoadingRing({ className = "" }: { className?: string }) {
 }
 
 export function Loader({ customText }: { customText?: string }) {
+  const { t } = useTranslation();
   const [flavorIndex, setFlavorIndex] = useState(0);
+
+  const flavorTextsRaw = t("loading.loadingTexts") as unknown;
+  const flavorTexts: string[] =
+    Array.isArray(flavorTextsRaw) && flavorTextsRaw.length > 0
+      ? (flavorTextsRaw as string[])
+      : DEFAULT_POKEMON_FLAVOR_TEXTS;
 
   useEffect(() => {
     if (customText) return;
     const interval = setInterval(() => {
-      setFlavorIndex((prev) => (prev + 1) % POKEMON_FLAVOR_TEXTS.length);
+      setFlavorIndex((prev) => (prev + 1) % flavorTexts.length);
     }, 2200);
     return () => clearInterval(interval);
-  }, [customText]);
+  }, [customText, flavorTexts.length]);
 
-  const currentText = customText || POKEMON_FLAVOR_TEXTS[flavorIndex];
+  const currentText = customText || flavorTexts[flavorIndex % flavorTexts.length];
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-md font-syne select-none p-4">
@@ -81,6 +89,7 @@ export function Loader({ customText }: { customText?: string }) {
 }
 
 export function LoaderSimple({ className = "size-5" }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <div role="status" className={`relative inline-flex items-center justify-center shrink-0 ${className} animate-spin`} style={{ animationDuration: '0.8s' }}>
       <div className="w-full h-full rounded-full border-2 border-foreground/80 overflow-hidden flex flex-col relative shadow-xs">
@@ -92,7 +101,7 @@ export function LoaderSimple({ className = "size-5" }: { className?: string }) {
           </div>
         </div>
       </div>
-      <span className="sr-only">Carregando...</span>
+      <span className="sr-only">{t("common.loading")}</span>
     </div>
   );
 }

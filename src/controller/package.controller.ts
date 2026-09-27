@@ -1,79 +1,51 @@
 import { Elysia, t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
-import {
-  getUserInterceptor,
-  getUserUserMiddleware,
-  receiveUser,
-} from "../middlewares/jwt";
-import { prisma } from "../helpers/prisma.client";
-import {
-  getByRarityCluster,
-  getRandomCardFromPackage,
-  OpenPackage,
-  OpenPackageStreamingHandle,
-} from "../lib/open-package";
-import type { Card, Package, User } from "@prisma/client";
+import { getUserUserMiddleware } from "../middlewares/jwt";
+import type { User } from "@prisma/client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
+import { PackageService } from "../services/package.service";
+import { getLocaleFromHeaders } from "../i18n";
+
 const baseResponse = t.Object({
   ok: t.Boolean(),
   toast: t.Union([t.String(), t.Null()]),
   error: t.Union([t.String(), t.Null()]),
   data: t.Any(),
 });
+
 export const packageController = new Elysia({}).group("/packages", (app) => {
   return app
-    .decorate("prisma", prisma)
     .decorate("user", {} as User)
-    .get("/all", async ({ prisma }) => {
-      const packages = await prisma.package.findMany({
-        select: {
-          id: true,
-          name: true,
-          image_url: true,
-          tcg_id: true,
-          price: true,
-        },
-      });
-      const tematics = packages.filter((p) => p.tcg_id);
-      const standard = packages.filter((p) => !p.tcg_id);
-      return sucessResponse({ tematics, standard });
+
+    /**
+     * GET /packages/all
+     * Lista todos os pacotes (temáticos e normais)
+     */
+    .get("/all", async ({ headers }) => {
+      const locale = getLocaleFromHeaders(headers);
+      try {
+        const data = await PackageService.getAllPackages();
+        return sucessResponse(data, undefined, locale);
+      } catch (error: any) {
+        return errorResponse(error.message, "Erro ao listar pacotes.", locale);
+      }
     })
+
+    /**
+     * GET /packages/cards
+     * Lista cartas de um pacote com paginação e ordenação
+     */
     .get(
       "/cards",
-      async ({ prisma, query }) => {
-        const { packageId, page, sort } = query;
-        const orderBy = {
-          "A-Z": { name: "asc" as const },
-          "Z-A": { name: "desc" as const },
-          "r-asc": { rarity: "asc" as const },
-          "r-desc": { rarity: "desc" as const },
-        };
-        const limit = 32;
-        const offset = ((Number(page) || 1) - 1) * limit;
-        const count = await prisma.card.count({
-          where: {
-            card_id: {
-              startsWith: packageId,
-            },
-          },
-        });
-        const pages = Math.ceil(count / limit);
-        const cards = await prisma.card.findMany({
-          where: {
-            card_id: {
-              startsWith: packageId,
-            },
-          },
-          orderBy: orderBy[(sort || "r-desc") as keyof typeof orderBy],
-          take: limit,
-          skip: offset,
-        });
-        const data = {
-          cards,
-          pages,
-          currentPage: Number(page) || 1,
-        };
-        return sucessResponse(data);
+      async ({ query, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packageId, page, sort } = query;
+          const data = await PackageService.getPackageCards(packageId, page, sort);
+          return sucessResponse(data, undefined, locale);
+        } catch (error: any) {
+          return errorResponse(error.message, "Erro ao listar cartas do pacote.", locale);
+        }
       },
       {
         query: t.Object({
@@ -90,200 +62,95 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         }),
       }
     )
+
+    /**
+     * GET /packages/:id
+     * Busca pacote por ID
+     */
+    .get("/:id", async ({ params, set, headers }) => {
+      const locale = getLocaleFromHeaders(headers);
+      try {
+        const { id } = params;
+        const package_ = await PackageService.getPackageById(Number(id));
+        if (!package_) {
+          set.status = 404;
+          return errorResponse("Pacote não encontrado", "Pacote não encontrado", locale);
+        }
+        return sucessResponse(package_, undefined, locale);
+      } catch (error: any) {
+        set.status = 500;
+        return errorResponse(error.message, "Erro ao buscar pacote.", locale);
+      }
+    })
+
     .use(jwt)
     .onBeforeHandle(getUserUserMiddleware as any)
+
+    /**
+     * GET /packages
+     * Lista os pacotes no inventário do usuário autenticado
+     */
     .get(
       "/",
-      async ({ jwt, headers, user, prisma, set }) => {
-        console.log({ user });
-        let packagesUnformatted;
-        const isAdmin = user.email === "admin@gmail.com";
-        if (isAdmin) {
-          const allPkgs = await prisma.package.findMany({ orderBy: { id: "asc" } });
-          packagesUnformatted = allPkgs.map((p) => ({ Package: p }));
-        } else {
-          packagesUnformatted = await prisma.packages_User.findMany({
-            where: { userId: user.id, opened: false },
-            select: { Package: true },
-            distinct: ["packageId"],
-          });
+      async ({ user, headers, set }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const packages = await PackageService.getUserInventoryPackages(user.id, user.email);
+          return sucessResponse(packages, undefined, locale);
+        } catch (error: any) {
+          set.status = 500;
+          return errorResponse(error.message, "Erro ao carregar inventário.", locale);
         }
-
-        // i want duplicates packages
-        const packages = [] as {
-          name: string;
-          image_url: string;
-          id: number;
-          tcg_id?: string;
-          quantity: number;
-          description: string;
-        }[];
-        for (const package_ of packagesUnformatted) {
-          const quantity = isAdmin
-            ? 9999
-            : await prisma.packages_User.count({
-                where: {
-                  userId: user.id,
-                  packageId: package_.Package.id,
-                  opened: false,
-                },
-              });
-          packages.push({
-            name: package_.Package.name,
-            image_url: package_.Package.image_url,
-            id: package_.Package.id,
-            quantity,
-            tcg_id: package_.Package.tcg_id || undefined,
-            description: package_.Package.description || "",
-          });
-        }
-        return packages;
       },
       {
         detail: {
           tags: ["Package"],
-          description:
-            "Endpoint relacionado a coleta de pacotes a partir da token de usuário",
-        },
-        response: {
-          200: t.Array(
-            t.Object({
-              name: t.String(),
-              image_url: t.String(),
-              id: t.Number(),
-              description: t.String(),
-              quantity: t.Number(),
-            }),
-            { description: "Pacotes do usuário" }
-          ),
-          401: t.Object(
-            { error: t.String() },
-            { description: "Erro de autenticação" }
-          ),
+          description: "Endpoint relacionado a coleta de pacotes a partir do token de usuário",
         },
       }
     )
-    .get("/:id", async ({ prisma, params }) => {
-      const { id } = params;
-      const package_ = await prisma.package.findFirst({
-        where: { id: Number(id) },
-        select: { id: true, name: true, image_url: true, price: true },
-      });
-      if (!package_)
-        return errorResponse("Pacote não encontrado", "Pacote não encontrado");
-      return sucessResponse(package_);
-    })
+
+    /**
+     * POST /packages/buy
+     * Compra de um único pacote
+     */
     .post(
       "/buy",
-      async ({ body, user, prisma, set }) => {
-        const { packageId } = body;
-        if (packageId > 7 || packageId < 1) {
+      async ({ body, user, set, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packageId } = body;
+          await PackageService.buyPackage(user.id, packageId);
+          return sucessResponse(null, "Comprado com sucesso!", locale);
+        } catch (error: any) {
           set.status = 400;
-          return errorResponse("ID inválido!", "Ocorreu um erro.");
+          return errorResponse(error.message, error.message || "Ocorreu um erro ao comprar o pacote.", locale);
         }
-        const package_ = await prisma.package.findFirst({
-          where: { id: packageId },
-        });
-        if (!package_)
-          return errorResponse(
-            "Pacote não existente",
-            "O pacote não foi encontrado"
-          );
-        if (user.money < package_.price) {
-          set.status = 400;
-          return errorResponse(
-            "Dinheiro insuficiente",
-            "Você não tem dinheiro o suficiente"
-          );
-        }
-        const userPackage = await prisma.packages_User.create({
-          data: {
-            userId: user.id,
-            packageId: packageId,
-          },
-        });
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            money: user.money - package_.price,
-          },
-        });
-        return sucessResponse(null, "Comprado com sucesso!");
       },
       {
         body: t.Object({ packageId: t.Number() }),
-        detail: {
-          tags: ["Package"],
-          deprecated: true,
-          description: "Use /buy-many instead",
-        },
       }
     )
+
+    /**
+     * POST /packages/buy-many
+     * Compra de múltiplos pacotes em lote
+     */
     .post(
       "/buy-many",
-      async ({ user, prisma, body, set }) => {
-        const { packagesId } = body;
-        const packagesCount = await prisma.package.count({});
-        const first = await prisma.package.findFirst({ select: { id: true } });
-        if (!first) {
+      async ({ user, body, set, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packagesId } = body;
+          await PackageService.buyManyPackages(user.id, packagesId);
+          return sucessResponse("Comprado com sucesso!", "Comprado com sucesso!", locale);
+        } catch (error: any) {
           set.status = 400;
-          return errorResponse(
-            "Nenhum pacote encontrado!",
-            "Nenhum pacote encontrado!"
-          );
+          return errorResponse(error.message, error.message || "Ocorreu um erro na compra em lote.", locale);
         }
-        console.log({ first, packagesCount, packagesId });
-        if (
-          packagesId.some(
-            (id: number) => id > packagesCount + first.id || id < first.id
-          )
-        ) {
-          set.status = 400;
-          return errorResponse(
-            "ID de pacote inválido!",
-            "ID de pacote inválido!"
-          );
-        }
-        const quantities = {} as Record<number, number>;
-        packagesId.forEach((id: number) => {
-          quantities[id] = (quantities[id] || 0) + 1;
-        });
-        const packages = await prisma.package.findMany({
-          where: { id: { in: packagesId } },
-        });
-        const total = packages.reduce((acc, curr) => acc + curr.price, 0);
-        if (user.money < total) {
-          set.status = 400;
-          return errorResponse(
-            "Dinheiro insuficiente!",
-            "Dinheiro insuficiente!"
-          );
-        }
-        const userPackages = [];
-        for (const [id, quantity] of Object.entries(quantities)) {
-          for (let i = 0; i < quantity; i++) {
-            userPackages.push({
-              userId: user.id,
-              packageId: Number(id),
-            });
-          }
-        }
-        await prisma.packages_User.createMany({ data: userPackages });
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            money: user.money - total,
-          },
-        });
-        return sucessResponse("Comprado com sucesso!", "Comprado com sucesso!");
       },
       {
         body: t.Object({ packagesId: t.Array(t.Number()) }),
-        detail: {
-          tags: ["Package"],
-          description:
-            "Compre vários pacotes de uma vez, usando seus ID's como referência",
-        },
         response: {
           200: baseResponse,
           400: baseResponse,
@@ -291,258 +158,76 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         },
       }
     )
-    .post(
-      "/open-packages",
-      async ({ user, prisma, body, set }) => {
-        const { packagesId } = body;
-        const quantities = {} as Record<number, number>;
-        let rarityPointsGain = 0;
-        packagesId.forEach((id: number) => {
-          quantities[id] = (quantities[id] || 0) + 1;
-        });
-        const packages = await prisma.package.findMany({
-          where: { id: { in: packagesId } },
-        });
-        const packagesUser = await prisma.packages_User.findMany({
-          where: {
-            userId: user.id,
-            packageId: { in: packagesId },
-            opened: false,
-          },
-        });
-        const isAdmin = user.email === "admin@gmail.com";
-        if (!isAdmin) {
-          for (const [pkgIdStr, neededQty] of Object.entries(quantities)) {
-            const pkgId = Number(pkgIdStr);
-            const userCount = packagesUser.filter((p) => p.packageId === pkgId).length;
-            if (userCount < neededQty) {
-              set.status = 400;
-              return errorResponse(
-                "Quantidade insuficiente de pacotes no inventário",
-                "Você não possui pacotes suficientes para abrir esta quantidade."
-              );
-            }
-          }
-        }
-        const allCards = [] as Card[];
-        for (const package_ of packages) {
-          const cardsByRarity = await getByRarityCluster({ pkg: package_, prisma });
-          const countToOpen = quantities[package_.id] || 0;
-          const qtyPerPack = package_.cards_quantity || 5;
-          for (let i = 0; i < countToOpen; i++) {
-            for (let j = 0; j < qtyPerPack; j++) {
-              const card = getRandomCardFromPackage(package_, cardsByRarity);
-              if (card) {
-                rarityPointsGain += card.rarity;
-                allCards.push(card);
-              }
-            }
-          }
-          if (!isAdmin) {
-            const pkgPkgIds = packagesUser
-              .filter((p) => p.packageId === package_.id)
-              .map((p) => p.id)
-              .slice(0, quantities[package_.id]);
-            if (pkgPkgIds.length > 0) {
-              await prisma.packages_User.updateMany({
-                data: { opened: true },
-                where: {
-                  userId: user.id,
-                  id: { in: pkgPkgIds },
-                  opened: false,
-                },
-              });
-            }
-          }
-        }
-        await prisma.cards_user.createMany({
-          data: allCards.map((card) => ({ userId: user.id, cardId: card.id })),
-        });
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            rarityPoints: {
-              increment: rarityPointsGain,
-            },
-          },
-        });
-        return sucessResponse(allCards.sort((a, b) => a.rarity - b.rarity));
-      },
-      {
-        body: t.Object({ packagesId: t.Array(t.Number()) }),
-        detail: {
-          tags: ["Package"],
-          description:
-            "Abra pacotes de cartas, usando seus ID's como referência",
-        },
-        response: {
-          200: baseResponse,
-          400: baseResponse,
-          401: baseResponse,
-        },
-      }
-    )
+
+    /**
+     * POST /packages/open
+     * Abre um pacote individual do inventário
+     */
     .post(
       "/open",
-      async ({ user, prisma, body }) => {
-        const { packageId } = body;
-        const isAdmin = user.email === "admin@gmail.com";
-        let package_ = await prisma.packages_User.findFirst({
-          where: { userId: user.id, packageId, opened: false },
-        });
-        if (!package_ && isAdmin) {
-          package_ = await prisma.packages_User.create({
-            data: { userId: user.id, packageId, opened: false },
-          });
+      async ({ user, body, set, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packageId } = body;
+          const cards = await PackageService.openSinglePackage(user.id, packageId, user.email);
+          return sucessResponse(cards, undefined, locale);
+        } catch (error: any) {
+          set.status = 400;
+          return errorResponse(error.message, error.message || "Erro ao abrir o pacote.", locale);
         }
-        if (!package_)
-          return errorResponse(
-            "Pacote não encontrado",
-            "Pacote não encontrado"
-          );
-        const packageToOpen = await prisma.package.findFirst({
-          where: { id: packageId },
-        });
-        if (!packageToOpen)
-          return errorResponse(
-            "Pacote não encontrado",
-            "Pacote não encontrado"
-          );
-        const cards = await OpenPackage(packageToOpen, prisma);
-        if (!isAdmin) {
-          await prisma.packages_User.update({
-            where: { userId: user.id, packageId, opened: false, id: package_.id },
-            data: { opened: true },
-          });
-        }
-        await prisma.cards_user.createMany({
-          data: cards.map((card) => ({ userId: user.id, cardId: card.id })),
-        });
-        const rarityPointsGain = cards.reduce(
-          (acc, curr) => acc + (curr.rarity || 1),
-          0
-        );
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            rarityPoints: {
-              increment: rarityPointsGain,
-            },
-          },
-        });
-        const sortedCards = cards.sort((a, b) => a.rarity - b.rarity);
-        return sucessResponse(sortedCards);
       },
-      { body: t.Object({ packageId: t.Number() }) }
+      {
+        body: t.Object({ packageId: t.Number() }),
+      }
     )
+
+    /**
+     * POST /packages/open-packages
+     * Abre múltiplos pacotes do inventário em lote
+     */
+    .post(
+      "/open-packages",
+      async ({ user, body, set, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packagesId } = body;
+          const cards = await PackageService.openBatchPackages(user.id, packagesId, user.email);
+          return sucessResponse(cards, undefined, locale);
+        } catch (error: any) {
+          set.status = 400;
+          return errorResponse(error.message, error.message || "Erro ao abrir os pacotes.", locale);
+        }
+      },
+      {
+        body: t.Object({ packagesId: t.Array(t.Number()) }),
+        response: {
+          200: baseResponse,
+          400: baseResponse,
+          401: baseResponse,
+        },
+      }
+    )
+
+    /**
+     * POST /packages/thematic-lootbox
+     * Abertura de pacote temático personalizado com base em aporte de moedas
+     */
     .post(
       "/thematic-lootbox",
-      async ({ user, prisma, body, set }) => {
-        const { packageId, goldAmount } = body;
-        if (!goldAmount || goldAmount < 500) {
-          set.status = 400;
-          return errorResponse("Valor mínimo de depósito é 500 moedas!", "Valor mínimo é 500 moedas.");
+      async ({ user, body, set, headers }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { packageId, goldAmount } = body;
+          const result = await PackageService.openThematicLootbox(user.id, packageId, goldAmount);
+          return sucessResponse(
+            result,
+            `Pacote ${result.packageName} aberto com sucesso! Você recebeu ${result.cardsCount} cartas.`,
+            locale
+          );
+        } catch (error: any) {
+          set.status = error.message?.includes("não encontrado") ? 404 : 400;
+          return errorResponse(error.message, error.message || "Erro ao abrir pacote temático.", locale);
         }
-        if (goldAmount > 1000000) {
-          set.status = 400;
-          return errorResponse("Teto máximo excedido!", "O teto máximo de investimento é 1.000.000 moedas (1M).");
-        }
-        if (user.money < goldAmount) {
-          set.status = 400;
-          return errorResponse("Saldo insuficiente!", "Você não possui moedas suficientes.");
-        }
-
-        const pkg = await prisma.package.findFirst({
-          where: { id: packageId },
-        });
-        if (!pkg) {
-          set.status = 404;
-          return errorResponse("Pacote não encontrado", "Pacote temático não encontrado.");
-        }
-
-        // Quantidade de cartas proporcional ao ouro depositado (mínimo 3, escala até 25 cartas em 1M)
-        const cardsCount = Math.min(25, Math.max(3, Math.floor(Math.sqrt(goldAmount / 35)) + 1));
-
-        // Sorte e raridade escalam com o investimento de forma sustentável (EV <= 60%)
-        const goldRatio = Math.min(30, Math.max(1, goldAmount / 1000));
-        const p5 = Math.min(0.0015, Math.max(0.00002, 0.00002 + 0.000049 * (goldAmount / 35000)));
-        const p4 = Math.min(0.02, Math.max(0.0003, 0.0003 + 0.00065 * (goldAmount / 35000)));
-        const p3 = Math.min(0.38, 0.05 + 0.06 * Math.sqrt(goldRatio));
-        const p2 = Math.min(0.40, 0.25 + 0.005 * goldRatio);
-        const p1 = Math.max(0.20, 1 - (p5 + p4 + p3 + p2));
-
-        const weights: { rarity: number; weight: number }[] = [
-          { rarity: 5, weight: p5 }, // full_legendary (God Pull - 10M moedas)
-          { rarity: 4, weight: p4 }, // legendary (350k moedas)
-          { rarity: 3, weight: p3 }, // epic (3.5k moedas)
-          { rarity: 2, weight: p2 }, // rare (250 moedas)
-          { rarity: 1, weight: p1 }, // common (40 moedas)
-        ];
-
-        // Buscar pool de cartas da temática
-        const handleTcgId = pkg.tcg_id ? { startsWith: pkg.tcg_id } : undefined;
-        let pool = await prisma.card.findMany({
-          where: { card_id: handleTcgId },
-        });
-        if (pool.length === 0) {
-          pool = await prisma.card.findMany({ take: 100 });
-        }
-
-        // Sorteio com Proteção contra Repetição (amostragem sem reposição sempre que possível)
-        const chosenCards: typeof pool = [];
-        const chosenIds = new Set<number>();
-
-        function rollRarity(): number {
-          const total = weights.reduce((s, w) => s + w.weight, 0);
-          let r = Math.random() * total;
-          for (const w of weights) {
-            if (r <= w.weight) return w.rarity;
-            r -= w.weight;
-          }
-          return 1;
-        }
-
-        for (let i = 0; i < cardsCount; i++) {
-          const targetRarity = rollRarity();
-          // Candidatas com a raridade sorteada e que AINDA NÃO foram escolhidas
-          let candidates = pool.filter((c) => c.rarity === targetRarity && !chosenIds.has(c.id));
-          if (candidates.length === 0) {
-            // Fallback para qualquer carta do pool que ainda não foi sorteada
-            candidates = pool.filter((c) => !chosenIds.has(c.id));
-          }
-          if (candidates.length === 0) {
-            // Se o pool for menor que cardsCount, permite re-sorteio
-            candidates = pool;
-          }
-          const picked = candidates[Math.floor(Math.random() * candidates.length)];
-          chosenCards.push(picked);
-          chosenIds.add(picked.id);
-        }
-
-        const rarityGain = chosenCards.reduce((sum, c) => sum + (c.rarity || 1), 0);
-
-        // Transação Atômica: Deduzir ouro, adicionar cartas e somar pontos de raridade
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              money: { decrement: goldAmount },
-              rarityPoints: { increment: rarityGain },
-            },
-          }),
-          prisma.cards_user.createMany({
-            data: chosenCards.map((c) => ({ userId: user.id, cardId: c.id })),
-          }),
-        ]);
-
-        // Ordenar do MENOS raro para o MAIS raro (Tier 1 -> Tier 5) para suspense crescente
-        const sortedCards = chosenCards.sort((a, b) => (a.rarity || 1) - (b.rarity || 1));
-        return sucessResponse({
-          cards: sortedCards,
-          cardsCount: sortedCards.length,
-          goldSpent: goldAmount,
-          packageName: pkg.name,
-        }, `Pacote ${pkg.name} aberto com sucesso! Você recebeu ${sortedCards.length} cartas.`);
       },
       {
         body: t.Object({
@@ -551,46 +236,4 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         }),
       }
     );
-  // TODO
-  // .post(
-  //   "/open-many-strm",
-  //   async function* ({ user, prisma, body }) {
-  //     const { packageId, quantity } = body;
-  //     const package_ = await prisma.packages_User.findFirst({
-  //       where: { userId: user.id, packageId, opened: false },
-  //     });
-  //     if (!package_)
-  //       return errorResponse(
-  //         "Pacote não encontrado",
-  //         "Pacote não encontrado"
-  //       );
-  //     const quantityGot = await prisma.packages_User.count({
-  //       where: { userId: user.id, packageId, opened: false },
-  //     });
-  //     if (quantityGot < quantity)
-  //       return errorResponse(
-  //         "Quantidade insuficiente",
-  //         "Quantidade insuficiente"
-  //       );
-  //     const packageToOpen = await prisma.package.findFirst({
-  //       where: { id: packageId },
-  //     });
-  //     if (!packageToOpen)
-  //       return errorResponse(
-  //         "Pacote não encontrado",
-  //         "Pacote não encontrado"
-  //       );
-  //     for (let i = 0; i < quantity; i++) {
-  //       const rarity = await getByRarityCluster({
-  //         pkg: packageToOpen,
-  //         prisma,
-  //       });
-  //       for (let i = 0; i < packageToOpen.cards_quantity * 100; i++) {
-  //         const cards = getRandomCardFromPackage(packageToOpen, rarity);
-  //         yield cards;
-  //       }
-  //     }
-  //   },
-  //   { body: t.Object({ packageId: t.Number(), quantity: t.Number() }) }
-  // );
 });

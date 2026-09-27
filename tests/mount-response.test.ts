@@ -14,16 +14,19 @@ describe("Mount Response API Contract", () => {
 
   it("should create a success response with a custom toast message", () => {
     const payload = [{ id: 1, name: "Pikachu" }];
-    const response = sucessResponse(payload, "Pacote aberto com sucesso!");
+    const responsePt = sucessResponse(payload, "Pacote aberto com sucesso!", "pt");
+    expect(responsePt.ok).toBe(true);
+    expect(responsePt.data).toEqual(payload);
+    expect(responsePt.toast).toBe("Pacote aberto com sucesso!");
+    expect(responsePt.error).toBeNull();
 
-    expect(response.ok).toBe(true);
-    expect(response.data).toEqual(payload);
-    expect(response.toast).toBe("Pacote aberto com sucesso!");
-    expect(response.error).toBeNull();
+    // Default normalization to English
+    const responseEn = sucessResponse(payload, "Pacote aberto com sucesso!");
+    expect(responseEn.toast).toBe("Booster pack opened successfully!");
   });
 
   it("should create a formatted error response with error and toast", () => {
-    const response = errorResponse("USER_NOT_FOUND", "Usuário não encontrado");
+    const response = errorResponse("USER_NOT_FOUND", "Usuário não encontrado", "pt");
 
     expect(response.ok).toBe(false);
     expect(response.data).toBeNull();

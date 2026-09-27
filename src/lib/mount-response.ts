@@ -10,9 +10,9 @@ type ResponseMountedOptions<T> = {
 export const sucessResponse = <T>(
   data: T,
   toast?: string,
-  locale?: BackendLocale
+  locale: BackendLocale = "en"
 ): ResponseMountedOptions<T> => {
-  const resolvedToast = toast ? (locale ? translate(toast, locale) : toast) : null;
+  const resolvedToast = toast ? translate(toast, locale) : null;
   return {
     ok: true,
     toast: resolvedToast,
@@ -24,10 +24,10 @@ export const sucessResponse = <T>(
 export const errorResponse = <T>(
   error: string,
   toast?: string,
-  locale?: BackendLocale
+  locale: BackendLocale = "en"
 ): ResponseMountedOptions<T> => {
-  const resolvedToast = toast ? (locale ? translate(toast, locale) : toast) : null;
-  const resolvedError = locale ? translate(error, locale) : error;
+  const resolvedToast = toast ? translate(toast, locale) : null;
+  const resolvedError = error ? translate(error, locale) : error;
   return {
     ok: false,
     toast: resolvedToast,

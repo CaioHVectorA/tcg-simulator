@@ -2,7 +2,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, Box, Layers, BookOpen, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles } from 'lucide-react'
+import { Store, Box, Layers, BookOpen, RefreshCcw, User, Users, Settings, LogOut, Menu, Coins, Handshake, Trophy, Compass, Bell, Sparkles, Swords } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,7 @@ export function HeaderMenu() {
         { name: t('nav.collection'), href: '/colecao', icon: Layers },
         { name: t('nav.albums'), href: '/colecao?view=albums', icon: BookOpen },
         { name: t('nav.trades'), href: '/trocas', icon: RefreshCcw },
+        { name: t('nav.battle'), href: '/batalha', icon: Swords },
         { name: t('nav.quests'), href: '/missoes', icon: Trophy },
         { name: t('nav.ranking'), href: '/ranking', icon: Crown },
     ]

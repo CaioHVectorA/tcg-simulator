@@ -23,6 +23,7 @@ model Card {
   User_Purchase     User_Purchase[]
   FavoriteCard      FavoriteCard[]
   TradeMarkedCard   TradeMarkedCard[]
+  UserDeckCard      UserDeckCard[]
 
   @@index([rarity])
   @@index([type])
@@ -104,6 +105,36 @@ model TradeMarkedCard {
   @@map("trade_marked_cards")
 }
 
+model UserDeckCard {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  cardId    Int
+  slot      Int      @default(0)
+  createdAt DateTime @default(now())
+  Card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slot])
+  @@index([userId])
+  @@map("user_deck_cards")
+}
+
+model UserBattleRecord {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  npcId         String
+  won           Boolean  @default(true)
+  playerScore   Int      @default(0)
+  opponentScore Int      @default(0)
+  rewardCoins   Int      @default(0)
+  rewardXp      Int      @default(0)
+  createdAt     DateTime @default(now())
+  User          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_battle_records")
+}
+
 model UserLevelReward {
   id         Int      @id @default(autoincrement())
   user_id    Int
@@ -155,6 +186,8 @@ model User {
   Trade_User                                       User_Trade[]
   FavoriteCard                                     FavoriteCard[]
   TradeMarkedCard                                  TradeMarkedCard[]
+  UserDeckCard                                     UserDeckCard[]
+  UserBattleRecord                                 UserBattleRecord[]
 
   @@map("users")
 }

@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 interface FriendUser {
   id: number;
@@ -70,6 +71,7 @@ interface SearchUserResult {
 
 export const SocialHub: React.FC = () => {
   const user = useUser();
+  const { t } = useTranslation();
   const { get, post, delete: del } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -208,12 +210,12 @@ export const SocialHub: React.FC = () => {
         <TabsList className="grid grid-cols-4 w-full h-11 rounded-xl p-1 bg-accent/50 mb-4">
           <TabsTrigger value="friends" className="rounded-lg text-xs flex items-center gap-1.5 data-[state=active]:bg-background">
             <Users className="size-3.5" />
-            <span>Amigos ({friends.length})</span>
+            <span>{t("socialHub.friends")} ({friends.length})</span>
           </TabsTrigger>
 
           <TabsTrigger value="requests" className="rounded-lg text-xs flex items-center gap-1.5 data-[state=active]:bg-background relative">
             <Inbox className="size-3.5" />
-            <span>Recebidos</span>
+            <span>{t("socialHub.received")}</span>
             {receivedRequests.length > 0 && (
               <span className="size-2 rounded-full bg-red-500 absolute top-1.5 right-1.5" />
             )}
@@ -221,12 +223,12 @@ export const SocialHub: React.FC = () => {
 
           <TabsTrigger value="sent" className="rounded-lg text-xs flex items-center gap-1.5 data-[state=active]:bg-background">
             <Send className="size-3.5" />
-            <span>Enviados</span>
+            <span>{t("socialHub.sent")}</span>
           </TabsTrigger>
 
           <TabsTrigger value="add" className="rounded-lg text-xs flex items-center gap-1.5 data-[state=active]:bg-background">
             <UserPlus className="size-3.5" />
-            <span>Buscar</span>
+            <span>{t("common.search")}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -237,7 +239,7 @@ export const SocialHub: React.FC = () => {
             <Input
               value={friendFilter}
               onChange={(e) => setFriendFilter(e.target.value)}
-              placeholder="Filtrar por nome de amigo..."
+              placeholder={t("socialHub.searchPlaceholder")}
               className="pl-9 h-10 rounded-xl text-xs font-sans"
             />
           </div>
@@ -250,8 +252,8 @@ export const SocialHub: React.FC = () => {
             ) : filteredFriends.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground">
                 <Users className="size-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-semibold">Nenhum amigo encontrado</p>
-                <p className="text-xs mt-1">Use a aba "Buscar" para convidar outros treinadores!</p>
+                <p className="text-sm font-semibold">{t("socialHub.noFriendsFound")}</p>
+                <p className="text-xs mt-1">{t("socialHub.noFriendsFoundDesc")}</p>
               </div>
             ) : (
               filteredFriends.map((friend) => (
@@ -326,8 +328,8 @@ export const SocialHub: React.FC = () => {
           ) : receivedRequests.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Inbox className="size-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-semibold">Nenhum pedido pendente</p>
-              <p className="text-xs mt-1">Você está em dia com todas as solicitações.</p>
+              <p className="text-sm font-semibold">{t("socialHub.noPendingRequests")}</p>
+              <p className="text-xs mt-1">{t("socialHub.noPendingRequestsDesc")}</p>
             </div>
           ) : (
             receivedRequests.map((req) => (
@@ -339,7 +341,7 @@ export const SocialHub: React.FC = () => {
                   <Avatar username={req.username} src={req.picture} className="size-9" />
                   <div>
                     <p className="text-sm font-bold text-foreground">{req.username}</p>
-                    <span className="text-[11px] text-muted-foreground font-sans">Quer ser seu amigo</span>
+                    <span className="text-[11px] text-muted-foreground font-sans">{t("socialHub.received")}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -348,7 +350,7 @@ export const SocialHub: React.FC = () => {
                     className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5"
                     onClick={() => acceptRequest(req.id)}
                   >
-                    <Check className="size-3.5 mr-1" /> Aceitar
+                    <Check className="size-3.5 mr-1" /> {t("socialHub.accept")}
                   </Button>
                   <Button
                     size="sm"
@@ -356,7 +358,7 @@ export const SocialHub: React.FC = () => {
                     className="h-8 rounded-lg text-xs px-2.5"
                     onClick={() => rejectRequest(req.id)}
                   >
-                    <X className="size-3.5 mr-1" /> Recusar
+                    <X className="size-3.5 mr-1" /> {t("socialHub.reject")}
                   </Button>
                 </div>
               </div>
@@ -373,8 +375,8 @@ export const SocialHub: React.FC = () => {
           ) : sentRequests.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Send className="size-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-semibold">Nenhum pedido enviado</p>
-              <p className="text-xs mt-1">Busque novos treinadores na aba "Buscar".</p>
+              <p className="text-sm font-semibold">{t("socialHub.noSentRequests")}</p>
+              <p className="text-xs mt-1">{t("socialHub.noSentRequestsDesc")}</p>
             </div>
           ) : (
             sentRequests.map((req) => (
@@ -386,7 +388,7 @@ export const SocialHub: React.FC = () => {
                   <Avatar username={req.username} src={req.picture} className="size-9" />
                   <div>
                     <p className="text-sm font-bold text-foreground">{req.username}</p>
-                    <span className="text-[11px] text-muted-foreground font-sans">Aguardando resposta</span>
+                    <span className="text-[11px] text-muted-foreground font-sans">{t("socialHub.sent")}</span>
                   </div>
                 </div>
                 <Button
@@ -395,7 +397,7 @@ export const SocialHub: React.FC = () => {
                   className="h-8 rounded-lg text-xs text-muted-foreground hover:text-red-500"
                   onClick={() => cancelSent(req.id)}
                 >
-                  Cancelar
+                  {t("socialHub.cancel")}
                 </Button>
               </div>
             ))
@@ -409,7 +411,7 @@ export const SocialHub: React.FC = () => {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Digite o nome de usuário (mín. 2 letras)..."
+              placeholder={t("socialHub.searchGlobalPlaceholder")}
               className="pl-9 h-10 rounded-xl text-xs font-sans"
             />
           </div>
@@ -422,7 +424,8 @@ export const SocialHub: React.FC = () => {
             ) : searchQuery.trim().length >= 2 && searchResults.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground">
                 <UserPlus className="size-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-semibold">Nenhum treinador com esse nome</p>
+                <p className="text-sm font-semibold">{t("socialHub.noTrainersFound")}</p>
+                <p className="text-xs mt-1">{t("socialHub.noTrainersFoundDesc")}</p>
               </div>
             ) : (
               searchResults.map((user) => (

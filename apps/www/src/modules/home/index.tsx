@@ -7,20 +7,16 @@ import {
   RefreshCcw,
   Users,
   Trophy,
-  ExternalLink,
   DollarSign,
   Package,
   ShoppingBag,
   Sparkles,
-  Target,
-  Medal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { HeaderHome } from './header-home'
 import { DailyRoadSection } from './daily-road-section'
-import { loadTcgImg } from '@/lib/load-tcg-img'
 import { TcgCardImage } from '@/components/tcg-card-image'
 import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
@@ -29,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { getCookie } from '@/lib/cookies'
 import { motion } from 'framer-motion'
 import { soundFx } from '@/lib/sound-fx'
+import { useTranslation } from '@/i18n/LanguageContext'
 
 type HomeData = {
   banners: {
@@ -50,6 +47,7 @@ type HomeData = {
 }
 
 export function HomePage() {
+  const { t } = useTranslation()
   const { get } = useApi()
   const { refresh } = useRouter()
 
@@ -67,7 +65,7 @@ export function HomePage() {
     return (
       <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center gap-3 font-sans text-muted-foreground">
         <LoaderSimple />
-        <p className="text-xs">Carregando centro de treinador...</p>
+        <p className="text-xs">{t('home.loadingCenter')}</p>
       </div>
     )
   }
@@ -89,14 +87,14 @@ export function HomePage() {
                 <ShoppingBag className="size-5" />
               </div>
               <h4 className="font-syne font-bold text-sm sm:text-base text-foreground mb-1">
-                Loja de Boosters
+                {t('home.boosterStore')}
               </h4>
               <p className="text-xs text-muted-foreground line-clamp-2">
-                Adquira pacotes com moedas e tire cartas raras.
+                {t('home.boosterStoreDesc')}
               </p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-amber-500 font-syne">
-              <span>Explorar</span>
+              <span>{t('home.explore')}</span>
               <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </Card>
@@ -109,14 +107,14 @@ export function HomePage() {
                 <Package className="size-5" />
               </div>
               <h4 className="font-syne font-bold text-sm sm:text-base text-foreground mb-1">
-                Meus Pacotes
+                {t('home.myPacks')}
               </h4>
               <p className="text-xs text-muted-foreground line-clamp-2">
-                Abra seus boosters guardados com animação 3D.
+                {t('home.myPacksDesc')}
               </p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-sky-500 font-syne">
-              <span>Abrir</span>
+              <span>{t('home.open')}</span>
               <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </Card>
@@ -129,14 +127,14 @@ export function HomePage() {
                 <RefreshCcw className="size-5" />
               </div>
               <h4 className="font-syne font-bold text-sm sm:text-base text-foreground mb-1">
-                Mercado de Trocas
+                {t('home.tradesMarket')}
               </h4>
               <p className="text-xs text-muted-foreground line-clamp-2">
-                Crie propostas e negocie cartas com amigos.
+                {t('home.tradesMarketDesc')}
               </p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-500 font-syne">
-              <span>Negociar</span>
+              <span>{t('home.trade')}</span>
               <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </Card>
@@ -149,14 +147,14 @@ export function HomePage() {
                 <Users className="size-5" />
               </div>
               <h4 className="font-syne font-bold text-sm sm:text-base text-foreground mb-1">
-                Comunidade Social
+                {t('home.socialCommunity')}
               </h4>
               <p className="text-xs text-muted-foreground line-clamp-2">
-                Conecte-se com amigos, converse e envie presentes.
+                {t('home.socialCommunityDesc')}
               </p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-purple-500 font-syne">
-              <span>Conectar</span>
+              <span>{t('home.connect')}</span>
               <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </Card>
@@ -169,15 +167,15 @@ export function HomePage() {
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-500 mb-1">
               <Sparkles className="size-3.5" />
-              <span>Destaques da Coleção</span>
+              <span>{t('home.collectionHighlights')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold font-syne text-foreground tracking-tight">
-              Seus Top Cards Mais Raros
+              {t('home.topCardsTitle')}
             </h2>
           </div>
 
           <Button asChild variant="outline" size="sm" className="font-syne text-xs rounded-xl">
-            <Link href="/inventario">Ver Coleção Completa</Link>
+            <Link href="/inventario">{t('home.viewFullCollection')}</Link>
           </Button>
         </div>
 
@@ -237,14 +235,14 @@ export function HomePage() {
               <Package className="size-8" />
             </div>
             <h3 className="text-xl font-bold font-syne text-foreground mb-1">
-              Sua pasta de cartas ainda está vazia!
+              {t('home.emptyBinderTitle')}
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-4">
-              Vá para a loja, adquira seus primeiros boosters e comece sua jornada para tirar uma God Pull.
+              {t('home.emptyBinderDesc')}
             </p>
             <Button asChild className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold font-syne text-xs px-6 h-10 rounded-xl">
               <Link href="/loja">
-                <ShoppingBag className="size-4 mr-1.5" /> Ir para a Loja
+                <ShoppingBag className="size-4 mr-1.5" /> {t('home.goToStore')}
               </Link>
             </Button>
           </div>
@@ -263,29 +261,29 @@ export function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-syne font-bold text-lg text-foreground">
-                    Ranking de Colecionadores
+                    {t('home.collectorsRanking')}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    Pontos de Raridade de Cartas
+                    {t('home.rarityPointsSubtitle')}
                   </span>
                 </div>
               </div>
               <Badge variant="outline" className="font-mono text-xs border-amber-500/40 text-amber-500 bg-amber-500/10">
-                #{data.ranking.position} Lugar
+                {t('home.placeRank', { rank: data.ranking.position })}
               </Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-4 my-4 p-4 rounded-2xl bg-muted/40 border border-border/40">
               <div>
-                <span className="text-xs text-muted-foreground block">Pontuação Total</span>
+                <span className="text-xs text-muted-foreground block">{t('home.totalScore')}</span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-foreground">
-                  {data.ranking.total_rarity.toLocaleString('pt-BR')}
+                  {data.ranking.total_rarity.toLocaleString()}
                 </span>
               </div>
               <div>
-                <span className="text-xs text-muted-foreground block">Sua Posição</span>
+                <span className="text-xs text-muted-foreground block">{t('home.yourPosition')}</span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-amber-500">
-                  Top {Math.max(1, Math.round((data.ranking.position / Math.max(1, data.ranking.count)) * 100))}%
+                  {t('home.topPercent', { percent: Math.max(1, Math.round((data.ranking.position / Math.max(1, data.ranking.count)) * 100)) })}
                 </span>
               </div>
             </div>
@@ -293,7 +291,7 @@ export function HomePage() {
 
           <Button asChild variant="outline" className="w-full mt-2 font-syne font-bold text-xs h-10 rounded-xl">
             <Link href="/ranking">
-              Ver Classificação Completa <ArrowRight className="size-3.5 ml-1.5" />
+              {t('home.viewFullRanking')} <ArrowRight className="size-3.5 ml-1.5" />
             </Link>
           </Button>
         </Card>
@@ -308,29 +306,29 @@ export function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-syne font-bold text-lg text-foreground">
-                    Ranking dos Magnatas
+                    {t('home.tycoonsRanking')}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    Economia e Fortuna Acumulada
+                    {t('home.wealthSubtitle')}
                   </span>
                 </div>
               </div>
               <Badge variant="outline" className="font-mono text-xs border-emerald-500/40 text-emerald-500 bg-emerald-500/10">
-                #{data.rankingMoney.position} Lugar
+                {t('home.placeRank', { rank: data.rankingMoney.position })}
               </Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-4 my-4 p-4 rounded-2xl bg-muted/40 border border-border/40">
               <div>
-                <span className="text-xs text-muted-foreground block">Fortuna em Moedas</span>
+                <span className="text-xs text-muted-foreground block">{t('home.coinsFortune')}</span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-foreground">
-                  {data.rankingMoney.total_money.toLocaleString('pt-BR')}
+                  {data.rankingMoney.total_money.toLocaleString()}
                 </span>
               </div>
               <div>
-                <span className="text-xs text-muted-foreground block">Sua Posição</span>
+                <span className="text-xs text-muted-foreground block">{t('home.yourPosition')}</span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-emerald-500">
-                  Top {Math.max(1, Math.round((data.rankingMoney.position / Math.max(1, data.rankingMoney.count)) * 100))}%
+                  {t('home.topPercent', { percent: Math.max(1, Math.round((data.rankingMoney.position / Math.max(1, data.rankingMoney.count)) * 100)) })}
                 </span>
               </div>
             </div>
@@ -338,7 +336,7 @@ export function HomePage() {
 
           <Button asChild variant="outline" className="w-full mt-2 font-syne font-bold text-xs h-10 rounded-xl">
             <Link href="/ranking">
-              Ver Classificação Completa <ArrowRight className="size-3.5 ml-1.5" />
+              {t('home.viewFullRanking')} <ArrowRight className="size-3.5 ml-1.5" />
             </Link>
           </Button>
         </Card>

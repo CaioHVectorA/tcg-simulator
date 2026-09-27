@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { LoaderSimple } from "@/components/loading-spinner";
 import { PackOpeningModal } from "@/components/pack-opening-modal";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 type ThematicLootboxDialogProps = {
   open: boolean;
@@ -46,6 +47,7 @@ export function ThematicLootboxDialog({
   onOpenChange,
   pack,
 }: ThematicLootboxDialogProps) {
+  const { t } = useTranslation();
   const user = useUser();
   const userMoney = user?.money || 0;
   const { post, loading } = useApi();
@@ -212,14 +214,14 @@ export function ThematicLootboxDialog({
               {loading ? (
                 <div className="flex items-center gap-2">
                   <LoaderSimple className="size-4" />
-                  <span>Forjando Pacote Especial...</span>
+                  <span>{t("common.loading")}</span>
                 </div>
               ) : userMoney < goldAmount ? (
-                <span>Saldo Insuficiente</span>
+                <span>{t("store.insufficientFunds")}</span>
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="size-4" />
-                  <span>Personalizar & Abrir Pacote ({goldAmount.toLocaleString("pt-BR")} Ouro)</span>
+                  <span>{t("store.customOpenAmount", { gold: goldAmount.toLocaleString() })}</span>
                 </div>
               )}
             </Button>

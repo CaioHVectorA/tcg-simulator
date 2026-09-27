@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/hooks/use-api";
 import { BoosterPackArt } from "./booster-pack-art";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export interface OpenedCard {
   id: number;
@@ -77,6 +78,7 @@ export function PackOpeningModal({
   preloadedCards,
 }: PackOpeningModalProps) {
   const { post, loading } = useApi();
+  const { t } = useTranslation();
   const qClient = useQueryClient();
   const isStandardPack = !pack.tcg_id || !pack.image_url || pack.image_url.includes("placeholder");
 
@@ -92,89 +94,27 @@ export function PackOpeningModal({
   const [summaryCountdown, setSummaryCountdown] = useState(0);
   const summaryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Background Prefetch Refs e Estado
-  const prefetchedCardsRef = useRef<OpenedCard[] | null>(null);
-  const prefetchPromiseRef = useRef<Promise<OpenedCard[]> | null>(null);
-  const [isPrefetching, setIsPrefetching] = useState(false);
-
-  // Inicialização e prefetch instantâneo ao abrir modal
+  // Inicialização ao abrir ou fechar modal
   useEffect(() => {
     if (isOpen) {
       if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
-
-      if (phase === "ready") {
-        if (preloadedCards && preloadedCards.length > 0) {
-          prefetchedCardsRef.current = preloadedCards;
-          preloadedCards.forEach((c) => {
-            if (c.image_url) {
-              const img = new Image();
-              img.src = loadTcgImg(c.image_url);
-            }
-          });
-        } else if (!prefetchedCardsRef.current && !prefetchPromiseRef.current && pack?.id) {
-          setIsPrefetching(true);
-          const promise = post("/packages/open", { packageId: pack.id })
-            .then((res) => {
-              const list = res.data.data || res.data || [];
-              prefetchedCardsRef.current = list;
-              // Pré-carrega imagens imediatamente no cache do browser
-              if (Array.isArray(list)) {
-                list.forEach((c: OpenedCard) => {
-                  if (c.image_url) {
-                    const img = new Image();
-                    img.src = loadTcgImg(c.image_url);
-                  }
-                });
-              }
-              return list;
-            })
-            .catch((err) => {
-              console.error("Falha no prefetch do pacote:", err);
-              return [];
-            })
-            .finally(() => {
-              setIsPrefetching(false);
-            });
-          prefetchPromiseRef.current = promise;
-        }
-      } else if (phase === "summary" && pack?.id && pack.quantity > 1) {
-        if (!prefetchedCardsRef.current && !prefetchPromiseRef.current) {
-          setIsPrefetching(true);
-          const promise = post("/packages/open", { packageId: pack.id })
-            .then((res) => {
-              const list = res.data.data || res.data || [];
-              prefetchedCardsRef.current = list;
-              if (Array.isArray(list)) {
-                list.forEach((c: OpenedCard) => {
-                  if (c.image_url) {
-                    const img = new Image();
-                    img.src = loadTcgImg(c.image_url);
-                  }
-                });
-              }
-              return list;
-            })
-            .catch(() => [])
-            .finally(() => setIsPrefetching(false));
-          prefetchPromiseRef.current = promise;
-        }
+      if (preloadedCards && preloadedCards.length > 0) {
+        preloadedCards.forEach((c) => {
+          if (c.image_url) {
+            const img = new Image();
+            img.src = loadTcgImg(c.image_url);
+          }
+        });
       }
     } else {
-      // Ao fechar o modal, sincroniza dados se algum pacote foi aberto
-      if (prefetchedCardsRef.current) {
-        qClient.invalidateQueries({ queryKey: ["packages"] });
-        qClient.invalidateQueries({ queryKey: ["user"] });
-        qClient.invalidateQueries({ queryKey: ["cards"] });
-      }
-      prefetchedCardsRef.current = null;
-      prefetchPromiseRef.current = null;
       setCards([]);
       setCurrentCardIndex(0);
       setIsFlipped(false);
+      setPhase("ready");
     }
-  }, [isOpen, phase, pack?.id, preloadedCards]);
+  }, [isOpen, preloadedCards]);
 
-  // Ação de rasgar o pacote
+  // Ação de rasgar o pacote (mutação acontece estritamente na ação explícita do usuário)
   const handleTearPack = async () => {
     if (phase !== "ready") return;
 
@@ -184,11 +124,7 @@ export function PackOpeningModal({
     try {
       let cardsGetted: OpenedCard[] = [];
 
-      if (prefetchedCardsRef.current && prefetchedCardsRef.current.length > 0) {
-        cardsGetted = prefetchedCardsRef.current;
-      } else if (prefetchPromiseRef.current) {
-        cardsGetted = await prefetchPromiseRef.current;
-      } else if (preloadedCards && preloadedCards.length > 0) {
+      if (preloadedCards && preloadedCards.length > 0) {
         cardsGetted = preloadedCards;
       } else {
         const res = await post("/packages/open", { packageId: pack.id });
@@ -267,8 +203,6 @@ export function PackOpeningModal({
   };
 
   const handleOpenAnother = () => {
-    prefetchedCardsRef.current = null;
-    prefetchPromiseRef.current = null;
     setCards([]);
     setCurrentCardIndex(0);
     setIsFlipped(false);
@@ -386,7 +320,7 @@ export function PackOpeningModal({
                     disabled={loading}
                     className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-8 py-6 text-lg rounded-2xl shadow-xl shadow-amber-500/20 group-hover:scale-105 transition-transform"
                   >
-                    <Sparkles className="size-5 mr-2" /> Rasgar e Abrir Pacote
+                    <Sparkles className="size-5 mr-2" /> {t("store.tearAndOpen")}
                   </Button>
                 </motion.div>
               )}
@@ -503,7 +437,7 @@ export function PackOpeningModal({
                         <PokemonCardBack />
                         <div className="absolute inset-0 bg-white/5 hover:bg-white/10 transition-colors flex items-end justify-center pb-6">
                           <span className="bg-slate-900/90 border border-amber-400/50 text-amber-300 font-bold text-xs px-3 py-1 rounded-full shadow-lg animate-bounce">
-                            👆 Clique para Revelar
+                            👆 {t("store.clickToReveal")}
                           </span>
                         </div>
                       </div>
@@ -665,7 +599,7 @@ export function PackOpeningModal({
                   onClick={handleRevealAll}
                   className="text-xs text-slate-400 hover:text-white"
                 >
-                  Revelar Todas Direto
+                  {t("store.revealAllDirect")}
                 </Button>
 
                 <div className="flex items-center gap-3">
@@ -674,7 +608,7 @@ export function PackOpeningModal({
                       onClick={handleFlipCard}
                       className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6"
                     >
-                      Virar Carta
+                      {t("store.flipCard")}
                     </Button>
                   ) : (
                     <Button
@@ -682,9 +616,9 @@ export function PackOpeningModal({
                       className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-6"
                     >
                       {currentCardIndex < cards.length - 1 ? (
-                        <>Próxima Carta <ArrowRight className="size-4 ml-1.5" /></>
+                        <>{t("store.nextCard")} <ArrowRight className="size-4 ml-1.5" /></>
                       ) : (
-                        <>Ver Resumo <CheckCircle2 className="size-4 ml-1.5" /></>
+                        <>{t("store.viewSummary")} <CheckCircle2 className="size-4 ml-1.5" /></>
                       )}
                     </Button>
                   )}
@@ -700,7 +634,7 @@ export function PackOpeningModal({
                   }}
                   className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20"
                 >
-                  <CheckCircle2 className="size-4 mr-2" /> Concluir e Ver Coleção
+                  <CheckCircle2 className="size-4 mr-2" /> {t("store.finishAndSeeCollection")}
                 </Button>
 
                 {/* Opções secundárias */}
@@ -711,7 +645,7 @@ export function PackOpeningModal({
                     className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
                   >
                     <Link href="/colecao" onClick={onClose}>
-                      Ver Coleção
+                      {t("nav.collection")}
                     </Link>
                   </Button>
                   {pack.quantity > 1 && (
@@ -722,7 +656,7 @@ export function PackOpeningModal({
                       }}
                       className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
                     >
-                      <RotateCcw className="size-3.5 mr-1.5" /> Abrir Outro ({pack.quantity - 1}x)
+                      <RotateCcw className="size-3.5 mr-1.5" /> {t("store.openAnotherBooster")} ({pack.quantity - 1}x)
                     </Button>
                   )}
                 </div>
@@ -730,7 +664,7 @@ export function PackOpeningModal({
             ) : (
               <div className="w-full flex justify-end">
                 <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">
-                  Fechar
+                  {t("common.close")}
                 </Button>
               </div>
             )}
