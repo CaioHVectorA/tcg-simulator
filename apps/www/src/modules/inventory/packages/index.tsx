@@ -23,6 +23,8 @@ export function InventoryPage({
       const res = await get("/packages");
       return res.data.data ?? res.data ?? [];
     },
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   return (

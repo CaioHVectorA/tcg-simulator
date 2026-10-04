@@ -25,7 +25,7 @@ export type RankingItem = {
 export function RankingView({ data }: { data?: RankingItem[] }) {
   const [tab, setTab] = useState<"rarity" | "budget">("rarity");
   const [isSyncing, setIsSyncing] = useState(false);
-  const { post } = useApi();
+  const { get, post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -38,11 +38,8 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
     queryKey: ["ranking", tab],
     queryFn: async () => {
       const endpoint = tab === "rarity" ? "/ranking/rarity" : "/ranking/budget";
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${endpoint}?page=1`
-      );
-      const json = await res.json();
-      return json?.data ?? [];
+      const res = await get(`${endpoint}?page=1`);
+      return res.data?.data ?? res.data ?? [];
     },
     staleTime: 60 * 1000,
   });

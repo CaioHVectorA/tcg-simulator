@@ -154,7 +154,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             password: hashed,
             username,
             money,
-            last_daily_bounty: yesterday,
+            last_daily_bounty: null,
             fromReferralId: referralId,
           },
         });
@@ -220,8 +220,6 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           }
         }
 
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
         const randomPass = await hash((Math.random() * 100_000_000).toFixed(6), 10);
         const emailSlug = finalName.toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -233,7 +231,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
             isGuest: true,
             authProvider: "guest",
             picture: picture || "/wallpaper.jpg",
-            last_daily_bounty: yesterday,
+            last_daily_bounty: null,
           },
           select: { id: true, username: true, isGuest: true },
         });

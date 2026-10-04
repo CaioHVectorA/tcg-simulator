@@ -12,7 +12,7 @@ import { swagger } from "./middlewares/swagger";
 import { bannerController } from "./controller/banner.controller";
 import { homeController } from "./controller/home.controller";
 import { staticPlugin } from "@elysiajs/static";
-import { RankingCron } from "./lib/ranking-cron";
+import { RankingCron, runRankingSync } from "./lib/ranking-cron";
 import { rankingController } from "./controller/ranking.controller";
 import { CardsCron } from "./lib/cards-cron";
 import { helmet } from "elysia-helmet";
@@ -119,7 +119,7 @@ export const server: Elysia = new Elysia({
   .use(notificationController)
   .use(albumController)
   .use(battleController)
-  // .use(cron(RankingCron()))
+  .use(cron(RankingCron()))
   .use(cron(CardsCron()))
   .use(cron(DiaryQuestsCron()))
   .use(
@@ -138,9 +138,4 @@ export const server: Elysia = new Elysia({
   });
 console.log("Server running");
 warmupCardsCache(prisma);
-//@ts-ignore
-// RankingCron().run();
-//@ts-ignore
-// CardsCron().run();
-//@ts-ignore
-// DiaryQuestsCron().run();
+runRankingSync();

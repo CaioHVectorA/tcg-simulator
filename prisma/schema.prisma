@@ -153,7 +153,7 @@ model User {
   createdAt                                        DateTime           @default(now())
   updatedAt                                        DateTime           @default(now()) @updatedAt
   money                                            Int                @default(500)
-  last_daily_bounty                                DateTime?          @default(now())
+  last_daily_bounty                                DateTime?
   last_entry                                       DateTime           @default(now())
   isAdmin                                          Boolean            @default(false)
   isGuest                                          Boolean            @default(false)

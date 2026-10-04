@@ -140,8 +140,19 @@ export function BatchOpeningModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[850px] p-0 border border-slate-800 bg-slate-950/98 backdrop-blur-2xl text-white font-syne overflow-hidden flex flex-col justify-between shadow-2xl">
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open && !inspectCard) {
+            onClose();
+          }
+        }}
+      >
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="max-w-5xl w-[95vw] h-[90vh] max-h-[850px] p-0 border border-slate-800 bg-slate-950/98 backdrop-blur-2xl text-white font-syne overflow-hidden flex flex-col justify-between shadow-2xl"
+        >
           <DialogHeader className="sr-only">
             <DialogTitle>Abertura de {quantityToOpen}x {pack.name}</DialogTitle>
           </DialogHeader>

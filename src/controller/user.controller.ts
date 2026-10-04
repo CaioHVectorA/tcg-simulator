@@ -590,14 +590,14 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .post(
       "/bounty",
       async ({ user, prisma, set }) => {
-        const last_bounty_date = new Date(
-          user.last_daily_bounty || new Date("2021-01-01")
-        );
+        const hasNeverClaimed = !user.last_daily_bounty;
         const now = new Date();
-        const diff = now.getTime() - last_bounty_date.getTime();
-        const diffDays = Math.floor(diff / (1000 * 3600 * 24));
+        const diffInMs = user.last_daily_bounty
+          ? now.getTime() - new Date(user.last_daily_bounty).getTime()
+          : 1000 * 60 * 60 * 24;
+        const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
 
-        if (diffDays < 1) {
+        if (!hasNeverClaimed && diffDays < 1) {
           set.status = 400;
           return errorResponse(
             "Você já coletou sua recompensa diária",
@@ -605,7 +605,7 @@ export const userController = new Elysia({}).group("/user", (app) => {
           );
         }
         const bountyAmount = Math.min(
-          500 * diffDays,
+          500 * Math.max(1, diffDays),
           20000 * (1 + Math.floor(user.daily_bounty_level / 10))
         );
         await prisma.user.update({
@@ -640,20 +640,25 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/bounty-time",
       async ({ user, set }) => {
-        const lastBountyDate = new Date(
-          user.last_daily_bounty || new Date("2021-01-01")
-        );
-        const diffInMs = new Date().getTime() - lastBountyDate.getTime();
+        const hasNeverClaimed = !user.last_daily_bounty;
+        const now = new Date();
+        const lastBountyDate = user.last_daily_bounty
+          ? new Date(user.last_daily_bounty)
+          : null;
+        const diffInMs = lastBountyDate
+          ? now.getTime() - lastBountyDate.getTime()
+          : 1000 * 60 * 60 * 24;
         const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
+        const canCollect = hasNeverClaimed || diffDays >= 1;
         const bountyAmount = Math.min(
-          500 * diffDays,
+          500 * Math.max(1, diffDays),
           20000 * (1 + Math.floor(user.daily_bounty_level / 10))
         );
         const oneDay = 1000 * 60 * 60 * 24;
         return sucessResponse({
-          time: lastBountyDate.toISOString(),
-          diff: oneDay - diffInMs,
-          canCollect: diffDays >= 1,
+          time: lastBountyDate ? lastBountyDate.toISOString() : null,
+          diff: canCollect ? 0 : Math.max(0, oneDay - diffInMs),
+          canCollect,
           bountyAmount,
         });
       },
@@ -672,16 +677,20 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .get(
       "/daily-road",
       async ({ user }) => {
-        const lastBountyDate = new Date(
-          user.last_daily_bounty || new Date("2021-01-01")
-        );
-        const diffInMs = new Date().getTime() - lastBountyDate.getTime();
+        const hasNeverClaimed = !user.last_daily_bounty;
+        const now = new Date();
+        const lastBountyDate = user.last_daily_bounty
+          ? new Date(user.last_daily_bounty)
+          : null;
+        const diffInMs = lastBountyDate
+          ? now.getTime() - lastBountyDate.getTime()
+          : 1000 * 60 * 60 * 24;
         const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
-        const canClaim = diffDays >= 1;
+        const canClaim = hasNeverClaimed || diffDays >= 1;
         const currentCycleDay = ((user.daily_bounty_level - 1) % 30) + 1;
         const completedCycles = Math.floor((user.daily_bounty_level - 1) / 30);
         const oneDay = 1000 * 60 * 60 * 24;
-        const nextDiff = Math.max(0, oneDay - diffInMs);
+        const nextDiff = canClaim ? 0 : Math.max(0, oneDay - diffInMs);
 
         return sucessResponse({
           currentDay: currentCycleDay,
@@ -707,14 +716,17 @@ export const userController = new Elysia({}).group("/user", (app) => {
     .post(
       "/daily-road/claim",
       async ({ user, prisma, set }) => {
-        const lastBountyDate = new Date(
-          user.last_daily_bounty || new Date("2021-01-01")
-        );
+        const hasNeverClaimed = !user.last_daily_bounty;
         const now = new Date();
-        const diffInMs = now.getTime() - lastBountyDate.getTime();
+        const lastBountyDate = user.last_daily_bounty
+          ? new Date(user.last_daily_bounty)
+          : null;
+        const diffInMs = lastBountyDate
+          ? now.getTime() - lastBountyDate.getTime()
+          : 1000 * 60 * 60 * 24;
         const diffDays = Math.floor(diffInMs / (1000 * 3600 * 24));
 
-        if (diffDays < 1) {
+        if (!hasNeverClaimed && diffDays < 1) {
           set.status = 400;
           return errorResponse(
             "Você já resgatou sua recompensa de hoje.",

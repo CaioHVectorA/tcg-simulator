@@ -121,10 +121,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           })
         );
 
-        return sucessResponse(
-          questsResponse,
-          "Suas missões foram atualizadas!"
-        );
+        return sucessResponse(questsResponse);
       })
 
       .get("/", async ({ user }) => {
@@ -203,17 +200,8 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           (q) => !EXCLUDED_QUEST_NAMES.some((ex) => q.Quest.name.toLowerCase().includes(ex))
         );
 
-        // Mapeia as queries em um array de Promises com cache e skip de finalizadas
+        // Mapeia as queries em um array de Promises paralelas com skip de finalizadas
         const queryPromises = questsUser.map(async (quest) => {
-          const cacheKey = `quest-${user.id}-${quest.quest_id}`;
-          if (questsCache.has(cacheKey)) {
-            //@ts-ignore
-            const [cachedQuest, lastUpdate] = questsCache.get(cacheKey);
-            if (new Date().getTime() - lastUpdate.getTime() < 30000) {
-              return cachedQuest;
-            }
-          }
-
           let queryRes: {
             mission_complete: boolean;
             progress: number | bigint;
@@ -252,7 +240,6 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
             isDiary: quest.Quest.isDiary,
           };
 
-          questsCache.set(cacheKey, [response, new Date()]);
           return response;
         });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 
@@ -34,6 +35,7 @@ export function CheckoutDialog({
   const { t } = useTranslation();
   const { kart, checkout, loading } = useKart();
   const user = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalCoins = kart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalItems = kart.reduce((acc, item) => acc + item.quantity, 0);
@@ -41,11 +43,14 @@ export function CheckoutDialog({
   const hasEnoughCoins = userBalance >= totalCoins;
 
   const handleConfirmPurchase = async () => {
-    if (!hasEnoughCoins || loading) return;
-    soundFx.playCardFlip();
-    // Fecha o modal imediatamente — checkout roda em background
-    onOpenChange(false);
-    checkout(() => {});
+    if (!hasEnoughCoins || isSubmitting || loading) return;
+    try {
+      setIsSubmitting(true);
+      soundFx.playCardFlip();
+      await checkout(onOpenChange);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -149,11 +154,20 @@ export function CheckoutDialog({
 
             <Button
               onClick={handleConfirmPurchase}
-              disabled={!hasEnoughCoins || loading}
+              disabled={!hasEnoughCoins || isSubmitting || loading}
               className="flex-1 h-11 text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all gap-1.5"
             >
-              <span>{t("store.confirmBuy")}</span>
-              <ArrowRight className="size-4" />
+              {isSubmitting || loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Processando...</span>
+                </>
+              ) : (
+                <>
+                  <span>{t("store.confirmBuy")}</span>
+                  <ArrowRight className="size-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>
