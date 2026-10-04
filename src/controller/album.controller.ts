@@ -288,6 +288,8 @@ export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
   },
 ];
 
+import { memoryCache, TTL } from "../lib/cache";
+
 export const albumController = new Elysia({}).group("/albums", (app) => {
   return app
     .decorate("prisma", prisma)
@@ -295,38 +297,62 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
     .use(jwt)
     .onBeforeHandle(getUserUserMiddleware as any)
     .get("/", async ({ user, prisma }) => {
-      // Get all cards owned by the authenticated user
-      const userCards = await prisma.cards_user.findMany({
-        where: { userId: user.id },
-        include: {
-          Card: true,
-        },
-      });
-
-      // Get all claimed albums by this user
-      const claims = await prisma.transaction.findMany({
-        where: {
-          user_id: user.id,
-          idempotencyKey: { startsWith: `album_claim_${user.id}_` },
-          status: "COMPLETED",
-        },
-      });
-      const claimedAlbumIds = new Set(
-        claims.map((c) => c.idempotencyKey.replace(`album_claim_${user.id}_`, ""))
-      );
-
-      // Pre-fetch sample cards from database for the target names
+      // 1. Busca cartas de referência do cache em memória (TTL: 1h)
       const allTargetNames = Array.from(
         new Set(OFFICIAL_ALBUMS.flatMap((a) => a.targetNames))
       );
-      
-      const referenceCards = await prisma.card.findMany({
-        where: {
-          OR: allTargetNames.map((name) => ({
-            name: { contains: name, mode: "insensitive" as const },
-          })),
+
+      const referenceCardsPromise = memoryCache.getOrSet(
+        "album_reference_cards",
+        async () => {
+          return prisma.card.findMany({
+            where: {
+              OR: allTargetNames.map((name) => ({
+                name: { contains: name, mode: "insensitive" as const },
+              })),
+            },
+            select: {
+              id: true,
+              name: true,
+              image_url: true,
+              rarity: true,
+            },
+          });
         },
-      });
+        TTL.ONE_HOUR
+      );
+
+      // 2. Executa as consultas do usuário e recupera o cache em paralelo
+      const [userCards, claims, referenceCards] = await Promise.all([
+        prisma.cards_user.findMany({
+          where: { userId: user.id },
+          select: {
+            Card: {
+              select: {
+                id: true,
+                name: true,
+                image_url: true,
+                rarity: true,
+              },
+            },
+          },
+        }),
+        prisma.transaction.findMany({
+          where: {
+            user_id: user.id,
+            idempotencyKey: { startsWith: `album_claim_${user.id}_` },
+            status: "COMPLETED",
+          },
+          select: {
+            idempotencyKey: true,
+          },
+        }),
+        referenceCardsPromise,
+      ]);
+
+      const claimedAlbumIds = new Set(
+        claims.map((c) => c.idempotencyKey.replace(`album_claim_${user.id}_`, ""))
+      );
 
       const albumsWithProgress = OFFICIAL_ALBUMS.map((album) => {
         const isClaimed = claimedAlbumIds.has(album.id);

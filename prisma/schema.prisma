@@ -213,6 +213,8 @@ model Trade {
   trade_requests trade_requests?
   userTrades     User_Trade[]
 
+  @@index([public, createdAt(sort: Desc)])
+  @@index([public, minRarity, maxRarity])
   @@map("trades")
 }
 
@@ -226,6 +228,9 @@ model User_Trade {
   Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
   User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([user_id])
+  @@index([trade_id])
+  @@index([trade_id, is_sender])
   @@map("user_trade")
 }
 
@@ -239,6 +244,9 @@ model Trade_Card {
   Card      Card     @relation(fields: [card_id], references: [id], onDelete: Cascade)
   Trade     Trade    @relation(fields: [trade_id], references: [id], onDelete: Cascade)
 
+  @@index([card_id])
+  @@index([trade_id])
+  @@index([trade_id, is_sender])
   @@map("trade_card")
 }
 
@@ -309,6 +317,7 @@ model User_Purchase {
   Package    Package? @relation(fields: [package_id], references: [id], onDelete: Cascade)
   User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([user_id])
   @@map("user_purchase")
 }
 
@@ -358,6 +367,8 @@ model QuestUser {
   Quest        Quest    @relation(fields: [quest_id], references: [id], onDelete: Cascade)
   User         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@unique([user_id, quest_id])
+  @@index([user_id])
   @@map("quest_user")
 }
 
@@ -371,6 +382,9 @@ model messages {
   viewed                            Boolean  @default(false)
   users_messages_receiver_idTousers User     @relation("messages_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
   users_messages_sender_idTousers   User     @relation("messages_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([receiver_id, viewed])
+  @@index([sender_id, receiver_id])
 }
 
 model money_donate {
@@ -382,6 +396,9 @@ model money_donate {
   updatedAt                             DateTime @default(now())
   users_money_donate_receiver_idTousers User     @relation("money_donate_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
   users_money_donate_sender_idTousers   User     @relation("money_donate_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([receiver_id])
+  @@index([sender_id])
 }
 
 model notifications {
@@ -393,6 +410,8 @@ model notifications {
   createdAt DateTime @default(now())
   viewed    Boolean  @default(false)
   users     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, viewed])
 }
 
 model trade_offer_cards {
@@ -403,6 +422,9 @@ model trade_offer_cards {
   updatedAt    DateTime     @default(now())
   cards        Card         @relation(fields: [card_id], references: [id], onDelete: Cascade)
   trade_offers trade_offers @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+
+  @@index([trade_id])
+  @@index([card_id])
 }
 
 model trade_offers {
@@ -414,6 +436,9 @@ model trade_offers {
   trade_offer_cards trade_offer_cards[]
   trades            Trade               @relation(fields: [trade_id], references: [id], onDelete: Cascade)
   users             User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([trade_id])
+  @@index([user_id])
 }
 
 model trade_requests {

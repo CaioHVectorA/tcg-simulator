@@ -68,58 +68,59 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
         }
         yield sucessResponse(null, "Suas missões foram atualizadas!");
       })
-      .post("/setup", async ({ user, set }) => {
-        const quests = await prisma.quest.findMany();
-        const questsUser = await prisma.questUser.findMany({
-          where: {
-            user_id: user.id,
-          },
-        });
-        if (questsUser.length === quests.length) {
-          return sucessResponse({ message: "All quests are already set up" });
-        }
-        for (const quest of quests) {
-          if (quest.isDiary) continue;
-          const exists = await prisma.questUser.findFirst({
-            where: { user_id: user.id, quest_id: quest.id },
-          });
-          if (exists) continue;
-          await prisma.questUser.create({
-            data: {
+      .post("/setup", async ({ user }) => {
+        const [quests, questsUser] = await Promise.all([
+          prisma.quest.findMany({ where: { isDiary: false } }),
+          prisma.questUser.findMany({
+            where: { user_id: user.id },
+            select: { quest_id: true },
+          }),
+        ]);
+
+        const existingQuestIds = new Set(questsUser.map((q) => q.quest_id));
+        const missingQuests = quests.filter((q) => !existingQuestIds.has(q.id));
+
+        if (missingQuests.length > 0) {
+          await prisma.questUser.createMany({
+            data: missingQuests.map((q) => ({
               user_id: user.id,
-              quest_id: quest.id,
-            },
+              quest_id: q.id,
+            })),
+            skipDuplicates: true,
           });
         }
+
         const questsUserUpdated = await prisma.questUser.findMany({
           where: { user_id: user.id },
           include: {
             Quest: true,
           },
         });
-        const questsResponse = [];
-        for (const quest of questsUserUpdated) {
-          const query = runQuery(
-            quest.Quest.queryCheck,
-            quest.Quest.levelGoals[quest.currentLevel],
-            user.id
-          );
-          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
-            mission_complete: boolean;
-            progress: number | bigint;
-          }[];
-          const response = {
-            name: quest.Quest.name,
-            description: quest.Quest.description[quest.currentLevel],
-            id: quest.Quest.id,
-            currentLevel: quest.currentLevel,
-            actualReward: quest.Quest.levelRewards[quest.currentLevel],
-            completed: queryRes.mission_complete,
-            progress: Number(queryRes.progress),
-            fullCompleted: quest.completed,
-          };
-          questsResponse.push(response);
-        }
+
+        const questsResponse = await Promise.all(
+          questsUserUpdated.map(async (quest) => {
+            const query = runQuery(
+              quest.Quest.queryCheck,
+              quest.Quest.levelGoals[quest.currentLevel],
+              user.id
+            );
+            const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
+              mission_complete: boolean;
+              progress: number | bigint;
+            }[];
+            return {
+              name: quest.Quest.name,
+              description: quest.Quest.description[quest.currentLevel],
+              id: quest.Quest.id,
+              currentLevel: quest.currentLevel,
+              actualReward: quest.Quest.levelRewards[quest.currentLevel],
+              completed: queryRes?.mission_complete ?? false,
+              progress: Number(queryRes?.progress ?? 0),
+              fullCompleted: quest.completed,
+            };
+          })
+        );
+
         return sucessResponse(
           questsResponse,
           "Suas missões foram atualizadas!"

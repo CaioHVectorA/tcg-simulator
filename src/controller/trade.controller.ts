@@ -96,11 +96,21 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           }),
         ]);
 
-        // Cartas que o usuário logado possui para calcular elegibilidade
-        const myUserCards = await prisma.cards_user.findMany({
-          where: { userId: user.id },
-          select: { cardId: true },
-        });
+        // Cartas que o usuário logado possui para calcular elegibilidade (busca apenas os IDs solicitados na página)
+        const requestedCardIds = Array.from(
+          new Set(
+            rawTrades.flatMap((t) =>
+              t.cards.filter((c) => !c.is_sender).map((c) => c.card_id)
+            )
+          )
+        );
+
+        const myUserCards = requestedCardIds.length > 0
+          ? await prisma.cards_user.findMany({
+              where: { userId: user.id, cardId: { in: requestedCardIds } },
+              select: { cardId: true },
+            })
+          : [];
         const myCardIds = new Set(myUserCards.map((c) => c.cardId));
 
         const formattedTrades = rawTrades.map((trade) => {
