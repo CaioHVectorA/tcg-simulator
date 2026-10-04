@@ -539,3 +539,320 @@ export function simulateBattle(
     rewardXp,
   };
 }
+
+/**
+ * Tipos e Estruturas para a Batalha Estilo Pokémon GO (Blefe 6 Leva 3)
+ */
+export interface GoCombatEvent {
+  roundIndex: number;
+  actor: "player" | "npc";
+  actorName: string;
+  type: "fast_attack" | "charged_attack" | "shield_used" | "switch" | "knockout";
+  moveName?: string;
+  damage?: number;
+  isEffective?: boolean;
+  isResisted?: boolean;
+  blockedByShield?: boolean;
+  playerHpAfter: number;
+  npcHpAfter: number;
+  playerEnergyAfter: number;
+  npcEnergyAfter: number;
+}
+
+export interface GoRoundResult {
+  roundIndex: number;
+  playerCard: any;
+  npcCard: any;
+  terrain: BattleTerrain;
+  winner: "player" | "npc";
+  playerInitialHp: number;
+  npcInitialHp: number;
+  playerFinalHp: number;
+  npcFinalHp: number;
+  events: GoCombatEvent[];
+}
+
+export interface GoBattleSimulationResult {
+  npc: {
+    id: string;
+    name: string;
+    title: string;
+    badge: string;
+    avatar: string;
+  };
+  terrain: BattleTerrain;
+  playerPicks: any[];
+  npcPicks: any[];
+  rounds: GoRoundResult[];
+  playerScore: number;
+  npcScore: number;
+  won: boolean;
+  rewardCoins: number;
+  rewardXp: number;
+  playerShieldsRemaining: number;
+  npcShieldsRemaining: number;
+}
+
+/**
+ * Simula um Combate Estilo Pokémon GO com Blefe (6 leva 3), Escudos e Ataques Carregados
+ */
+export function simulateGoBattle(
+  playerPicks: any[],
+  npcTrainer: NpcTrainer,
+  customNpcPicks?: any[]
+): GoBattleSimulationResult {
+  if (!Array.isArray(playerPicks) || playerPicks.length !== 3) {
+    throw new Error("Você precisa escolher exatamente 3 Pokémon para a batalha.");
+  }
+
+  // 1. NPC Seleciona seus 3 combatentes com base em IA tática contra o time do jogador
+  let npcPicks = customNpcPicks;
+  if (!npcPicks || npcPicks.length !== 3) {
+    // IA do NPC: Avalia o time de 6 do jogador e escolhe os 3 melhores counters
+    const availableNpcCards = [...npcTrainer.deck];
+    // Embaralha e seleciona os 3 mais fortes ou que possuem vantagem elemental
+    const scoredNpcCards = availableNpcCards.map((npcCard) => {
+      let score = (npcCard.rarity * 10) + ((npcCard.hp || 80) / 10);
+      const hasAdv = playerPicks.some((p) => hasTypeAdvantage(npcCard.type, p.type));
+      if (hasAdv) score += 20;
+      return { card: npcCard, score };
+    });
+
+    scoredNpcCards.sort((a, b) => b.score - a.score);
+    npcPicks = scoredNpcCards.slice(0, 3).map((s) => s.card);
+  }
+
+  // 2. Terreno da Batalha
+  const terrain =
+    BATTLE_TERRAINS.find((t) => t.id === npcTrainer.preferredTerrainId) ||
+    BATTLE_TERRAINS[0];
+
+  let playerShields = 2;
+  let npcShields = 2;
+  let playerScore = 0;
+  let npcScore = 0;
+
+  const rounds: GoRoundResult[] = [];
+
+  // 3. Execução dos 3 Duelos (Lead, Switch, Closer)
+  for (let roundIdx = 0; roundIdx < 3; roundIdx++) {
+    const playerCard = playerPicks[roundIdx];
+    const npcCard = npcPicks[roundIdx];
+
+    // Cálculo dos CPs e HPs
+    const playerCpResult = calculateCombatPower(playerCard, terrain, {
+      opponentCards: [npcCard],
+    });
+    const npcCpResult = calculateCombatPower(npcCard, terrain, {
+      opponentCards: [playerCard],
+    });
+
+    const playerMaxHp = Math.max(100, Math.floor((playerCard.hp || 80) * 1.5 + playerCpResult.totalCp * 0.4));
+    const npcMaxHp = Math.max(100, Math.floor((npcCard.hp || 80) * 1.5 + npcCpResult.totalCp * 0.4));
+
+    let pHp = playerMaxHp;
+    let nHp = npcMaxHp;
+    let pEnergy = 0;
+    let nEnergy = 0;
+
+    const events: GoCombatEvent[] = [];
+
+    // Vantagens de tipo
+    const playerHasAdv = hasTypeAdvantage(playerCard.type, npcCard.type);
+    const npcHasAdv = hasTypeAdvantage(npcCard.type, playerCard.type);
+
+    const playerFastDmg = Math.max(8, Math.floor((playerCpResult.baseCp + playerCpResult.hpBonus) * 0.18 * (playerHasAdv ? 1.3 : 1.0)));
+    const npcFastDmg = Math.max(8, Math.floor((npcCpResult.baseCp + npcCpResult.hpBonus) * 0.18 * (npcHasAdv ? 1.3 : 1.0)));
+
+    const playerChargedDmg = Math.max(35, Math.floor(playerCpResult.totalCp * 0.65 * (playerHasAdv ? 1.5 : 1.0)));
+    const npcChargedDmg = Math.max(35, Math.floor(npcCpResult.totalCp * 0.65 * (npcHasAdv ? 1.5 : 1.0)));
+
+    let turn = 0;
+    const maxTurns = 20;
+
+    while (pHp > 0 && nHp > 0 && turn < maxTurns) {
+      turn++;
+
+      // --- Turno do Jogador ---
+      pEnergy = Math.min(100, pEnergy + 25);
+      if (pEnergy >= 100) {
+        // Ataque Carregado do Jogador!
+        pEnergy = 0;
+        let blocked = false;
+        let dmg = playerChargedDmg;
+
+        // Decisão do NPC de usar escudo
+        if (npcShields > 0 && (nHp <= playerChargedDmg || playerHasAdv || Math.random() < 0.75)) {
+          npcShields--;
+          blocked = true;
+          dmg = 1; // Escudo absorve 99% do impacto
+          events.push({
+            roundIndex: roundIdx,
+            actor: "npc",
+            actorName: npcCard.name,
+            type: "shield_used",
+            playerHpAfter: pHp,
+            npcHpAfter: nHp,
+            playerEnergyAfter: pEnergy,
+            npcEnergyAfter: nEnergy,
+          });
+        }
+
+        nHp = Math.max(0, nHp - dmg);
+        events.push({
+          roundIndex: roundIdx,
+          actor: "player",
+          actorName: playerCard.name,
+          type: "charged_attack",
+          moveName: `${playerCard.name} Poder Supremo`,
+          damage: dmg,
+          isEffective: playerHasAdv,
+          blockedByShield: blocked,
+          playerHpAfter: pHp,
+          npcHpAfter: nHp,
+          playerEnergyAfter: pEnergy,
+          npcEnergyAfter: nEnergy,
+        });
+
+        if (nHp <= 0) break;
+      } else {
+        // Ataque Rápido do Jogador
+        nHp = Math.max(0, nHp - playerFastDmg);
+        events.push({
+          roundIndex: roundIdx,
+          actor: "player",
+          actorName: playerCard.name,
+          type: "fast_attack",
+          moveName: "Golpe Rápido",
+          damage: playerFastDmg,
+          isEffective: playerHasAdv,
+          playerHpAfter: pHp,
+          npcHpAfter: nHp,
+          playerEnergyAfter: pEnergy,
+          npcEnergyAfter: nEnergy,
+        });
+
+        if (nHp <= 0) break;
+      }
+
+      // --- Turno do NPC ---
+      nEnergy = Math.min(100, nEnergy + 25);
+      if (nEnergy >= 100) {
+        // Ataque Carregado do NPC!
+        nEnergy = 0;
+        let blocked = false;
+        let dmg = npcChargedDmg;
+
+        // Decisão do Jogador (simulação inteligente de uso de escudo se disponível)
+        if (playerShields > 0 && (pHp <= npcChargedDmg || npcHasAdv || Math.random() < 0.70)) {
+          playerShields--;
+          blocked = true;
+          dmg = 1;
+          events.push({
+            roundIndex: roundIdx,
+            actor: "player",
+            actorName: playerCard.name,
+            type: "shield_used",
+            playerHpAfter: pHp,
+            npcHpAfter: nHp,
+            playerEnergyAfter: pEnergy,
+            npcEnergyAfter: nEnergy,
+          });
+        }
+
+        pHp = Math.max(0, pHp - dmg);
+        events.push({
+          roundIndex: roundIdx,
+          actor: "npc",
+          actorName: npcCard.name,
+          type: "charged_attack",
+          moveName: `${npcCard.name} Fúria Lendária`,
+          damage: dmg,
+          isEffective: npcHasAdv,
+          blockedByShield: blocked,
+          playerHpAfter: pHp,
+          npcHpAfter: nHp,
+          playerEnergyAfter: pEnergy,
+          npcEnergyAfter: nEnergy,
+        });
+
+        if (pHp <= 0) break;
+      } else {
+        // Ataque Rápido do NPC
+        pHp = Math.max(0, pHp - npcFastDmg);
+        events.push({
+          roundIndex: roundIdx,
+          actor: "npc",
+          actorName: npcCard.name,
+          type: "fast_attack",
+          moveName: "Investida Veloz",
+          damage: npcFastDmg,
+          isEffective: npcHasAdv,
+          playerHpAfter: pHp,
+          npcHpAfter: nHp,
+          playerEnergyAfter: pEnergy,
+          npcEnergyAfter: nEnergy,
+        });
+
+        if (pHp <= 0) break;
+      }
+    }
+
+    const roundWinner = pHp >= nHp ? "player" : "npc";
+    if (roundWinner === "player") {
+      playerScore++;
+    } else {
+      npcScore++;
+    }
+
+    events.push({
+      roundIndex: roundIdx,
+      actor: roundWinner,
+      actorName: roundWinner === "player" ? playerCard.name : npcCard.name,
+      type: "knockout",
+      playerHpAfter: pHp,
+      npcHpAfter: nHp,
+      playerEnergyAfter: pEnergy,
+      npcEnergyAfter: nEnergy,
+    });
+
+    rounds.push({
+      roundIndex: roundIdx,
+      playerCard,
+      npcCard,
+      terrain,
+      winner: roundWinner,
+      playerInitialHp: playerMaxHp,
+      npcInitialHp: npcMaxHp,
+      playerFinalHp: pHp,
+      npcFinalHp: nHp,
+      events,
+    });
+  }
+
+  const won = playerScore > npcScore;
+  const rewardCoins = won ? npcTrainer.rewardCoins : Math.floor(npcTrainer.rewardCoins * 0.15);
+  const rewardXp = won ? npcTrainer.rewardXp : Math.floor(npcTrainer.rewardXp * 0.20);
+
+  return {
+    npc: {
+      id: npcTrainer.id,
+      name: npcTrainer.name,
+      title: npcTrainer.title,
+      badge: npcTrainer.badge,
+      avatar: npcTrainer.avatar,
+    },
+    terrain,
+    playerPicks,
+    npcPicks,
+    rounds,
+    playerScore,
+    npcScore,
+    won,
+    rewardCoins,
+    rewardXp,
+    playerShieldsRemaining: playerShields,
+    npcShieldsRemaining: npcShields,
+  };
+}
+

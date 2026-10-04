@@ -5,6 +5,7 @@ import {
   OpenPackage,
 } from "../lib/open-package";
 import type { Card, Package } from "@prisma/client";
+import { BoosterBufferService } from "./booster-buffer.service";
 
 export interface UserInventoryPackage {
   name: string;
@@ -345,7 +346,8 @@ export class PackageService {
       throw new Error("Pacote não encontrado");
     }
 
-    const cards = await OpenPackage(packageToOpen, prisma);
+    const preRolledCards = BoosterBufferService.getPreRolledPack(packageToOpen, prisma);
+    const cards = preRolledCards || (await OpenPackage(packageToOpen, prisma));
     const rarityPointsGain = this.calculateRarityPointsGain(cards);
 
     const txOps: any[] = [

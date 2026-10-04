@@ -33,6 +33,7 @@ import { wsManager } from "./lib/ws-manager";
 import { jwt } from "./middlewares/jwt/jwt";
 import { warmupCardsCache } from "./lib/open-package";
 import { prisma } from "./helpers/prisma.client";
+import { BoosterBufferService } from "./services/booster-buffer.service";
 //@ts-ignore
 export const server: Elysia = new Elysia({
   precompile: false,
@@ -138,4 +139,6 @@ export const server: Elysia = new Elysia({
   });
 console.log("Server running");
 warmupCardsCache(prisma);
+BoosterBufferService.initialize(prisma);
 runRankingSync();
+

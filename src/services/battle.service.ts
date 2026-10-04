@@ -323,6 +323,92 @@ export class BattleService {
   }
 
   /**
+   * Executa a batalha estilo Pokémon GO (Blefe 6 leva 3) com 2 escudos, ataques carregados e duelo de 3 rounds
+   */
+  static async fightNpcGo(
+    userId: number,
+    npcId: string,
+    selectedCardIds: number[],
+    locale: BackendLocale = "pt"
+  ) {
+    if (!Array.isArray(selectedCardIds) || selectedCardIds.length !== 3) {
+      throw new Error("Selecione exatamente 3 Pokémon para levar ao combate!");
+    }
+
+    const trainer = NPC_TRAINERS.find((n) => n.id === npcId);
+    if (!trainer) {
+      throw new Error(translate("battle.npcNotFound", locale));
+    }
+
+    // Busca as cartas selecionadas e valida posse do usuário
+    const ownedCards = await prisma.cards_user.findMany({
+      where: {
+        userId,
+        cardId: { in: selectedCardIds },
+      },
+      include: { Card: true },
+    });
+
+    const cardsMap = new Map<number, any>();
+    for (const oc of ownedCards) {
+      cardsMap.set(oc.cardId, oc.Card);
+    }
+
+    const playerPicks: any[] = [];
+    for (const cid of selectedCardIds) {
+      const card = cardsMap.get(cid);
+      if (!card) {
+        throw new Error("Uma das cartas selecionadas não foi encontrada no seu inventário.");
+      }
+      playerPicks.push(card);
+    }
+
+    // Revalidação de cartas em negociação
+    const tradeMarked = await prisma.tradeMarkedCard.findMany({
+      where: {
+        userId,
+        cardId: { in: selectedCardIds },
+      },
+    });
+
+    if (tradeMarked.length > 0) {
+      throw new Error("Uma das cartas selecionadas está marcada para troca no mercado!");
+    }
+
+    // Simula o combate Pokémon GO
+    const simulation = simulateGoBattle(playerPicks, trainer);
+
+    // Registra batalha e premiação
+    await prisma.$transaction(async (tx) => {
+      await tx.userBattleRecord.create({
+        data: {
+          userId,
+          npcId: trainer.id,
+          won: simulation.won,
+          playerScore: simulation.playerScore,
+          opponentScore: simulation.npcScore,
+          rewardCoins: simulation.rewardCoins,
+          rewardXp: simulation.rewardXp,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          money: { increment: simulation.rewardCoins },
+          rarityPoints: { increment: simulation.rewardXp },
+        },
+      });
+    });
+
+    const toastMessage = simulation.won
+      ? `Vitória Épica contra ${trainer.name}! (+${simulation.rewardCoins.toLocaleString()} Moedas & +${simulation.rewardXp} XP)`
+      : `Derrota contra ${trainer.name}. Recompensa de consolação: +${simulation.rewardCoins.toLocaleString()} Moedas.`;
+
+    return { simulation, toastMessage };
+  }
+
+  /**
    * Retorna o histórico recente de batalhas
    */
   static async getBattleHistory(userId: number, take: number = 10) {

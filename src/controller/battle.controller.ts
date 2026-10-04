@@ -91,6 +91,36 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
     )
 
     /**
+     * POST /battle/fight-go
+     * Executa a batalha estilo Pokémon GO (Blefe 6 leva 3) com 2 escudos e duelos de 3 rounds
+     */
+    .post(
+      "/fight-go",
+      async ({ user, body, headers, set }) => {
+        const locale = getLocaleFromHeaders(headers);
+        try {
+          const { npcId, selectedCardIds } = body;
+          const { simulation, toastMessage } = await BattleService.fightNpcGo(
+            user.id,
+            npcId,
+            selectedCardIds,
+            locale
+          );
+          return sucessResponse(simulation, toastMessage, locale);
+        } catch (error: any) {
+          set.status = 400;
+          return errorResponse(error.message, error.message, locale);
+        }
+      },
+      {
+        body: t.Object({
+          npcId: t.String(),
+          selectedCardIds: t.Array(t.Number()),
+        }),
+      }
+    )
+
+    /**
      * GET /battle/history
      * Retorna o histórico das últimas batalhas disputadas
      */
