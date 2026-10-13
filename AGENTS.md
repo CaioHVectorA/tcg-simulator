@@ -1,135 +1,89 @@
-# AGENTS.md — Guia de Desenvolvimento para Agentes de IA
+# AGENTS.md — Guia de trabalho
 
-> **Manual de Instruções, Regras de Negócio e Boas Práticas para Agentes Autônomos e Pair Programming**  
-> Repositório: **Pokémon TCG Simulator (`tcg-simulator` / `poke-tcg-center`)**  
-> Última atualização: **20 de Setembro de 2026**
+Atualizado em 13/10/2026. Repositório: `CaioHVectorA/tcg-simulator`.
 
----
+## Como usar a documentação
 
-## 1. Visão Geral e Filosofia do Projeto
+- `AGENTS.md`: regras para alterar o projeto.
+- `CONTEXT.md`: arquitetura, domínio, evidências e limites conhecidos.
+- `TODO.md`: prioridades e critérios de aceite para lançamento.
+- Documentos em `docs/`, `context.md` e `docs/todo.md` são referências históricas; não substituem os três arquivos acima. Havendo divergência, confira o código e registre a decisão.
+- Não declare uma funcionalidade pronta somente porque existe uma tela ou um teste. Diferencie implementação, verificação local e operação em produção.
 
-Você está atuando no repositório **Pokémon TCG Simulator**, uma aplicação fullstack de simulação de Pokémon TCG com colecionismo, economia gamificada, abertura de booster packs de alta fluidez, missões e mercado de trocas entre treinadores.
+## Produto e estrutura
 
-### Estrutura Monorepo:
-- **Backend (`./` na raiz):** API REST de alta performance construída em **Elysia.js** sob o runtime **Bun**, com persistência via **Prisma ORM** e banco de dados **PostgreSQL** (Supabase).
-- **Frontend (`apps/www`):** Aplicação web moderna construída em **Next.js 15** (App Router, React 18, Tailwind CSS, Radix UI, TanStack Query v5 e Framer Motion).
-- **Mobile (`apps/mobile`):** **Descontinuado e removido.** Não referencie nem tente restaurar arquivos em `apps/mobile`.
+SimTCG é uma experiência de colecionismo Pokémon com moedas virtuais, abertura de pacotes, missões, álbuns, trocas, social e batalhas próprias contra NPCs. Não implemente regras oficiais de TCG ou pagamentos reais por inferência.
 
----
+- API: `src/index.ts`, Bun, Elysia, Prisma 6 e PostgreSQL/Supabase.
+- Web: `apps/www`, Next.js 15 App Router, React 19 RC conforme manifests, Tailwind, Radix, TanStack Query v5 e Framer Motion. Confira versões resolvidas no lockfile.
+- Dados: `prisma/schema.prisma`, migrations e seeds; ferramentas em `widgets/`.
+- `apps/mobile` foi descontinuado e removido; não restaurar.
 
-## 2. Padrões Técnicos & Ferramentas
+## Fluxo de desenvolvimento
 
-### 2.1. Runtime e Gerenciador de Pacotes
-- **Sempre utilize `bun`** como runtime e gerenciador de pacotes padrão na raiz:
-  ```bash
-  bun install           # Instalar dependências
-  bun dev:all           # Iniciar backend (8080) e frontend (3000) concorrentes
-  bun test              # Executar suite completa de testes unitários
-  bun x prisma db push  # Sincronizar schema Prisma com o banco
-  ```
-- **No Frontend (`apps/www`):**
-  ```bash
-  cd apps/www
-  bun dev               # Iniciar Next.js dev server (porta 3000)
-  bun run build         # Validar build do Next.js
-  ```
-- ⚠️ **NUNCA** execute comandos com `yarn` ou `pnpm`. Evite `npm install` na raiz para não desconfigurar o monorepo do Bun.
+1. Confira `git status`, branch, upstream e instruções antes de editar. Faça fetch quando precisar comparar GitHub; preserve alterações existentes.
+2. Leia os controladores, serviços, consumidores e modelos relacionados à mudança.
+3. Faça a menor alteração coerente com o domínio. Não aproveite uma correção para trocar frameworks, renomear todas as tabelas ou expandir o produto.
+4. Valide os comportamentos afetados e atualize contexto/backlog quando o estado mudar.
+5. Informe o que foi executado, o que falhou e o que não foi verificado. Nunca transforme relatórios antigos em medições atuais.
 
----
+Use Bun; nunca yarn ou pnpm, e não use npm install na raiz:
 
-## 3. Regras de Negócio Fundamentais
-
-### 3.1. Reclassificação Rigorosa de Raridades
-- Cartas com mecânicas avançadas (**V**, **ex**, **EX**, **GX**) **NUNCA** podem ser classificadas como Comum (Tier 1) ou Rara (Tier 2). Devem ter raridade mínima $\ge 3$ (Épica).
-- Cartas **VMAX**, **VSTAR** e **Megas** devem ter raridade mínima $\ge 4$ (Mística) ou Tier 5 (Lendária/God Pull).
-
-### 3.2. Sistema de Trocas & Restrição de Decks de Batalha
-- O usuário escolhe quais cartas deseja disponibilizar no mercado marcando-as individualmente na sua Coleção (`trade_marked_cards` / model `TradeMarkedCard`).
-- O endpoint `/cards/my-tradeable` e a tela `/trocas` exibem **estritamente** cartas presentes em `trade_marked_cards` para o usuário autenticado.
-- **Regra de Batalha:** Cartas marcadas para troca **não podem** ser utilizadas na montagem de Decks para o modo Batalha.
-
-### 3.3. Economia Rebalanceada, Pacotes Temáticos & Revelação
-- A loja oferece exatamente 12 pacotes padrão clássicos organizados em ordem estrita de preço (de 100 até 42.000 moedas: Simples, Raro, Grande, Épicos, Iniciação, Lendário, Raro Kanto, Grande Épico, Tudo ou Nada, Vórtice Sombrio, Mítico Celestial, Tempestade Elemental), além de todos os pacotes temáticos da TCGDex.
-- Não utilizar divisões artificiais ("boosters supremos definitivos"); todos os pacotes padrão residem na seção "Pacotes Padrão".
-- A terminologia **"lootbox" está banida** da interface e das rotas públicas em favor de *"Pacote Temático Personalizado"*.
-- Pacotes personalizados possuem **teto obrigatório de 1.000.000 moedas (1M)** tanto no seletor do frontend quanto na validação do backend (`POST /packages/thematic-lootbox`), com escalonamento de volume de cartas (até 25) e chances de raridades míticas.
-- **Ordem Obrigatória de Revelação:** As cartas abertas de qualquer pacote devem ser sempre reveladas em **ordem crescente de raridade** (do menos raro para o mais raro: Tier 1 $\to$ Tier 5), preservando o suspense clássico do Pokémon TCG até a última carta.
-- **Identidade Visual de Boosters:** Pacotes temáticos utilizam o componente `BoosterPackArt` com acabamento metalizado e logo oficial (`logoUrl`), sem logos soltos em fundos vazios ou imagens de cartas distorcidas.
-- A navegação para a Loja é instantânea e tátil (0ms), utilizando TanStack Query (`useQuery`), esqueleto pulsante (`StoreSkeleton`) e `loading.tsx`, sem engasgos de SSR.
-
----
-
-## 4. Diretrizes do Backend (Elysia.js + Prisma)
-
-### 4.1. Padrão de Resposta Padronizada
-Todas as rotas da API devem seguir estritamente o contrato de resposta fornecido por `src/lib/mount-response.ts`:
-
-```typescript
-import { sucessResponse, errorResponse } from "../lib/mount-response";
-
-// Sucesso:
-return sucessResponse(data, "Mensagem opcional para toast no frontend");
-
-// Erro:
-set.status = 400; // ou 404, 401, 500
-return errorResponse("Mensagem de erro interna", "Mensagem para toast do usuário");
+```bash
+bun install --frozen-lockfile
+bun dev:all
+bun dev:back
+bun dev:front
+bun test
+bun run build
+cd apps/www && bun run build
 ```
 
-### 4.2. Estrutura de Rotas e Controladores
-- Os controladores ficam em `src/controller/*.controller.ts` e são registrados em `src/index.ts` usando `.use(meuController)`.
-- Use os schemas do Elysia (`t.Object`, `t.String`, `t.Number`, etc.) para validação de entrada e saída.
-- Sempre use o middleware JWT para rotas autenticadas:
-  ```typescript
-  .use(jwt)
-  .decorate("user", {} as User)
-  .onBeforeHandle(getUserUserMiddleware as any)
-  ```
+`bun run build` na raiz gera o bundle da API; não constrói o frontend. Verifique o resultado, pois `widgets/build.ts` atualmente apenas imprime falhas. Seeds e comandos Prisma que escrevem no banco exigem conhecer o ambiente alvo. Não execute `bun seed`, `prisma db push`, resets ou scripts de benchmark contra produção durante uma revisão. Em produção, use migrations revisadas e backup; `db push` serve somente para desenvolvimento controlado.
 
-### 4.3. Operações em Lote e Performance com Supabase PgBouncer
-- Evite loops sequenciais com `await prisma.model.findFirst()` dentro de coleções de usuários. Utilize conjuntos (`Set`), queries em lote (`findMany`) e inserções agregadas (`createMany({ skipDuplicates: true })`) para não estourar os limites de conexão do pooler.
+## Regras de negócio que devem permanecer
 
-### 4.4. Cuidado Crítico com Nomenclatura no Prisma
-- Algumas tabelas usam camelCase: `Cards_user.userId`, `Cards_user.cardId`, `Packages_User.userId`, `Packages_User.packageId`.
-- Outras tabelas usam snake_case: `User_Purchase.user_id`, `User_Purchase.card_id`, `QuestUser.user_id`, `QuestUser.quest_id`, `Trade_Card.user_id`.
-- Modelos recentes: `TradeMarkedCard` (`trade_marked_cards`) usa `userId` e `cardId`.
-- ⚠️ **Sempre confira `prisma/schema.prisma` antes de escrever queries.**
+- V, ex, EX e GX: raridade mínima Tier 3. VMAX, VSTAR e Mega: mínima Tier 4.
+- Revelação de qualquer pacote: raridade crescente, Tier 1 → 5, inclusive lote e buffer.
+- Loja: 12 pacotes padrão na seção “Pacotes Padrão”, em preço crescente, de 100 a 42.000 moedas: Simples, Raro, Grande, Épicos, Iniciação, Lendário, Raro Kanto, Grande Épico, Tudo ou Nada, Vórtice Sombrio, Mítico Celestial e Tempestade Elemental; temáticos separados por coleção TCGdex.
+- Use “Pacote Temático Personalizado” na interface. O endpoint legado `/packages/thematic-lootbox` existe; migrar nome público com compatibilidade, sem quebrar clientes.
+- Personalizado: mínimo 500, máximo 1.000.000 moedas, até 25 cartas; validar no backend e frontend.
+- Temáticos usam `BoosterPackArt` e `logoUrl`, acabamento metalizado e proporções preservadas.
+- `/cards/my-tradeable` e `/trocas`: somente cartas marcadas pelo usuário em `TradeMarkedCard`. Cartas marcadas ficam indisponíveis para batalha.
+- Deck tático atual: 6 cartas, teto 20 PR; modo GO tem seleção de 3 cartas. Validar posse, multiplicidade e elegibilidade no servidor ao salvar e ao lutar.
+- Resgate de álbum consome cópias da coleção. Exigir confirmação clara, transação e prevenção de resgate repetido; reconciliar decks, favoritos e negociação.
+- Moedas, recompensas e consumo de inventário são decisões do servidor. Débito e concessão precisam ser atômicos, resistentes a concorrência e repetição.
 
-### 4.5. Escopo de Usuário em Queries (Isolamento de Dados)
-- ⚠️ **MANDATÓRIO:** Nunca faça queries de recursos do usuário sem incluir o filtro do ID autenticado (`where: { userId: user.id }` ou `where: { user_id: user.id }`).
+## API, segurança e persistência
 
-### 4.6. Eliminação de Laços Sequenciais em Supabase PgBouncer
-- **NUNCA execute queries SQL sequenciais em laços `for`:** Com servidores em regiões distantes (ex: Supabase em `us-east-1` e cliente local no Brasil), a latência round-trip de 1.5s a 2s se multiplica por N queries.
-- Sempre utilize paralelização com `Promise.all(...)` ou agregação em uma única query SQL.
-- Tabelas com alto volume de consulta (`cards_user`, `packages_user`, `cards`) devem manter índices explícitos para colunas de filtro (`userId`, `cardId`, `opened`, `rarity`, `type`).
+- Controladores em `src/controller/`, registrados explicitamente em `src/index.ts`; serviços em `src/services/`, lógica pura em `src/lib/`.
+- Respostas de negócio usam `sucessResponse(data, toast)` e `errorResponse(error, toast)` de `src/lib/mount-response.ts`, com status HTTP coerente. O nome `sucessResponse` é o contrato existente.
+- Rotas privadas usam JWT e `getUserUserMiddleware`; valide parâmetros com schemas Elysia. Não copie casts `any` como padrão para código novo.
+- Dados privados precisam de escopo por ID autenticado. Recursos públicos e operações entre participantes exigem projeção e autorização explícitas; nunca confiar em userId enviado pelo cliente.
+- Confira nomes reais no schema: `Cards_user.userId/cardId`, `Packages_User.userId/packageId`, `User_Purchase.user_id/card_id`, `QuestUser.user_id/quest_id`, `TradeMarkedCard.userId/cardId`. `Trade_Card` usa `card_id/trade_id/is_sender`; o vínculo com usuário está em `User_Trade`.
+- Nunca retornar `password` ou objetos completos de usuário em respostas públicas/privadas. Use `select` e DTOs mínimos.
+- Nunca imprimir DATABASE_URL, tokens, senhas ou segredos. Não expor detalhes internos de exceções ao usuário.
+- Produção deve falhar ao iniciar sem segredos obrigatórios; não aceitar defaults `secret`/`TEST`. OAuth precisa de prova de identidade verificada no servidor. E-mail não concede privilégios: usar autorização administrativa explícita.
+- Quantidades, IDs e moedas são inteiros com limites. Checar saldo antes da transação não protege contra requisições simultâneas; condicione o débito e verifique contagens de atualização/consumo dentro da transação.
+- Evite SQL sequencial em loops: use agregação, `findMany`, `createMany` e concorrência limitada quando necessário. Não substitua N+1 por paralelismo ilimitado que esgote o pool.
+- Preserve índices e constraints; toda mudança de schema precisa de estratégia de migration, dados existentes e rollback.
+- Cache, buffers e WebSocket são locais ao processo. Não assumir coordenação entre máquinas ou execução confiável de cron com auto-stop.
 
----
+## Frontend e experiência
 
-## 5. Diretrizes do Frontend (Next.js 15 App Router)
+- `UserProvider` mantém `{children}` montados enquanto valida sessão; loading e erro são locais.
+- Telas interativas usam TanStack Query com chaves que incluam usuário/filtros quando aplicável. Mutação invalida todos os dados afetados, inclusive saldo e inventário.
+- Preserve navegação imediata, esqueletos locais, `loading.tsx` e prefetch da abertura, sem prometer latência de rede de 0ms ou adicionar delays de autenticação.
+- Ações de recompensa: feedback sonoro imediato via `soundFx`, loading no botão e prevenção de duplo clique; servidor continua sendo a garantia contra repetição.
+- Loja mantém popover informativo por pacote. Toast no canto superior direito (`top-4 right-4`); botões outline/ghost com texto explícito em claro e escuro.
+- Teste teclado, foco dos diálogos, mobile, estados vazios, falha de rede e redução de movimento em mudanças visuais.
+- i18n existente: `pt`, `en`, `es`, `jp`, `LanguageContext`, dicionários TS, cookie/localStorage `tcg_locale`, cabeçalhos `X-Locale`/`Accept-Language`. Não introduzir uma segunda arquitetura sem necessidade. `jp` interno corresponde a `ja` nos padrões externos.
 
-### 5.1. Contexto Global do Usuário Não-Bloqueante
-- O `UserProvider` (`apps/www/src/context/UserContext.tsx`) **nunca deve desmontar a árvore de componentes** ou substituir `{children}` por uma tela inteira de loading. As páginas devem carregar seus próprios layouts e esqueletos locais enquanto a sessão do usuário é validada em segundo plano.
-- Nunca adicione delays arbitrários (`setTimeout`) em interceptors de autenticação.
+## Critério de conclusão
 
-### 5.2. Preferência por Client Components com TanStack Query para Telas Interativas
-- Telas com filtros dinâmicos intensos (como `/colecao` e `/loja`) funcionam como Client Components utilizando `useQuery` com `staleTime`, oferecendo respostas imediatas a cliques, estados de shimmer suaves e sincronização de query params via `window.history.pushState` sem recarregamento ou congelamento de SSR.
-
-### 5.3. Abertura Otimizada de Pacotes
-- Aberturas individuais (`pack-opening-modal.tsx`) utilizam pré-carregamento em segundo plano (`prefetchPromiseRef`) e pré-carregamento durante a tela de resumo (`phase === "summary"`), eliminando congelamentos durante a transição do rasgo.
-
-### 5.4. Interatividade Tátil, Acessibilidade & Popovers
-- Ações críticas de resgate (como "Coletar Recompensa" em missões) devem disparar áudio imediato via `soundFx` e apresentar estado de carregamento local (`LoaderSimple`) no botão acionado.
-- Booster packs na Loja possuem botão informativo `(i)` com Popover do Radix UI contendo mini descrição e quantidade de cartas.
-- O `ToastViewport` do Radix UI deve ser mantido no canto superior direito (`top-4 right-4`) para jamais sobrepor o menu de carrinho flutuante no canto inferior direito.
-- Variantes de botão (`outline`, `ghost`, etc.) devem conter definições explícitas de cor de texto (`text-zinc-900 dark:text-zinc-50`) para prevenir botões brancos em fundo branco em tema claro.
-
----
-
-## 6. Checklist Antes de Finalizar Qualquer Tarefa
-
-1. [ ] **Tipagem TypeScript:** Nenhum `@ts-ignore` ou `any` adicionado desnecessariamente.
-2. [ ] **Isolamento de Tenant:** Todas as operações com dados de usuário filtram por `user.id`.
-3. [ ] **Consistência de Resposta:** Todas as novas rotas do backend usam `sucessResponse` ou `errorResponse`.
-4. [ ] **Tratamento de Erros:** Erros capturados com mensagens amigáveis no `toast` e logs claros no console.
-5. [ ] **Invalidação de Cache:** Ações que mudam dados no backend invalidam suas respectivas queries no TanStack Query.
-6. [ ] **Contraste Visual:** Testado em modo claro e escuro sem quebra de contraste.
-7. [ ] **Build Limpo:** `bun test` e `cd apps/www && bun run build` executam sem erros.
+- Sem novo `@ts-ignore`/`any` desnecessário; sem vazamento de dados entre usuários.
+- Respostas e erros coerentes, invalidação de cache e isolamento de ambiente.
+- Testes relevantes para segurança, concorrência e domínio; não duplicar a implementação num teste e chamar isso de integração.
+- Executar `bun test` e build web; validar build API quando afetado. Falhas devem ser explicitadas.
+- Mudanças visuais: claro/escuro e mobile verificados ou limitação relatada.
+- Deploy, migration e publicação não são consequência automática de editar documentação. Nunca subir `main` apenas para sincronizar, pois push dispara deploy.

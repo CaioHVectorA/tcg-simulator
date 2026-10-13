@@ -1,229 +1,99 @@
-# CONTEXT.md — Pokémon TCG Simulator (SimTCG)
+# CONTEXT.md — Estado e arquitetura do SimTCG
 
-> **Documento de Contexto Arquitetural, Domínio e Estado do Projeto**  
-> Última atualização: 13 de Setembro de 2026
+Revisão de 13/10/2026, baseada no código local, refs obtidas com `git fetch origin` e consultas ao GitHub. Este documento descreve evidências; não certifica produção.
 
----
+## Produto
 
-## 1. Visão Geral do Projeto
+O ciclo central é entrar → receber recursos iniciais → comprar/abrir pacotes → colecionar → cumprir missões/álbuns → ganhar moedas → trocar e batalhar → voltar para recompensas diárias. A experiência de abertura e o fichário são diferenciais visíveis. O combate é uma mecânica própria de NPCs, não um simulador integral das regras oficiais de Pokémon TCG.
 
-O **Pokémon TCG Simulator** (também identificado internamente como `poke-tcg-center` e `SimTCG`) é uma plataforma web fullstack gamificada para entusiastas de Pokémon Trading Card Game (TCG).
+Há landing page, cadastro/login por senha, convidado e conversão para conta permanente, integração Google, perfil/avatar, coleção/favoritos, inventário, loja e promoções, missões, recompensa diária, ranking, indicação, social/chat/notificações, trocas, álbuns e batalha. Presença de código não significa fluxo validado em produção.
 
-A proposta central do sistema é permitir que jogadores:
-1. **Colecionem cartas**: Mais de 1.000 cartas de diversas coleções de Pokémon TCG cadastradas no banco com atributos como raridade, HP, tipo e imagens em alta resolução.
-2. **Abram pacotes (Booster Packs)**: Simulação da abertura de boosters tradicionais e temáticos com probabilidades reais baseadas em faixas de raridade.
-3. **Gerenciem economia virtual**: Moedas obtidas através de recompensas diárias (*bounty* escalável), sistema de afiliados/indicações, missões e conquistas.
-4. **Cumpram missões**: Missões gerais multi-nível (metas cumulativas) e missões diárias rotativas validadas diretamente contra o banco de dados via consultas SQL analíticas.
-5. **Comprem na Loja**: Compra individual ou em lote de booster packs e ofertas promocionais relâmpago de cartas avulsas com precificação dinâmica via algoritmo.
-6. **Disputem Rankings**: Tabelas de classificação por Pontos de Raridade (soma de raridades obtidas), Patrimônio Financeiro (orçamento total) e Missões completadas.
-7. **Social & Trocas (Em desenvolvimento)**: Sistema de amizades, doação de moedas, notificações internas, chat de mensagens e mercado P2P de trocas (1x1 ou ofertas flexíveis).
+## GitHub e baseline
 
----
+- Repositório: https://github.com/CaioHVectorA/tcg-simulator
+- Branch revisada: `agents`, HEAD `047d094`, igual a `origin/agents` antes desta revisão documental.
+- `origin/main`: `e2b9320`; `agents` contém três commits adicionais: otimizações de banco/cache, fichário/resgate e buffer/mode GO. A diferença abrange 26 arquivos.
+- `origin/develop`: `8f125eb`, ancestral do HEAD local (36 commits de diferença); não há motivo para sobrescrever o trabalho com essa branch antiga.
+- Upstream local de `agents` apontava para `origin/main`; deve acompanhar `origin/agents`.
+- Nenhum PR aberto no momento da consulta. Issues abertas incluem itens já parcialmente implementados; títulos/IDs foram conferidos, sem encerrar issues automaticamente.
+- Os cinco últimos runs consultados de “Fly Deploy” falharam. No último, de 28/09/2026, o token de deploy chegou vazio: `no access token available`.
+- Evidência: https://github.com/CaioHVectorA/tcg-simulator/actions/runs/36367658589
 
-## 2. Estrutura do Repositório (Monorepo)
+## Mapa de responsabilidades
 
-O projeto é configurado como um monorepo gerenciado pelo **Bun** (`workspaces: ["apps/*", "./"]`):
+| Camada | Local | Papel |
+| --- | --- | --- |
+| Inicialização API | `src/index.ts` | CORS, JWT, helmet, Swagger, `/ping`, `/ws`, controladores e crons |
+| HTTP/domínio | `src/controller/*.controller.ts` | Autorização, validação, persistência e respostas |
+| Serviços | `src/services/` | Pacotes, batalha e buffer de sorteios |
+| Lógica e infraestrutura | `src/lib/` | Engine de batalha, sorteio, cache TTL, quests SQL, ranking, cron e WebSocket |
+| Persistência | `prisma/schema.prisma` | PostgreSQL com conexão pooler e `DIRECT_URL` para acesso direto |
+| Web | `apps/www/src/app/` | App Router, landing, login e páginas do grupo `(app)` |
+| UI e estado | `components/`, `modules/`, `context/`, `hooks/` na web | Aberturas, fichário, layout, API, sessão e cache cliente |
+| Idiomas | `apps/www/src/i18n/`, `src/i18n/` | Dicionários próprios e negociação de locale |
+| Operação | `Dockerfile`, `fly.toml`, `.github/workflows/`, `widgets/` | API no Fly, scripts locais/build/seed |
 
-```
-tcg-simulator/
-├── .github/                  # Workflows de CI/CD
-├── apps/
-│   └── www/                  # Frontend Next.js 15 (App Router)
-├── db/                       # Scripts e dados auxiliares de banco
-├── docs/                     # Documentações do projeto (ERD, todo.md original)
-├── prisma/                   # Schema Prisma, migrations e seeds
-│   ├── seed/                 # Scripts de população de cards, pacotes, missões e users
-│   ├── schema.prisma         # Schema central PostgreSQL
-│   └── prisma.config.ts      # Configuração Prisma v7+
-├── public/                   # Assets públicos do backend
-├── src/                      # Backend Elysia.js (Bun Runtime)
-│   ├── controller/           # Controladores de rota REST
-│   ├── helpers/              # Singletons (Prisma client) e constantes
-│   ├── lib/                  # Utilitários, rotinas de cron e lógica de negócio
-│   ├── middlewares/          # JWT e Swagger
-│   └── index.ts              # Ponto de entrada do servidor Elysia (porta 8080)
-├── tests/                    # Diretório de testes (atualmente vazio)
-├── widgets/                  # Scripts de build e automações Bun
-├── Dockerfile                # Configuração de container Docker
-├── fly.toml                  # Configuração de deploy no Fly.io (região gru)
-├── package.json              # Dependências raiz e scripts
-└── tsconfig.json             # Configuração TypeScript raiz
-```
+`area.controller.ts` existe, mas não é registrado em `src/index.ts`; a página `/areas` não comprova API operacional. Não há app mobile.
 
-> **Nota Histórica:** Existia anteriormente um app mobile em React Native (`apps/mobile`), que foi descontinuado e completamente removido no commit `49791e1` para concentrar esforços na aplicação Web.
+## Dados e invariantes
 
----
+`Card` e `Package` são catálogos. `Cards_user` e `Packages_User` representam cópias possuídas; quantidade é agregada sobre linhas, não um campo de saldo. `FavoriteCard` e `TradeMarkedCard` identificam o tipo de carta por usuário, não cada cópia individual.
 
-## 3. Tecnologias Utilizadas
+`User` concentra saldo e progressão; `rarityPoints` também recebe recompensas chamadas XP. `User_Purchase` guarda compras; `Transaction` tem chave única de idempotência usada, por exemplo, em resgate de álbum. Ter o modelo não significa que toda mutação seja idempotente.
 
-### 3.1. Backend (`/`)
-- **Runtime:** [Bun](https://bun.sh) (v1.1+) — execução ultra-rápida de TypeScript e gerenciador de pacotes nativo.
-- **Framework Web:** [Elysia.js](https://elysiajs.com) (v1.1.5) — framework web tipado e focado em performance para Bun.
-- **ORM & Banco:** [Prisma](https://www.prisma.io) (v6.16.2 / v7.2.0) conectando-se a um banco de dados **PostgreSQL** hospedado na **Supabase**.
-- **Autenticação:** JWT (`@elysiajs/jwt`) + `bcrypt` para hash de senhas e geração de usuários convidados (*guest*).
-- **Agendamento de Tarefas:** `@elysiajs/cron` para rotinas periódicas (rotação diária de cartas promocionais e missões diárias).
-- **Documentação da API:** `@elysiajs/swagger` gerando OpenAPI em `/swagger`.
-- **SDK Externo:** `@tcgdex/sdk` utilizado nos scripts de seed para importar cartas e expansões oficiais.
-- **Segurança & Infra:** `elysia-helmet`, `@elysiajs/cors`, `@grotto/logysia` para logs estruturados.
+Trocas envolvem `Trade`, `User_Trade`, `Trade_Card`, ofertas e solicitações. Social usa relações de amizade, mensagens, doações e notificações. Missões têm metas/recompensas por nível e `QuestUser` com vínculo único por usuário/missão. Decks são slots em `UserDeckCard`; resultados em `UserBattleRecord`.
 
-### 3.2. Frontend (`apps/www`)
-- **Framework:** [Next.js 15](https://nextjs.org) (App Router com React 18).
-- **Estilização:** [Tailwind CSS](https://tailwindcss.com) v3.4, `tailwindcss-animate`, variáveis CSS nativas e tipografia personalizada (`font-syne`).
-- **Componentes UI:** [Radix UI](https://www.radix-ui.com) primitives (Dialog, Sheet, DropdownMenu, Tabs, Toast, Progress, etc.), customizados no estilo shadcn/ui.
-- **Animações:** `framer-motion` (utilizado no carrinho flutuante, revelações de cartas especiais e transições).
-- **Gerenciamento de Estado de Servidor:** `@tanstack/react-query` v5 para cache, prefetch, sincronização e invalidação reativa.
-- **Requisições HTTP:** `axios` encapsulado em hooks personalizados (`useApi`, `useFetch`).
-- **Autenticação:** `next-auth` integrado para suporte a login social (Google) e persistência de sessão via cookies.
-- **Ícones:** `lucide-react` e `@radix-ui/react-icons`.
+Álbuns oficiais são definidos no controlador; resgate consome uma cópia por alvo, registra claim e concede moedas/pontos. Se acabam as cópias, limpa vínculos de favoritos, marcações e deck. Validar concorrência e negociação ativa permanece necessário.
 
----
+## Fluxos principais
 
-## 4. Arquitetura do Banco de Dados & Modelos
+- Autenticação: bcrypt + JWT próprio para API; NextAuth Google na web. Cadastro/convidado/Google tentam conceder cinco pacotes básicos e missões. Falhas nessas concessões são capturadas separadamente, podendo deixar onboarding incompleto.
+- Loja: `/store/data` é público; checkout privado consulta preços no servidor, cria compras/inventário e debita moedas. O campo `query.key` existe, mas não é usado para idempotência no handler.
+- Pacotes: `PackageService` compra e abre individualmente/em lote; personalizado aceita 500–1M e até 25 cartas. Sorteio usa pool por raridade; resultado é ordenado antes da resposta. Buffer pré-sorteia 20 aberturas por pacote e repõe em background; não elimina round-trips de persistência.
+- Coleção: catálogo/posse, favoritos e marcação de troca; consumidores cliente usam cache e filtros.
+- Batalha: modo tático usa seis cartas até 20 PR, três rotas, tipos/terrenos/sinergia. Modo GO recebe três cartas escolhidas e usa simulação própria; limites precisam de testes diretos do serviço. Não há PvP comprovado.
+- Missões/ranking: queries analíticas e crons; parte da cache e presença fica em memória. Reinício perde estado transitório.
+- Idiomas: português, inglês, espanhol e japonês já implementados em dicionários TS. Paridade de algumas chaves nos testes não comprova tradução completa, SEO localizado ou ausência de texto fixo.
 
-O banco de dados relacional PostgreSQL possui 21 tabelas mapeadas no Prisma:
+## Configuração e deploy
 
-```mermaid
-erDiagram
-    User ||--o{ Cards_user : "possui"
-    User ||--o{ Packages_User : "possui"
-    User ||--o{ User_Purchase : "compra"
-    User ||--o{ QuestUser : "progresso"
-    User ||--o{ Friend_User : "amizades"
-    User ||--o{ messages : "envia/recebe"
-    User ||--o{ notifications : "recebe"
-    User ||--o{ ReferrerProtocol : "cria"
-    User ||--o{ Referred : "indicado"
-    User ||--o{ User_Trade : "participa"
-    User ||--o| User_Ranking : "posição"
+| Variável | Consumidor | Observação |
+| --- | --- | --- |
+| `DATABASE_URL` | Prisma/API | PostgreSQL pooler; nunca logar |
+| `DIRECT_URL` | Prisma | Conexão direta para migrations |
+| `SECRET_JWT` | API | Atualmente tem fallback inseguro |
+| `CLIENT_URL` | CORS/API | Fallback atual permite origens amplas |
+| `PORT` | API | 8080 por padrão |
+| `NEXT_PUBLIC_API_URL` | Web | Fallback aponta para API Fly; configurar local/staging explicitamente |
+| `NEXTAUTH_SECRET`, `NEXTAUTH_URL` | NextAuth | Secret tem fallback; URL faz parte da configuração operacional |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | NextAuth | Há aliases legados `CLIENT_ID`/`SECRET_GOOGLE` |
+| `RESEND_KEY` | Ação de relatório | Remetente de teste e destinatário fixo no código |
+| `FLY_API_TOKEN` | GitHub Actions | Último run recebeu valor vazio |
 
-    Card ||--o{ Cards_user : "instanciado em"
-    Card ||--o{ Promotional_Cards : "em destaque"
-    Card ||--o{ Trade_Card : "em negociação"
-    Card ||--o{ trade_offer_cards : "em oferta"
-    Card ||--o{ User_Purchase : "comprado avulso"
+`.env.example` só documenta banco e conexão direta. Arquivos `.env`/`.env.local` não foram copiados nem seus valores expostos.
 
-    Package ||--o{ Packages_User : "instanciado em"
-    Package ||--o{ User_Purchase : "comprado"
+Docker instala dependências do workspace, gera Prisma e executa `src/index.ts`; não publica a web. `.dockerignore` não exclui explicitamente `.env*` e cópias SQLite. O workflow faz deploy ao push em `main`, sem job prévio de teste/build. `fly.toml` usa região `gru`, 1 GB e mínimo zero máquinas, sem check de readiness do banco nem etapa explícita de migration. Auto-stop exige decisão sobre crons e WebSocket.
 
-    Quest ||--o{ QuestUser : "associada"
-    Trade ||--o{ User_Trade : "participantes"
-    Trade ||--o{ Trade_Card : "cartas da troca"
-    Trade ||--o{ trade_offers : "ofertas de troca"
-    Trade ||--o| trade_requests : "solicitação direta"
-```
+As migrations versionadas vão até fevereiro de 2025, enquanto o schema possui modelos/índices posteriores. É necessário provar reconstrução de banco vazio e upgrade antes de deploy. Não se inferiu o estado do banco remoto nem se executaram seeds/migrations.
 
-### Principais Entidades:
-- **`User`**: Conta do jogador. Guarda saldo (`money`), `totalBudget` (para ranking monetário), `rarityPoints` (pontuação para ranking de colecionador), timestamp do último resgate (`last_daily_bounty`), nível de recompensa diária (`daily_bounty_level`), avatar (`picture`), status `isAdmin`, `isGuest` e provedor de autenticação (`email`, `google`, `guest`).
-- **`Card`**: Carta de Pokémon. Identificador TCG único (`card_id`), `name`, `image_url`, `rarity` (1=Comum, 2=Rara, 3=Épica, 4=Lendária, 5=Ultra/Full Art), `hp` e `type`.
-- **`Package`**: Booster pack. Guarda probabilidades de drop (`common_rarity`, `rare_rarity`, `epic_rarity`, `legendary_rarity`, `full_legendary_rarity`), `price`, `cards_quantity`, e `tcg_id` (se for pacote temático de uma expansão específica).
-- **`Packages_User` & `Cards_user`**: Tabelas de posse. `Packages_User` controla pacotes não abertos (`opened = false`), enquanto `Cards_user` armazena cada carta individual do inventário do usuário.
-- **`Quest` & `QuestUser`**: Sistema de missões. A `Quest` guarda um array de metas (`levelGoals: Int[]`), recompensas (`levelRewards: Int[]`), descrições por nível (`description: String[]`) e a query analítica parametrizada em SQL (`queryCheck`). `isDiary` e `isDiaryActive` determinam se é uma missão diária.
-- **`Trade`, `Trade_Card`, `User_Trade`, `trade_offers`, `trade_requests`**: Estrutura avançada de trocas entre jogadores com suporte a dinheiro na troca, ofertas parciais e pedidos diretos 1x1.
-- **`Promotional_Cards`**: Cartas promocionais exibidas na loja com desconto sobre o `original_price`, renovadas diariamente via cron.
-- **`ReferrerProtocol` & `Referred`**: Sistema de código de convite único com recompensa financeira ao resgatar convidados qualificados.
+## Riscos concretos encontrados
 
----
+1. `/auth/google` aceita email/nome/imagem sem verificar token Google ou sessão confiável; para conta Google existente, pode emitir JWT com base somente no email informado.
+2. `SECRET_JWT || "secret"` e `NEXTAUTH_SECRET || "TEST"`; logs de URL do banco e token de login.
+3. Privilégio de abertura/inventário ilimitado baseado em `admin@gmail.com` em `PackageService`, independente de `isAdmin`.
+4. `/user/me` retorna usuário completo, incluindo hash de senha; revisar outros DTOs também.
+5. Checkout aceita `quantity: t.Number()` sem inteiro positivo/teto. Quantidade negativa pode inverter o débito de moedas.
+6. Compras verificam saldo fora da transação; abertura consulta pacote disponível antes de consumi-lo. Corridas podem debitar além do saldo ou conceder duas aberturas. Transação sozinha não valida precondições concorrentes.
+7. `.dockerignore` permite entrada de arquivos de ambiente no contexto de build; bancos SQLite antigos são rastreados. Classificar conteúdo antes de remover e tratar eventual exposição.
+8. `fightNpcGo` resolve seleção via Map por cardId: IDs repetidos não revalidam quantidade de cópias e escolhas não são limitadas ao deck salvo.
+9. Domínios divergem: metadata usa `tcg-simulator.com`, tema NextAuth usa `tcgsim.com`, API usa Fly. Não foi comprovada titularidade/configuração desses domínios.
 
-## 5. Módulos Funcionais e Regras de Negócio
+## Verificação e limites
 
-### 5.1. Autenticação & Gestão de Usuários (`/auth`, `/user`)
-- **Login Convencional**: Email e senha com hash bcrypt.
-- **Modo Convidado (`/auth/guest`)**: Criação instantânea com 1 clique de usuário temporário com nome aleatório `Convidado {id}`, gerando token JWT de acesso imediato.
-- **Login Social Google (`/auth/google`)**: Autenticação OAuth que cadastra o usuário com foto e email do Google.
-- **Bounty Diário (`/user/bounty` & `/user/bounty-time`)**: Coleta diária de moedas a cada 24 horas. O valor escala com base no número de dias ausente e no nível acumulado (`daily_bounty_level`).
-- **Sistema de Amigos (`/user/friends`, `/user/requests`)**: Envio, aceitação, rejeição e remoção de amizades.
+`bun test`: 75 passaram, zero falhas, 13 arquivos descobertos. Parte dos testes replica regras localmente; não representa E2E HTTP, PostgreSQL real, OAuth ou concorrência. `tests/user.controller.ts` não segue o padrão `.test.ts` e não se deve assumir que foi executado.
 
-### 5.2. Loja & Carrinho Flutuante (`/store`, `/packages`, `apps/www/src/app/(app)/loja`)
-- **Vitrine Híbrida**: Pacotes normais (8 cartas, 16 cartas), pacotes temáticos de expansões (ex: XY, Sun & Moon) e cartas avulsas promocionais.
-- **Carrinho Flutuante Reativo (`kart-floating.tsx`, `use-kart.tsx`)**: Permite adicionar múltiplos boosters e cartas ao carrinho com persistência e checkout atômico em batch (`/store/checkout` com transação Prisma).
-- **Modal de Sucesso & Recompensa**: Feedback visual com animações comemorativas (`reward-modal.tsx`, `purchase-success-modal.tsx`).
+Build web passou: Next.js resolvido 15.5.25, compilação, checagem de tipos e geração de 23 páginas concluídas. Não foram feitos deploy, mudanças de banco, testes de carga, inspeção visual em browser ou auditoria integral de segurança. Relatório de performance de 04/10 é histórico, não medição desta revisão.
 
-### 5.3. Abertura de Pacotes (`/packages/open`, `/packages/open-packages`)
-- Ao abrir um booster:
-  1. O backend busca o pool de cartas correspondente (filtrando por `tcg_id` ou geral).
-  2. Um algoritmo sorteia as cartas baseado nas raridades configuradas no pacote.
-  3. O pacote em `packages_user` é marcado como `opened = true`.
-  4. As cartas sorteadas são inseridas em lote em `cards_user`.
-  5. Os `rarityPoints` do usuário são incrementados proporcionalmente às cartas obtidas.
+## Direção de lançamento
 
-### 5.4. Missões & Quests Engine (`/quests`)
-- Missões permanentes possuem vários níveis de progressão (ex: ter 10, 50, 100 cartas; ter 3, 5, 10 cartas de fogo).
-- Missões diárias rotacionam todos os dias às 10h da manhã (selecionando 3 missões ativas).
-- **Motor de Validação**: O backend executa o SQL salvo em `quest.queryCheck` substituindo `$GOAL` pela meta do nível atual e `$USER_ID` pelo ID do usuário autenticado. Se `mission_complete` retornar verdadeiro, o botão de resgate fica disponível.
-- O resgate (`PATCH /quests/get-reward/:id`) credita as moedas, incrementa `currentLevel` ou marca como `completed`.
-
-### 5.5. Rankings (`/ranking`)
-- **Ranking Geral de Raridade (`/ranking`)**: Ordenado por `rarityPoints DESC`.
-- **Ranking Financeiro (`/ranking/monetary`)**: Ordenado por `totalBudget DESC`.
-- **Ranking de Missões (`/ranking/quests`)**: Previsto para ranquear por missões concluídas.
-
----
-
-## 6. Infraestrutura, Scripts & Execução
-
-### Variáveis de Ambiente Necessárias
-```ini
-# Backend (.env)
-DATABASE_URL="postgresql://postgres:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
-JWT_SECRET="seu_jwt_secret"
-CLIENT_URL="http://localhost:3000"
-PORT="8080"
-
-# Frontend apps/www (.env.local)
-NEXT_PUBLIC_API_URL="http://localhost:8080" # ou URL de produção
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="seu_nextauth_secret"
-GOOGLE_CLIENT_ID="..."
-GOOGLE_CLIENT_SECRET="..."
-```
-
-### Comandos de Desenvolvimento
-```bash
-# Instalar dependências (na raiz)
-bun install
-
-# Iniciar servidor backend Elysia (porta 8080 com hot-reload)
-bun dev
-
-# Rodar seeds no banco de dados
-bun seed
-
-# Iniciar aplicação web Next.js 15 (porta 3000)
-cd apps/www
-bun dev
-```
-
----
-
-## 7. Diagnóstico Técnico: Pontos de Atenção & Bugs Identificados
-
-Durante a varredura profunda no código-fonte, foram identificados os seguintes problemas críticos que precisam de correção:
-
-1. **Bug de Probabilidade de Raridade no Sorteio de Boosters (`src/lib/open-package.ts`)**:
-   - No método `getRandomCardFromPackage`, a checagem `if (getted <= pkg.common_rarity) return "common"` seguida de `if (getted <= pkg.rare_rarity)` não é cumulativa. Se `common_rarity = 0.5` e `rare_rarity = 0.3`, qualquer número menor que 0.5 cai em "common", e números maiores que 0.5 são maiores que 0.3, logo nunca caem em "rare". É necessário usar faixas cumulativas de probabilidade acumulada (`cumulative distribution`).
-
-2. **Vazamento de Dados em Cartas Compradas na Loja (`src/controller/store.controller.ts`)**:
-   - O endpoint `GET /store/bought-promotional` executa `prisma.user_Purchase.findMany({ where: { card_id: { not: null } } })` sem filtrar por `user_id: user.id`. Logo, se um jogador comprar uma carta promocional, ela é exibida como já comprada para **todos** os usuários da plataforma.
-
-3. **Bug no Resgate do Gengar Especial (`src/controller/special.controller.ts`)**:
-   - A query `prisma.cards_user.findFirst({ where: { Card: { card_id: GENGAR_CARD_ID } } })` não filtra por `userId: user.id`. Apenas o primeiro jogador que resgatou o Gengar consegue a carta; para todos os demais jogadores o sistema retorna "Você já possui esse card!".
-
-4. **Crash em Potencial no Cron de Cartas Promocionais (`src/lib/cards-cron.ts`)**:
-   - Linha 5: `rarity = [Math.floor(Math.random() * 2), 2, 3, 4, 4, 5][index]`. Quando o índice é 0, a raridade pode ser sorteada como `0`. A função `getPrice(rarity)` acessa `weights[rarity - 1]`, resultando em `weights[-1]` (`undefined`), quebrando a execução do cron.
-   - Linha 22: O índice aleatório soma `firstId?.id || 1` a uma posição de array `cards[random]`, causando estouro de índice (`cards[random] = undefined`).
-
-5. **Colisão no Cache Global de Missões (`src/controller/quests.controller.ts`)**:
-   - O cache em memória utiliza como chave `quest-${quest.Quest.id}` sem incluir o `user.id`. Se o usuário A consultar suas missões e o usuário B consultar nos próximos 5 segundos, o usuário B recebe os dados e o progresso do usuário A.
-
-6. **URL da API Hardcoded no Frontend (`apps/www/src/lib/api.ts`)**:
-   - `const baseURL = "https://poke-tcg-center.fly.dev"` está fixado no código e comentado o localhost, impedindo testes locais contra o backend local sem alterar o arquivo manualmente. Deve usar `process.env.NEXT_PUBLIC_API_URL`.
-
-7. **Rotas Inexistentes no Menu do Usuário (`apps/www/src/components/header.tsx`)**:
-   - O menu do usuário aponta para `/perfil` e `/config`, mas nenhuma dessas rotas existe no App Router, gerando erro 404 ao clicar.
-
-8. **Tela de Trocas Incompleta (`apps/www/src/app/(app)/trocas/page.tsx`)**:
-   - A página de trocas apenas renderiza o componente `<LargeWip />` ("Funcionalidade em desenvolvimento"), embora o backend já possua um `trade.controller.ts` parcial (que também contém falha na criação de trocas sem os campos obrigatórios `name` e `hash`).
-
-9. **Dockerfile Desatualizado (`Dockerfile`)**:
-   - O Dockerfile tenta copiar `bun.lockb` e `package-lock.json` que foram removidos do repositório, e expõe a porta `3000` enquanto o `fly.toml` escuta na porta `8080`.
+O núcleo do produto já existe. O próximo marco é um beta confiável com aquisição mensurável: fechar os bloqueios P0, validar onboarding com pessoas reais, medir primeira abertura e retorno, e só então ampliar divulgação. Novos modos, idiomas e recursos não substituem confiabilidade do ciclo central.

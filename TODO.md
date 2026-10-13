@@ -1,138 +1,84 @@
-# TODO.md — Pokémon TCG Simulator
+# TODO.md — Do código ao beta com prospecção
 
-> **Backlog Estruturado de Tarefas, Roadmap e Especificações Técnicas**  
-> Última Atualização: **18 de Setembro de 2026**
+Atualizado em 13/10/2026. Backlog orientado por evidência do código e GitHub. Itens sem checkbox concluído ainda exigem trabalho/verificação. Estimativas comerciais abaixo são metas propostas, não resultados observados.
 
----
+## Diagnóstico
 
-## 🎯 Status Atual do Projeto: Estável & Expandido
+O produto tem um núcleo funcional amplo, mas ainda não está pronto para divulgação aberta. Segurança de autenticação, integridade econômica, migrations e operação precisam passar pelos critérios abaixo. A última tentativa automática de deploy falhou por token Fly ausente.
 
-### ✅ Entregas Concluídas Recentemente
-- [x] **Fluxo de Convidado Humanizado & Upgrade de Conta:**
-  - Suporte a nicknames personalizados e botão 🎲 de gerador de nomes aleatórios de treinador em `apps/www/src/app/entrar/page.tsx`.
-  - Endpoint `POST /auth/upgrade-guest` no backend (`auth.controller.ts`) mantendo 100% de cartas, pacotes, moedas, missões e histórico.
-  - Modal interativo de conversão de conta (`UpgradeAccountModal`) e selo de visitante no `HeaderMenu`.
-  - Bloqueio preventivo de recursos sociais (amigos, chat, trocas) para visitantes com feedback visual amigável (`GuestRestrictionCard`).
-- [x] **Sistema de Customização de Avatar de Treinador:**
-  - Modal `AvatarPickerModal` integrado ao perfil (`perfil/page.tsx`) com 3 opções:
-    - Galeria de 16 Pokémon e Treinadores icônicos (PokeAPI official artwork).
-    - Seleção de arte de qualquer carta pertencente à coleção do usuário.
-    - URL personalizada com pré-visualização ao vivo em moldura circular.
-  - Endpoint `PATCH /user/profile` recebendo `picture` e invalidando cache global do usuário.
-- [x] **Animações de Abertura Imersiva & Celebração God Pull (Tier 5):**
-  - Sequência cinematográfica em tela cheia `MaxRarityCelebration` com rotação de raios solares, anéis de energia, aura cósmica, partículas e tilt 3D interativo da carta.
-  - Motor sonoro sintetizado via Web Audio API (`sound-fx.ts`): novos métodos `playMaxRarityAura()` e `playGodPullFanfare()`.
-  - Efeito de suspense (aura pulsante no verso da carta) em `pack-opening-modal.tsx` e `pack-open-view.tsx`.
-- [x] **Suite de Testes Unitários com Bun:**
-  - 15 testes unitários (`tests/auth.test.ts`, `tests/cache.test.ts`, `tests/mount-response.test.ts`, `tests/open-package.test.ts`, `tests/user.controller.ts`) passando 100% em ~250ms via `bun test` ou `bun run test`.
-  - Correção de bug no sorteio de raridade (`src/lib/open-package.ts`): uso de `??` (nullish coalescing) e fallback seguro para pools não vazios.
-- [x] **Script de Desenvolvimento Concorrente:**
-  - `bun dev:all` (`widgets/dev-all.ts`) executando backend (porta 8080) e frontend (porta 3000) simultaneamente com logs prefixados coloridos e dashboard no terminal.
-- [x] **Mapeamento Completo de Bibliotecas, APIs e Issues:**
-  - `docs/libraries-and-apis.md`: detalhamento do runtime Bun, Elysia, Next 15, TCGdex SDK/CDN e motor de áudio.
-  - `docs/issues.md` e `issues.md`: triagem das 77 issues do repositório GitHub.
+## P0 — Bloqueios antes de disponibilizar o beta
 
----
+- [ ] **Verificar identidade Google no backend.** `src/controller/auth.controller.ts`: substituir confiança em email por ID token verificado ou ponte autenticada de servidor. Aceite: token falso/expirado, emissor/audience incorretos e email arbitrário não emitem JWT; fluxo legítimo e indicação continuam funcionando.
+- [ ] **Eliminar defaults e exposição de segredos.** JWT/NextAuth devem exigir secrets em produção; remover logs de DATABASE_URL/token e sanitizar erros. Aceite: boot falha com configuração incompleta, logs não revelam credenciais e origens CORS são explícitas. Avaliar rotação dos segredos que possam ter sido expostos.
+- [ ] **Remover privilégios por email.** `PackageService`: usar autorização por `isAdmin` e controles explícitos. Aceite: cadastrar `admin@gmail.com` não concede inventário ou aberturas ilimitadas.
+- [ ] **Respostas de usuário com projeção segura.** `/user/me` e demais handlers: DTO sem senha/hash, campos internos ou dados privados de terceiros. Aceite: testes HTTP verificam payloads e escopo de usuário.
+- [ ] **Corrigir multiplicidade no modo GO.** `fightNpcGo` usa Map por cardId e aceita IDs repetidos sem contar cópias; também não exige vínculo das escolhas com o deck salvo. Aceite: uma única cópia não pode ocupar três posições e a seleção obedece à regra de produto definida para o modo.
+- [ ] **Validar quantidades e limites.** Checkout/pacotes/doações: inteiros positivos, limite por pedido, IDs válidos, moedas finitas. Aceite: zero, negativos, frações, grandes volumes e itens repetidos não criam saldo/inventário indevido.
+- [ ] **Proteger economia contra concorrência/replay.** Débito condicional e consumo verificável dentro da transação; aplicar idempotência vinculada ao usuário/operação. Aceite: duas aberturas simultâneas do mesmo pacote concedem uma; compras simultâneas não deixam saldo negativo; retry retorna resultado consistente. Cobrir também recompensas, trocas, doações, álbuns e batalhas.
+- [ ] **Reproduzir schema com migrations.** Comparar migrations com modelos/índices atuais e criar evolução revisada. Aceite: PostgreSQL vazio e cópia de staging chegam ao mesmo schema via `prisma migrate deploy`, com backup/restauração ensaiados. Não usar `db push` como solução de produção.
+- [ ] **Fechar contexto Docker.** Excluir `.env`, `.env.*` mantendo exemplo quando necessário, bancos locais e artefatos indevidos; revisar SQLite rastreado. Aceite: imagem/contexto sem credenciais nem dados privados, install com lockfile e imagem construída em CI.
+- [ ] **Restabelecer deploy e separar ambientes.** Configurar `FLY_API_TOKEN` no GitHub com escopo adequado, secrets da API/web e alvo staging. Aceite: deploy staging verde, web e API acessíveis por HTTPS, URLs/OAuth/CORS corretos. Evidência do bloqueio: https://github.com/CaioHVectorA/tcg-simulator/actions/runs/36367658589
+- [ ] **CI antes de release.** Testes Bun, build web/API e validação Prisma em PR; corrigir exit code do build API em falha; proteger branch de release. Aceite: teste ou build quebrado impede promoção.
 
-## 🚨 Prioridade 0: Débito Técnico & Alinhamento de Infraestrutura
+## P1 — Operação e qualidade do beta
 
-- [x] **Alinhar Dockerfile com arquitetura Bun e Fly.io**
-  - *Arquivo:* `Dockerfile` e `.dockerignore`
-  - *Ação:* Atualizado `COPY bun.lockb` para `bun.lock*` e incluído `apps/www/package.json` para resolução de workspaces do Bun com `.dockerignore` otimizado.
-- [ ] **Refatorar inconsistência de Foreign Keys no Prisma**
-  - *Arquivo:* `prisma/schema.prisma`
-  - *Ação:* Padronizar camelCase ou snake_case em migração controlada (`Cards_user.userId` vs `User_Purchase.user_id`).
-- [ ] **Deduplicação de missões redundantes no seed (#67)**
-  - *Arquivo:* `prisma/seed/quests.ts`
-  - *Ação:* Remover missões com critérios duplicados ou IDs conflitantes.
+- [ ] **Runbook de release.** Escolher hospedagem web, domínio canônico e API; documentar responsáveis, variáveis, migrations, smoke test, rollback, backups e suporte. Unificar domínios de SEO/NextAuth/links.
+- [ ] **Readiness e monitoramento.** Distinguir liveness de banco/cache pronto, registrar erros sem dados sensíveis e criar alertas úteis. Aceite: falha de banco/deploy é detectada e há procedimento de recuperação.
+- [ ] **Crons e estado em memória.** Definir instância sempre ativa ou agendador externo; garantir execução única dos jobs e estratégia de WebSocket/cache em múltiplas instâncias. Aceite: missões/promoções/ranking funcionam após reinício e inatividade.
+- [ ] **Onboarding recuperável.** Garantir cinco pacotes iniciais e quests sem estado parcial silencioso; revisar criação concorrente/normalização e unicidade de contas. Aceite: falha no meio do cadastro pode ser recuperada sem bônus duplicado.
+- [ ] **E2E em staging isolado.** Cadastro/convidado → abertura → compra → missão → troca entre duas contas → batalha → álbum → conversão de conta. Cobrir sessão expirada, rede indisponível, autorização e repetição. Evitar banco real de produção.
+- [ ] **Batalhas novas.** Testes do serviço e HTTP para modo GO, repetição de IDs, posse/marcação, escolha de três dentro da regra de seis, recompensas e abuso de chamadas. Não assumir cobertura por testes do modo antigo.
+- [ ] **Álbuns e negociação.** Confirmar consumo em UI, excluir cartas reservadas quando aplicável e revalidar multiplicidade do deck após consumo/troca. Aceite: colecionar não corrompe oferta ou deck e resgate concorrente não duplica prêmio.
+- [ ] **UX com evidência visual.** Mobile/desktop, claro/escuro, teclado/foco, movimento reduzido, imagens/avatar, estados vazios e rede lenta; evitar engasgos de abertura e checkout. Registrar cenários e resultados.
+- [ ] **Carga representativa.** Medir p50/p95, taxa de erros, pool PostgreSQL e memória no pico de abertura/quest; limitar aquecimento do buffer e queries paralelas. Definir metas com base nas medições, sem prometer 0ms de rede.
+- [ ] **Recuperação de conta e suporte.** Fluxo seguro de recuperação, email transacional configurado, tratamento de erros Resend e canal de feedback. Validar remetente e resposta do provedor.
+- [ ] **Compatibilidade de dependências.** Revisar React RC/tipos React 18, runtime e versões resolvidas; registrar avaliação de vulnerabilidades atualizada antes de release.
+- [ ] **Áreas.** Decidir registrar e validar `areaController` ou sinalizar funcionalidade indisponível sem chamadas quebradas. Hunting/Safari permanece expansão de produto.
 
----
+## P1 — Prospecção: transformar visita em jogador que volta
 
-## 🎮 Prioridade 1: Economia e Gameplay Avançado
+- [ ] **Posicionamento honesto.** Landing explica coleção, abertura e batalha própria; CTA claro para experimentar como convidado. Explicitar moedas virtuais e caráter independente do projeto.
+- [ ] **Medição do funil.** Eventos propostos: `landing_view`, `guest_created`, `first_pack_opened`, `account_upgraded`, `first_trade_completed`, `first_battle_completed`, `daily_reward_claimed`, `return_d1`, `return_d7`. Definir deduplicação, origem de campanha e privacidade. Vercel Analytics existente não comprova esse funil.
+- [ ] **Beta inicial acompanhado.** Meta proposta: 20–30 participantes com perfil de colecionador. Preparar roteiro curto, canal de feedback e registro de problemas; priorizar conclusão da primeira abertura sem ajuda.
+- [ ] **Retenção antes de volume.** Medir tempo até primeira abertura, conversão convidado→conta, retorno D1/D7 e motivos de abandono. Definir metas a partir da primeira coorte; não inventar taxa de sucesso.
+- [ ] **Material de divulgação.** Demo curta da abertura/fichário, capturas reais, página compartilhável e convite rastreável. Preparar conteúdos e lista de comunidades/criadores; contato externo depende de escopo autorizado.
+- [ ] **SEO consistente.** Domínio real, canonical por página, robots/sitemap, preview social com imagem e idiomas coerentes com URL/cookie. Evitar canonical da landing em todas as páginas e validar `?lang=` de fato.
+- [ ] **Preparação de confiança.** Revisar termos/privacidade, uso de artes/marcas/dados TCGdex e tratamento de público menor de idade com profissionais adequados antes de divulgação ampla ou monetização. Esta revisão não confirma direitos/licenças.
+- [ ] **Release gradual.** Abrir convites após P0 e smoke test; acompanhar a primeira coorte, corrigir incidentes e só ampliar tráfego com operação estável. Não investir em aquisição paga antes de entender ativação/retenção.
 
-- [ ] **Sistema de Caça / Safari Zone — Hunting System (#52)**
-  - *Descrição:* Área especial onde cartas selvagens raras aparecem periodicamente. O jogador consome "Iscas" ou "Safari Balls" obtidas em missões para tentar capturá-las com taxa de captura dinâmica baseada em raridade e HP.
-- [ ] **Compra direta de cartas promocionais (#63)**
-  - *Descrição:* Permitir que o jogador adquira cartas promocionais em destaque na loja diretamente por moedas ou insígnias, sem depender de pacotes.
-- [ ] **Modo de Batalha de Decks TCG (PVP/PVE)**
-  - *Descrição:* Construtor de Decks (mínimo 60 cartas) e motor de regras simplificado por turnos contra IA ou treinadores amigos.
+## P2 — Evolução após validar o beta
 
----
+- [ ] Binder/coleção pública compartilhável, com consentimento e sem dados privados.
+- [ ] Filtros adicionais somente após identificar necessidade; revisar o que já existe (#66).
+- [ ] Hunting/Safari (#52), PvP e novas mecânicas: especificação própria após validação do ciclo atual.
+- [ ] Francês/alemão e revisão editorial completa; manter a arquitetura i18n existente até haver motivo comprovado para migrar.
+- [ ] Padronização de nomes Prisma apenas se trouxer benefício, com migration compatível; não bloqueia beta por estética.
 
-## 🎴 Prioridade 2: Colecionismo e Recursos Sociais
+## Reconciliação com issues do GitHub
 
-- [ ] **Filtros Avançados na Coleção (#66)**
-  - *Descrição:* Filtros combinados por Coleção/Série (Base Set, Scarlet & Violet), tipo elemental (Fogo, Água, etc.), HP mínimo/máximo e filtro "Apenas Repetidas" para reciclagem em lote.
-- [ ] **Compartilhamento Público de Pasta / Binder Virtual (#44)**
-  - *Descrição:* Rota pública compartilhável (`/binder/:username` ou `/colecao/:id`) com visualização de fichário folheável para exibir coleções em redes sociais.
-- [ ] **Menu Lateral / Sidebar Moderna (#48)**
-  - *Descrição:* Implementar barra de navegação retrátil lateral para telas médias/grandes (desktop), mantendo menu inferior no mobile.
-- [ ] **Senha opcional para usuários Convidado e Google (#49)**
-  - *Descrição:* Permitir que contas migradas adicionem uma senha segura para permitir login tradicional por email/senha em qualquer dispositivo.
+Consulta de 13/10/2026. Não encerrar sem validar o escopo original e anexar evidência:
 
----
+| Issues | Evidência atual / próximo passo |
+| --- | --- |
+| #1 testes | 75 testes descobertos; falta integração real e CI |
+| #2 / #70 WebSocket | `/ws` e manager presentes; validar reconnect, autorização e múltiplas instâncias |
+| #5 favoritos | `FavoriteCard` e endpoint presentes; validar fluxo |
+| #11 batalhas | NPC tático e GO presentes; escopo oficial/PvP não entregue |
+| #55 / #56 social/trocas | Código presente; confirmar fluxo entre contas e concorrência |
+| #63 promocionais | Checkout compra cartas; backlog antigo estava desatualizado |
+| #64 resgate em lote | `/quests/claim-all` presente; validar atomicidade |
+| #67 missão completada | Título real trata persistência de conclusão, não deduplicação de seed |
+| #73–#77 i18n/deploy | Dicionários próprios presentes; tradução completa e deploy ainda exigem validação |
+| #60 / #61 / #72 | Reproduzir diária, Google+indicação e estado de promoção antes de fechar |
 
-## 🌐 Prioridade 3: Internacionalização Completa (i18n)
-*(Planejado e documentado — **NÃO IMPLEMENTAR CÓDIGO** até aprovação final)*
+## Evidências desta revisão
 
-### Visão Geral da Arquitetura de i18n
-O simulador já utiliza dados de cartas do **TCGdex**, que nativamente possui suporte a múltiplos idiomas (`/pt/`, `/en/`, `/es/`, `/ja/`, `/fr/`, `/de/`). A internacionalização tornará a plataforma 100% acessível para a comunidade global de Pokémon TCG.
+- [x] Fetch e comparação de main/agents/develop, issues, PRs e runs.
+- [x] Mapeamento de arquitetura, modelos, fluxos, configuração e riscos; reescrita documental.
+- [x] `bun test`: 75 pass, 0 fail, 13 arquivos, 1.192 assertions.
+- [x] Build web: `bun run build` em `apps/www` passou, incluindo compilação, checagem de tipos e geração de 23 páginas. Next resolvido: 15.5.25.
+- [ ] E2E, verificação visual, carga, reconstrução de banco e deploy: não executados nesta tarefa documental.
 
-### Escopo de Idiomas Planejados:
-1. 🇧🇷 **Português do Brasil (`pt-BR`)** — Idioma padrão.
-2. 🇺🇸 **Inglês (`en-US`)** — Idioma universal para a comunidade competitiva (#74).
-3. 🇪🇸 **Espanhol (`es-ES`)** — Comunidade hispanofalante (#75).
-4. 🇯🇵 **Japonês (`ja-JP`)** — Cartas originais e público asiático (#76).
-5. 🇫🇷 **Francês (`fr-FR`)** e 🇩🇪 **Alemão (`de-DE`)** (#77).
+## Critério de liberação
 
-### Estrutura Arquitetural Proposta:
-- **Biblioteca Recomendada:** `next-intl` (leve, nativo para Next.js 15 App Router com zero overhead de cliente).
-- **Estrutura de Diretórios de Dicionários:**
-  ```
-  apps/www/src/messages/
-  ├── pt.json
-  ├── en.json
-  ├── es.json
-  ├── ja.json
-  ├── fr.json
-  └── de.json
-  ```
-- **Namespaces de Tradução:**
-  - `common`: Botões genéricos ("Confirmar", "Cancelar", "Fechar", "Salvar", "Voltar").
-  - `auth`: Telas de login, registro, modo convidado e upgrade de conta.
-  - `header`: Itens de menu, moedas, notificações e perfil.
-  - `packs`: Rasgar pacote, virar carta, raridades ("Comum", "Rara", "Lendária", "God Pull").
-  - `cards`: Tipos de Pokémon, HP, ataques, descrições e fraquezas.
-  - `trades`: Mercado de trocas, filtros, criar oferta, aceitar proposta.
-  - `social`: Amigos, solicitações, chat, status online e doações.
-  - `quests`: Missões diárias, objetivos, cronômetro de rotação.
-  - `areas`: Biomas de Kanto e expedições.
-- **Integração com TCGdex Dinâmico:**
-  - Parâmetro de locale injetado nas requisições da API de cartas: `https://api.tcgdex.net/v2/{lang}/cards/{id}`.
-  - CDN de imagens adaptada para o idioma ativo: `https://assets.tcgdex.net/{lang}/{set}/{cardId}/high.webp`.
-- **Componente Seletor de Idioma:**
-  - Dropdown com bandeiras no `HeaderMenu` e nas `Configurações`, com persistência em cookie `NEXT_LOCALE`.
-
----
-
-## 📋 Resumo de Comandos Úteis para Desenvolvedores
-
-```bash
-# Instalar dependências
-bun install
-
-# Iniciar Backend e Frontend juntos (Ambiente Concorrente com logs coloridos)
-bun dev:all
-
-# Iniciar apenas o Backend (porta 8080)
-bun dev:back
-
-# Iniciar apenas o Frontend (porta 3000)
-bun dev:front
-
-# Executar suite completa de testes unitários
-bun test
-
-# Executar migrações e seeds do banco
-bun seed
-```
+Beta: todos os P0 atendidos, web/API staging e migrations comprovados, fluxo principal E2E sem falhas críticas, rollback e suporte definidos. Prospecção ampliada: beta operável, funil medido e problemas de ativação/retorno tratados. Funcionalidades novas não compensam falhas nesses critérios.
