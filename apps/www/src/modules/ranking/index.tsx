@@ -1,4 +1,6 @@
 "use client";
+import { useUiText } from "@/i18n/localized-text";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +25,10 @@ export type RankingItem = {
 };
 
 export function RankingView({ data }: { data?: RankingItem[] }) {
+  const ui = useUiText();
   const [tab, setTab] = useState<"rarity" | "budget">("rarity");
   const [isSyncing, setIsSyncing] = useState(false);
-  const { post } = useApi();
+  const { get, post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -38,11 +41,8 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
     queryKey: ["ranking", tab],
     queryFn: async () => {
       const endpoint = tab === "rarity" ? "/ranking/rarity" : "/ranking/budget";
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${endpoint}?page=1`
-      );
-      const json = await res.json();
-      return json?.data ?? [];
+      const res = await get(`${endpoint}?page=1`);
+      return res.data?.data ?? res.data ?? [];
     },
     staleTime: 60 * 1000,
   });
@@ -86,9 +86,7 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
                   {t("ranking.subtitle")}
                 </p>
                 <Badge variant="outline" className="text-[10px] font-mono px-2 py-0 border-sky-500/40 text-sky-400 bg-sky-500/8 flex items-center gap-1 shrink-0">
-                  <Clock className="size-3" />
-                  Atualizado diariamente às 10h
-                </Badge>
+                  <Clock className="size-3" /> <LocalizedText text={"Atualizado diariamente às 10h"} /> </Badge>
               </div>
             </div>
           </div>
@@ -103,9 +101,7 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
               disabled={isSyncing}
               className="font-sans text-xs gap-1.5 rounded-xl border-border hover:bg-secondary"
             >
-              <RefreshCw className={`size-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-              Sincronizar Pontos
-            </Button>
+              <RefreshCw className={`size-3.5 ${isSyncing ? "animate-spin" : ""}`} /> <LocalizedText text={"Sincronizar Pontos"} /> </Button>
           )}
 
           <Tabs value={tab} onValueChange={(val) => setTab(val as "rarity" | "budget")}>
@@ -180,8 +176,7 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
                       <CardTitle className="text-sm sm:text-base font-bold truncate max-w-[160px] sm:max-w-[260px] text-foreground">
                         {item.username}
                       </CardTitle>
-                      <span className="text-[11px] text-muted-foreground font-sans">
-                        Treinador #{item.id}
+                      <span className="text-[11px] text-muted-foreground font-sans"> <LocalizedText text={"Treinador #"} />{item.id}
                       </span>
                     </div>
                   </div>
@@ -194,7 +189,7 @@ export function RankingView({ data }: { data?: RankingItem[] }) {
                         : `${balanceTranslate(item.totalBudget ?? 0)} moedas`}
                     </div>
                     <span className="text-[10px] sm:text-xs text-muted-foreground font-sans">
-                      {tab === "rarity" ? "🏆 Pontos de Raridade" : "🪙 Riqueza Acumulada"}
+                      {tab === "rarity" ? ui("🏆 Pontos de Raridade") : ui("🪙 Riqueza Acumulada")}
                     </span>
                   </div>
                 </CardHeader>

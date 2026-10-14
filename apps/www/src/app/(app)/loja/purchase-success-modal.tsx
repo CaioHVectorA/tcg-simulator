@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ type PurchaseSuccessModalProps = {
 }
 
 export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: PurchaseSuccessModalProps) {
+    const ui = useUiText()
     const router = useRouter()
 
     return (
@@ -29,16 +31,12 @@ export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: Purc
                         <Sparkles className="size-5 text-amber-400 absolute -top-1 -right-1 animate-pulse" />
                     </motion.div>
 
-                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-foreground">
-                        Compra Realizada! 🎉
-                    </DialogTitle>
-                    <DialogDescription className="text-muted-foreground text-xs sm:text-sm mt-1">
-                        Seus {itemCount} {itemCount === 1 ? 'item' : 'itens'} já foram entregues com sucesso na sua conta.
-                    </DialogDescription>
+                    <DialogTitle className="text-xl sm:text-2xl font-black tracking-wide text-foreground"> <LocalizedText text={"Compra Realizada! 🎉"} /> </DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-xs sm:text-sm mt-1"> <LocalizedText text={"Seus"} /> {itemCount} {itemCount === 1 ? 'item' : 'itens'} <LocalizedText text={"já foram entregues com sucesso na sua conta."} /> </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex flex-col gap-3 mt-4">
-                    <Button 
+                    <Button
                         onClick={() => {
                             onOpenChange(false)
                             router.push('/inventario')
@@ -46,17 +44,17 @@ export function PurchaseSuccessModal({ open, onOpenChange, itemCount = 1 }: Purc
                         className="w-full py-5 text-xs sm:text-sm font-extrabold gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-lg shadow-amber-400/20"
                     >
                         <FolderOpen className="size-4" />
-                        <span>Abrir Pacotes no Inventário</span>
+                        <span><LocalizedText text={"Abrir Pacotes no Inventário"} /></span>
                         <ArrowRight className="size-4" />
                     </Button>
 
-                    <Button 
+                    <Button
                         onClick={() => onOpenChange(false)}
                         variant="outline"
                         className="w-full py-4 text-xs font-bold"
                     >
                         <ShoppingBag className="size-3.5 mr-1" />
-                        <span>Continuar Comprando</span>
+                        <span><LocalizedText text={"Continuar Comprando"} /></span>
                     </Button>
                 </div>
             </DialogContent>

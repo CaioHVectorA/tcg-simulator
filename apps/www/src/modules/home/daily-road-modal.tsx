@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { useApi } from "@/hooks/use-api";
@@ -56,6 +57,7 @@ export function DailyRoadModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const ui = useUiText();
   const { get, post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -109,7 +111,7 @@ export function DailyRoadModal({
         <DialogContent className="font-syne max-w-2xl bg-card border-border p-8 text-center">
           <div className="flex flex-col items-center justify-center gap-3">
             <Gift className="size-10 text-amber-500 animate-bounce" />
-            <p className="text-sm font-medium">Carregando Estrada de 30 Dias...</p>
+            <p className="text-sm font-medium"><LocalizedText text={"Carregando Estrada de 30 Dias..."} /></p>
           </div>
         </DialogContent>
       </Dialog>
@@ -127,15 +129,13 @@ export function DailyRoadModal({
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[11px] font-bold mb-1">
                   <Flame className="size-3.5 fill-amber-500" />
-                  <span>Jornada do Treinador • 30 Dias</span>
+                  <span><LocalizedText text={"Jornada do Treinador • 30 Dias"} /></span>
                 </div>
                 <DialogTitle className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2">
-                  <span>Estrada de Recompensas</span>
+                  <span><LocalizedText text={"Estrada de Recompensas"} /></span>
                   <Sparkles className="size-5 text-amber-400" />
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Entre todos os dias para acumular moedas e boosters especiais no 7º, 14º, 21º, 28º e 30º dia!
-                </DialogDescription>
+                <DialogDescription className="text-xs text-muted-foreground"> <LocalizedText text={"Entre todos os dias para acumular moedas e boosters especiais no 7º, 14º, 21º, 28º e 30º dia!"} /> </DialogDescription>
               </div>
 
               {canClaim && (
@@ -145,7 +145,7 @@ export function DailyRoadModal({
                   className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 hover:scale-105 active:scale-95 transition-all text-xs sm:text-sm px-4 h-10 shrink-0"
                 >
                   <Gift className="size-4 mr-1.5 animate-bounce" />
-                  <span>{claiming ? "Resgatando..." : `Resgatar Dia ${currentDay}!`}</span>
+                  <span>{claiming ? ui("Resgatando...") : `Resgatar Dia ${currentDay}!`}</span>
                 </Button>
               )}
             </div>
@@ -184,19 +184,16 @@ export function DailyRoadModal({
                           : reward.isMilestone
                           ? "bg-amber-500/20 text-amber-500 border border-amber-500/30"
                           : "bg-secondary text-secondary-foreground"
-                      }`}>
-                        DIA {reward.day}
+                      }`}> <LocalizedText text={"DIA"} /> {reward.day}
                       </span>
 
                       {isClaimed ? (
                         <div className="flex items-center gap-0.5 text-emerald-500 text-[10px] font-bold">
                           <CheckCircle2 className="size-3.5 fill-emerald-500/20" />
-                          <span>Obtido</span>
+                          <span><LocalizedText text={"Obtido"} /></span>
                         </div>
                       ) : isReadyToClaim ? (
-                        <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] uppercase px-1.5 py-0 animate-pulse">
-                          Hoje!
-                        </Badge>
+                        <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] uppercase px-1.5 py-0 animate-pulse"> <LocalizedText text={"Hoje!"} /> </Badge>
                       ) : (
                         <Lock className="size-3 text-muted-foreground/60" />
                       )}
@@ -224,7 +221,7 @@ export function DailyRoadModal({
 
                       {reward.packName && (
                         <span className="text-[10px] font-bold text-purple-400 line-clamp-1 mt-0.5">
-                          +1 {reward.packName}
+                          +1 {ui(reward.packName)}
                         </span>
                       )}
                     </div>
@@ -236,9 +233,7 @@ export function DailyRoadModal({
                         onClick={() => claimReward()}
                         disabled={claiming}
                         className="w-full mt-2 h-7 text-[11px] font-black bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm"
-                      >
-                        Resgatar
-                      </Button>
+                      > <LocalizedText text={"Resgatar"} /> </Button>
                     )}
                   </motion.div>
                 );
@@ -252,7 +247,7 @@ export function DailyRoadModal({
       <RewardModal
         open={successModalOpen}
         onOpenChange={setSuccessModalOpen}
-        title="Recompensa Diária Conquistada! 🎉"
+        title={ui("Recompensa Diária Conquistada! 🎉")}
         description={
           claimedReward?.packName
             ? `Você garantiu ${balanceTranslate(claimedReward.coins)} moedas e um ${claimedReward.packName} direto no seu inventário!`

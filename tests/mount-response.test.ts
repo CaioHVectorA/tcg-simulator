@@ -20,8 +20,8 @@ describe("Mount Response API Contract", () => {
     expect(responsePt.toast).toBe("Pacote aberto com sucesso!");
     expect(responsePt.error).toBeNull();
 
-    // Default normalization to English
-    const responseEn = sucessResponse(payload, "Pacote aberto com sucesso!");
+    // Explicit locale keeps the API contract independent from request localization.
+    const responseEn = sucessResponse(payload, "Pacote aberto com sucesso!", "en");
     expect(responseEn.toast).toBe("Booster pack opened successfully!");
   });
 

@@ -1,3 +1,7 @@
+import { patternText } from "../../shared/i18n/pattern-text";
+import { apiCopy } from "../../shared/i18n/api-copy";
+import { uiCopy } from "../../shared/i18n/ui-copy";
+import { flatten, lookup, interpolate } from "../../shared/i18n/lookup";
 import { pt } from "./locales/pt";
 import { en } from "./locales/en";
 import { es } from "./locales/es";
@@ -5,7 +9,7 @@ import { jp } from "./locales/jp";
 
 export type BackendLocale = "pt" | "en" | "es" | "jp";
 
-const dictionaries: Record<BackendLocale, any> = { pt, en, es, jp };
+const dictionaries: Record<BackendLocale, unknown> = { pt, en, es, jp };
 
 // Mapeamento direto de mensagens em português legado para chaves/inglês
 const legacyPhrasesMap: Record<string, string> = {
@@ -60,61 +64,43 @@ const legacyPhrasesMap: Record<string, string> = {
   "Coleção insuficiente para montar um deck tático válido (mínimo de 6 cartas com até 20 PR). Abra novos pacotes para obter cartas básicas!": "battle.insufficientLowPrCards",
 };
 
-/**
- * Detecta o idioma a partir dos headers HTTP enviados pelo cliente
- */
+const reverse = new Map<string, string>();
+for (const dict of Object.values(dictionaries)) for (const [key, value] of flatten(dict)) reverse.set(value, key);
+for (const [phrase, values] of Object.entries(uiCopy)) { reverse.set(phrase, phrase); for (const value of values) reverse.set(value, phrase); }
+for (const [phrase, key] of Object.entries(legacyPhrasesMap)) reverse.set(phrase, key);
+for (const [key, values] of Object.entries(apiCopy)) for (const value of values) reverse.set(value, key);
+
 export function getLocaleFromHeaders(headers?: Record<string, string | undefined>): BackendLocale {
-  if (!headers) return "en";
-
-  const xLocale = (headers["x-locale"] || headers["X-Locale"])?.toLowerCase();
-  if (xLocale === "en" || xLocale === "pt" || xLocale === "es" || xLocale === "jp") return xLocale as BackendLocale;
-
-  const acceptLang = headers["accept-language"] || headers["Accept-Language"] || "";
-  if (acceptLang.toLowerCase().startsWith("ja")) return "jp";
-  if (acceptLang.toLowerCase().startsWith("es")) return "es";
-  if (acceptLang.toLowerCase().startsWith("pt")) return "pt";
-  if (acceptLang.toLowerCase().startsWith("en")) return "en";
-
-  return "en";
+  const explicit = (headers?.["x-locale"] || headers?.["X-Locale"])?.toLowerCase();
+  if (explicit === "ja") return "jp";
+  if (explicit && ["pt", "en", "es", "jp"].includes(explicit)) return explicit as BackendLocale;
+  const language = (headers?.["accept-language"] || headers?.["Accept-Language"] || "pt").toLowerCase();
+  if (language.startsWith("ja")) return "jp";
+  if (language.startsWith("es")) return "es";
+  if (language.startsWith("en")) return "en";
+  return "pt";
 }
 
-/**
- * Traduz uma chave ou frase legada para o idioma solicitado
- */
-export function translate(keyOrMessage: string, locale: BackendLocale = "en"): string {
-  if (!keyOrMessage) return "";
+export function translate(text: string, locale: BackendLocale = "pt", params?: Record<string, string | number>): string {
+  const key = reverse.get(text) || text;
+  const api = apiCopy[key];
+  if (api) return interpolate(api[["pt", "en", "es", "jp"].indexOf(locale)], params);
+  const value = lookup(dictionaries[locale], key) ?? lookup(dictionaries.en, key);
+  if (typeof value === "string") return interpolate(value, params);
+  const ui = uiCopy[key] || uiCopy[text];
+  if (ui) return interpolate(locale === "pt" ? text : ui[locale === "en" ? 0 : locale === "es" ? 1 : 2], params);
+  return interpolate(patternText(text, locale) ?? text, params);
+}
 
-  // Se já for uma frase em português e o destino for pt, retorna ela diretamente
-  if (locale === "pt" && !keyOrMessage.includes(".") && !legacyPhrasesMap[keyOrMessage]) {
-    return keyOrMessage;
+export function localizeResponse(response: unknown, locale: BackendLocale, localizeData = true): unknown {
+  if (!response || typeof response !== "object" || response instanceof Response) return response;
+  if (Array.isArray(response)) return response.map((r) => localizeResponse(r, locale, localizeData));
+  if (response instanceof Date) return response;
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(response)) {
+    if (typeof value === "string" && (["toast", "error", "toastMessage"].includes(key) || (localizeData && ["title", "description", "name", "packName", "region", "npcTitle", "moveName"].includes(key)))) result[key] = translate(value, locale);
+    else if (localizeData && key === "description" && Array.isArray(value)) result[key] = value.map((v) => typeof v === "string" ? translate(v, locale) : v);
+    else result[key] = localizeResponse(value, locale, localizeData);
   }
-
-  // Mapeia frase legada em PT para a chave do dicionário (ex: "Pacote não encontrado" -> "packages.packageNotFound")
-  const targetKey = legacyPhrasesMap[keyOrMessage] || keyOrMessage;
-  const keys = targetKey.split(".");
-
-  const dict = dictionaries[locale] || dictionaries.en;
-  let current: any = dict;
-  for (const k of keys) {
-    current = current?.[k];
-    if (current === undefined) break;
-  }
-
-  if (typeof current === "string") {
-    return current;
-  }
-
-  // Fallback para inglês
-  if (locale !== "en") {
-    let fallbackCurrent: any = dictionaries.en;
-    for (const k of keys) {
-      fallbackCurrent = fallbackCurrent?.[k];
-      if (fallbackCurrent === undefined) break;
-    }
-    if (typeof fallbackCurrent === "string") {
-      return fallbackCurrent;
-    }
-  }
-
-  return keyOrMessage;
+  return result;
 }

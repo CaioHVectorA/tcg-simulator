@@ -1,4 +1,5 @@
 "use client"
+import { useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useCallback } from 'react'
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ export function NumberQuantityInput({
     onChange,
     ...rest
 }: NumberQuantityInputProps) {
+  const ui = useUiText();
     const [value, setValue] = useState(initialValue)
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +53,7 @@ export function NumberQuantityInput({
                 size="icon"
                 onClick={handleDecrement}
                 disabled={value <= min}
-                aria-label="Decrease quantity"
+                aria-label={ui("Decrease quantity")}
             >
                 <Minus className="h-4 w-4" />
             </Button>
@@ -69,7 +71,7 @@ export function NumberQuantityInput({
                 size="icon"
                 onClick={handleIncrement}
                 disabled={value >= max}
-                aria-label="Increase quantity"
+                aria-label={ui("Increase quantity")}
             >
                 <Plus className="h-4 w-4" />
             </Button>

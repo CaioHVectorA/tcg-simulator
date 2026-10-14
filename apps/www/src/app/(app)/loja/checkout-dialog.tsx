@@ -1,6 +1,7 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 
@@ -31,9 +33,11 @@ export function CheckoutDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const ui = useUiText();
   const { t } = useTranslation();
   const { kart, checkout, loading } = useKart();
   const user = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalCoins = kart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalItems = kart.reduce((acc, item) => acc + item.quantity, 0);
@@ -41,11 +45,14 @@ export function CheckoutDialog({
   const hasEnoughCoins = userBalance >= totalCoins;
 
   const handleConfirmPurchase = async () => {
-    if (!hasEnoughCoins || loading) return;
-    soundFx.playCardFlip();
-    // Fecha o modal imediatamente — checkout roda em background
-    onOpenChange(false);
-    checkout(() => {});
+    if (!hasEnoughCoins || isSubmitting || loading) return;
+    try {
+      setIsSubmitting(true);
+      soundFx.playCardFlip();
+      await checkout(onOpenChange);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,13 +68,9 @@ export function CheckoutDialog({
             <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <ShieldCheck className="size-4" />
             </div>
-            <DialogTitle className="text-lg sm:text-xl font-black text-foreground">
-              Revisão de Compra
-            </DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-black text-foreground"> <LocalizedText text={"Revisão de Compra"} /> </DialogTitle>
           </div>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Confira seus itens e saldo antes de transferir para seu inventário.
-          </DialogDescription>
+          <DialogDescription className="text-xs text-muted-foreground"> <LocalizedText text={"Confira seus itens e saldo antes de transferir para seu inventário."} /> </DialogDescription>
         </DialogHeader>
 
         {/* Lista de Itens & Resumo */}
@@ -89,10 +92,10 @@ export function CheckoutDialog({
                   </div>
                   <div className="min-w-0">
                     <h5 className="font-bold text-foreground truncate max-w-[170px]">
-                      {item.name}
+                      {ui(item.name)}
                     </h5>
                     <span className="text-[10px] text-muted-foreground">
-                      {item.quantity}x {balanceTranslate(item.price)}
+                      {item.quantity}<LocalizedText text={"x"} /> {balanceTranslate(item.price)}
                     </span>
                   </div>
                 </div>
@@ -107,7 +110,7 @@ export function CheckoutDialog({
           {/* Balanço e Saldo */}
           <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Seu Saldo Atual:</span>
+              <span><LocalizedText text={"Seu Saldo Atual:"} /></span>
               <span className="font-mono font-bold text-foreground flex items-center gap-1">
                 <Coins className="size-3 text-amber-400" />
                 {balanceTranslate(userBalance)}
@@ -115,7 +118,7 @@ export function CheckoutDialog({
             </div>
 
             <div className="flex items-center justify-between text-sm font-black border-t border-border pt-2 text-foreground">
-              <span>Total a Pagar ({totalItems} itens):</span>
+              <span><LocalizedText text={"Total a Pagar ("} />{totalItems} <LocalizedText text={"itens):"} /></span>
               <span className="font-mono text-amber-500 flex items-center gap-1">
                 <Coins className="size-4 fill-amber-500/20" />
                 {balanceTranslate(totalCoins)}
@@ -126,12 +129,12 @@ export function CheckoutDialog({
               {hasEnoughCoins ? (
                 <div className="flex items-center gap-1 text-emerald-500 font-bold">
                   <CheckCircle2 className="size-3.5" />
-                  <span>Saldo suficiente para esta compra.</span>
+                  <span><LocalizedText text={"Saldo suficiente para esta compra."} /></span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-rose-500 font-bold">
                   <AlertCircle className="size-3.5" />
-                  <span>Saldo insuficiente. Faltam {balanceTranslate(totalCoins - userBalance)}.</span>
+                  <span><LocalizedText text={"Saldo insuficiente. Faltam"} /> {balanceTranslate(totalCoins - userBalance)}.</span>
                 </div>
               )}
             </div>
@@ -149,11 +152,20 @@ export function CheckoutDialog({
 
             <Button
               onClick={handleConfirmPurchase}
-              disabled={!hasEnoughCoins || loading}
+              disabled={!hasEnoughCoins || isSubmitting || loading}
               className="flex-1 h-11 text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all gap-1.5"
             >
-              <span>{t("store.confirmBuy")}</span>
-              <ArrowRight className="size-4" />
+              {isSubmitting || loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span><LocalizedText text={"Processando..."} /></span>
+                </>
+              ) : (
+                <>
+                  <span>{t("store.confirmBuy")}</span>
+                  <ArrowRight className="size-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>

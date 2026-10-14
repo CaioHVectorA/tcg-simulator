@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React from "react";
 import { SocialHub } from "@/modules/social/social-hub";
@@ -10,14 +11,10 @@ export default function SocialPage() {
       <div className="mb-6 pb-4 border-b border-border">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold mb-1.5">
           <Users className="size-3.5" />
-          <span>Comunidade</span>
+          <span><LocalizedText text={"Comunidade"} /></span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Central Social & Amigos
-        </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-          Conecte-se com outros treinadores, converse em tempo real e compartilhe moedas e trocas.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground"> <LocalizedText text={"Central Social & Amigos"} /> </h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-0.5"> <LocalizedText text={"Conecte-se com outros treinadores, converse em tempo real e compartilhe moedas e trocas."} /> </p>
       </div>
 
       <div className="bg-card/50 border border-border/80 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">

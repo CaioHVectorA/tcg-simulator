@@ -19,7 +19,6 @@ export const bannerController = new Elysia({}).group("/banner", (app) => {
     .post(
       "/",
       async ({ body, prisma, jwt, user, set }) => {
-        console.log(user);
         if (!user.isAdmin) {
           set.status = 401;
           return errorResponse("Não autorizado", "Não autorizado!");

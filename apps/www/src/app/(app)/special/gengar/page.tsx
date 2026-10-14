@@ -1,4 +1,5 @@
 'use client'
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useApi } from '@/hooks/use-api'
 
 export default function SpecialEventGengar() {
+  const ui = useUiText();
     const [showCard, setShowCard] = useState(false)
 
     useEffect(() => {
@@ -33,9 +35,7 @@ export default function SpecialEventGengar() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="text-4xl md:text-6xl font-bold text-white mb-6 text-center"
-                >
-                    Resgate seu Gengar Ex!
-                </motion.h1>
+                > <LocalizedText text={"Resgate seu Gengar Ex!"} /> </motion.h1>
 
                 <AnimatePresence>
                     {showCard && (
@@ -53,7 +53,7 @@ export default function SpecialEventGengar() {
                         >
                             <img
                                 src="/gengar-card.webp"
-                                alt="Gengar Card"
+                                alt={ui("Gengar Card")}
                                 className="rounded-lg h-96 object-cover shadow-2xl"
                             />
                             <motion.div
@@ -79,9 +79,7 @@ export default function SpecialEventGengar() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 2, duration: 0.5 }}
                     className="text-3xl text-purple-200 mb-8 text-center"
-                >
-                    Não perca esta chance de adicionar o adorado <b>Gengar</b> à sua coleção!
-                </motion.p>
+                > <LocalizedText text={"Não perca esta chance de adicionar o adorado"} /> <b><LocalizedText text={"Gengar"} /></b> <LocalizedText text={"à sua coleção!"} /> </motion.p>
 
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
@@ -91,9 +89,7 @@ export default function SpecialEventGengar() {
                     <Button
                         onClick={handleClaim}
                         className="bg-purple-500 text-2xl hover:bg-purple-600 text-white font-bold py-6 px-8 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
-                    >
-                        Resgate o gengar
-                    </Button>
+                    > <LocalizedText text={"Resgate o gengar"} /> </Button>
                 </motion.div>
 
                 {/* <motion.div

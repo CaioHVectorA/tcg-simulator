@@ -1,3 +1,4 @@
+import { DomainError } from "../lib/domain-error";
 import Elysia, { t } from "elysia";
 import { getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
@@ -102,7 +103,7 @@ export const AREAS_CONFIG: AreaDefinition[] = [
 
 // Cache em memória para rastrear explorações diárias por usuário e área
 // Chave: `explore-${userId}-${areaId}-${YYYY-MM-DD}`
-const explorationCache = new Set<string>();
+
 
 function getTodayKey(userId: number, areaId: number): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -122,9 +123,11 @@ export const areaController = new Elysia({}).group("/areas", (app) => {
         const xp = Number(user.rarityPoints || 0) * 10 + Math.floor(Number(user.totalBudget || 0) / 10);
         const userLevel = Math.max(1, Math.floor(Math.sqrt(xp / 100)) + 1);
 
+        const claimed = await prisma.transaction.findMany({ where: { user_id: user.id, idempotencyKey: { startsWith: `explore-${user.id}-` } }, select: { idempotencyKey: true } });
+        const explored = new Set(claimed.map((c) => c.idempotencyKey));
         const areasWithStatus = AREAS_CONFIG.map((area) => {
           const unlocked = userLevel >= area.requiredLevel;
-          const exploredToday = explorationCache.has(getTodayKey(user.id, area.id));
+          const exploredToday = explored.has(getTodayKey(user.id, area.id));
 
           return {
             ...area,
@@ -168,14 +171,6 @@ export const areaController = new Elysia({}).group("/areas", (app) => {
         }
 
         const key = getTodayKey(user.id, area.id);
-        if (explorationCache.has(key)) {
-          set.status = 400;
-          return errorResponse(
-            "Você já realizou a expedição diária nesta área hoje. Volte amanhã!",
-            "Expedição diária já realizada"
-          );
-        }
-
         // Sortear carta selvagem temática da área
         const availableCards = await prisma.card.findMany({
           where: {
@@ -193,31 +188,11 @@ export const areaController = new Elysia({}).group("/areas", (app) => {
         // Bônus de moedas com variação de até +50%
         const coinBonus = Math.floor(area.baseRewardCoins * (1 + Math.random() * 0.5));
 
-        // Transação atômica
-        const transactionOps: any[] = [
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              money: { increment: coinBonus },
-              totalBudget: { increment: coinBonus },
-              rarityPoints: { increment: foundCard ? foundCard.rarity : 0 },
-            },
-          }),
-        ];
-
-        if (foundCard) {
-          transactionOps.push(
-            prisma.cards_user.create({
-              data: {
-                userId: user.id,
-                cardId: foundCard.id,
-              },
-            })
-          );
-        }
-
-        await prisma.$transaction(transactionOps);
-        explorationCache.add(key);
+        await prisma.$transaction(async (tx) => {
+          await tx.transaction.create({ data: { user_id: user.id, idempotencyKey: key, status: "COMPLETED" } });
+          await tx.user.update({ where: { id: user.id }, data: { money: { increment: coinBonus }, totalBudget: { increment: coinBonus }, rarityPoints: { increment: foundCard?.rarity || 0 } } });
+          if (foundCard) await tx.cards_user.create({ data: { userId: user.id, cardId: foundCard.id } });
+        });
 
         return sucessResponse(
           {

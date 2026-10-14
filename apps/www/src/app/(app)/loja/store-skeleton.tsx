@@ -1,3 +1,4 @@
+import { LocalizedText } from "@/i18n/localized-text";
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShoppingBag, Zap, Package as PackageIcon, Sparkles } from "lucide-react";
@@ -20,7 +21,7 @@ export function StoreSkeleton() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold mb-1">
               <ShoppingBag className="size-3.5 text-primary" />
-              <span>Loja TCG</span>
+              <span><LocalizedText text={"Loja TCG"} /></span>
             </div>
             <Skeleton className="h-9 w-64 sm:w-80 rounded-xl" />
             <Skeleton className="h-4 w-72 sm:w-96 rounded-lg" />

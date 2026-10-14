@@ -1,3 +1,6 @@
+import { lockUsers } from "../lib/economy";
+import { operation } from "../lib/operation";
+import { DomainError } from "../lib/domain-error";
 import { prisma } from "../helpers/prisma.client";
 import {
   NPC_TRAINERS,
@@ -7,9 +10,10 @@ import {
   getCardRecruitPoints,
   calculateCombatPower,
   simulateBattle,
+  simulateGoBattle,
   type BattleSimulationResult,
 } from "../lib/battle-engine";
-import { BackendLocale, translate } from "../i18n";
+import { type BackendLocale, translate } from "../i18n";
 
 export interface UserDeckSummary {
   cards: Array<{
@@ -84,6 +88,9 @@ export class BattleService {
    * Valida e persiste um novo deck de batalha para o usuário
    */
   static async saveUserDeck(userId: number, cardIds: number[], locale: BackendLocale = "pt") {
+    await prisma.$transaction(async (tx) => {
+      await lockUsers(tx, [userId]);
+      const prisma = tx;
     // 1. Validação de tamanho
     if (!Array.isArray(cardIds) || cardIds.length !== REQUIRED_DECK_SIZE) {
       throw new Error(translate("battle.deckRequiredSize", locale));
@@ -146,19 +153,8 @@ export class BattleService {
       );
     }
 
-    // 5. Transação atômica para salvar os slots
-    await prisma.$transaction(async (tx) => {
-      await tx.userDeckCard.deleteMany({
-        where: { userId },
-      });
-
-      await tx.userDeckCard.createMany({
-        data: cardIds.map((cardId, slot) => ({
-          userId,
-          cardId,
-          slot,
-        })),
-      });
+      await tx.userDeckCard.deleteMany({ where: { userId } });
+      await tx.userDeckCard.createMany({ data: cardIds.map((cardId, slot) => ({ userId, cardId, slot })) });
     });
 
     return await this.getUserDeck(userId);
@@ -220,8 +216,13 @@ export class BattleService {
   static async fightNpc(
     userId: number,
     npcId: string,
-    locale: BackendLocale = "pt"
+    locale: BackendLocale = "pt",
+    key?: string
   ): Promise<{ simulation: BattleSimulationResult; toastMessage: string }> {
+    return operation(prisma, userId, "fightNpc", { npcId }, key, async (tx) => {
+    const prisma = tx;
+    const recent = await tx.userBattleRecord.count({ where: { userId, createdAt: { gt: new Date(Date.now() - 10_000) } } });
+    if (recent) throw new DomainError("battle.cooldown", 429);
     const trainer = NPC_TRAINERS.find((n) => n.id === npcId);
     if (!trainer) {
       throw new Error(translate("battle.npcNotFound", locale));
@@ -293,7 +294,7 @@ export class BattleService {
     const playerCards = deckSlots.map((d) => d.Card);
     const simulation = simulateBattle(playerCards, trainer);
 
-    await prisma.$transaction(async (tx) => {
+    await (async () => {
       await tx.userBattleRecord.create({
         data: {
           userId,
@@ -313,13 +314,109 @@ export class BattleService {
           rarityPoints: { increment: simulation.rewardXp },
         },
       });
-    });
+    })();
 
-    const toastMessage = simulation.won
-      ? `${trainer.name} - ${simulation.rewardCoins.toLocaleString()} coins & +${simulation.rewardXp} XP!`
-      : `${trainer.name} - +${simulation.rewardCoins.toLocaleString()} coins.`;
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
 
     return { simulation, toastMessage };
+    });
+  }
+
+  /**
+   * Executa a batalha estilo Pokémon GO (Blefe 6 leva 3) com 2 escudos, ataques carregados e duelo de 3 rounds
+   */
+  static async fightNpcGo(
+    userId: number,
+    npcId: string,
+    selectedCardIds: number[],
+    locale: BackendLocale = "pt",
+    key?: string
+  ) {
+    if (!Array.isArray(selectedCardIds) || selectedCardIds.length !== 3) {
+      throw new DomainError("battle.selectThree");
+    }
+
+    return operation(prisma, userId, "fightNpcGo", { npcId, selectedCardIds }, key, async (tx) => {
+    const prisma = tx;
+    const recent = await tx.userBattleRecord.count({ where: { userId, createdAt: { gt: new Date(Date.now() - 10_000) } } });
+    if (recent) throw new DomainError("battle.cooldown", 429);
+    const trainer = NPC_TRAINERS.find((n) => n.id === npcId);
+    if (!trainer) {
+      throw new Error(translate("battle.npcNotFound", locale));
+    }
+
+    // Busca as cartas selecionadas e valida posse do usuário
+    const ownedCards = await prisma.cards_user.findMany({
+      where: {
+        userId,
+        cardId: { in: selectedCardIds },
+      },
+      include: { Card: true },
+    });
+
+    const cardsMap = new Map<number, any>();
+    for (const oc of ownedCards) {
+      cardsMap.set(oc.cardId, oc.Card);
+    }
+
+    const slots = await tx.userDeckCard.findMany({ where: { userId }, include: { Card: true } });
+    if (slots.length !== REQUIRED_DECK_SIZE || slots.reduce((sum, s) => sum + getCardRecruitPoints(s.Card.rarity), 0) > MAX_DECK_POINTS) throw new DomainError("battle.deckIncompleteToFight");
+    const counts = new Map<number, number>();
+    for (const id of selectedCardIds) counts.set(id, (counts.get(id) || 0) + 1);
+    for (const [id, needed] of counts) {
+      if (ownedCards.filter((c) => c.cardId === id).length < needed || slots.filter((c) => c.cardId === id).length < needed) throw new DomainError("battle.notAllCardsOwnedOrTrade");
+    }
+    const playerPicks: any[] = [];
+    for (const cid of selectedCardIds) {
+      const card = cardsMap.get(cid);
+      if (!card) {
+        throw new DomainError("battle.notAllCardsOwnedOrTrade");
+      }
+      playerPicks.push(card);
+    }
+
+    // Revalidação de cartas em negociação
+    const tradeMarked = await prisma.tradeMarkedCard.findMany({
+      where: {
+        userId,
+        cardId: { in: selectedCardIds },
+      },
+    });
+
+    if (tradeMarked.length > 0) {
+      throw new DomainError("battle.notAllCardsOwnedOrTrade");
+    }
+
+    // Simula o combate Pokémon GO
+    const simulation = simulateGoBattle(playerPicks, trainer);
+
+    // Registra batalha e premiação
+    await (async () => {
+      await tx.userBattleRecord.create({
+        data: {
+          userId,
+          npcId: trainer.id,
+          won: simulation.won,
+          playerScore: simulation.playerScore,
+          opponentScore: simulation.npcScore,
+          rewardCoins: simulation.rewardCoins,
+          rewardXp: simulation.rewardXp,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          money: { increment: simulation.rewardCoins },
+          rarityPoints: { increment: simulation.rewardXp },
+        },
+      });
+    })();
+
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
+
+    return { simulation, toastMessage };
+    });
   }
 
   /**
@@ -389,64 +486,24 @@ export class BattleService {
       throw new Error(translate("battle.insufficientEligibleCards", locale));
     }
 
-    eligibleCards.sort((a, b) => b.combatPower - a.combatPower);
-
-    let bestDeck: typeof eligibleCards = [];
-    let bestTotalCp = -1;
-
-    function search(
-      startIndex: number,
-      current: typeof eligibleCards,
-      currentPr: number,
-      currentCp: number
-    ) {
-      if (current.length === REQUIRED_DECK_SIZE) {
-        if (currentPr <= MAX_DECK_POINTS && currentCp > bestTotalCp) {
-          bestTotalCp = currentCp;
-          bestDeck = [...current];
+    // Bounded dynamic programming: O(collection size × 6 slots × 20 points).
+    // Each row is a physical owned copy, so duplicate types never exceed inventory.
+    type Candidate = { power: number; picks: typeof eligibleCards };
+    const states = Array.from({ length: REQUIRED_DECK_SIZE + 1 }, () => new Map<number, Candidate>());
+    states[0].set(0, { power: 0, picks: [] });
+    for (const candidate of eligibleCards) {
+      for (let count = REQUIRED_DECK_SIZE - 1; count >= 0; count--) {
+        for (const [points, state] of states[count]) {
+          const nextPoints = points + candidate.recruitPoints;
+          if (nextPoints > MAX_DECK_POINTS) continue;
+          const power = state.power + candidate.combatPower;
+          if (power > (states[count + 1].get(nextPoints)?.power ?? -1)) states[count + 1].set(nextPoints, { power, picks: [...state.picks, candidate] });
         }
-        return;
-      }
-
-      const remainingNeeded = REQUIRED_DECK_SIZE - current.length;
-      if (currentPr + remainingNeeded * 1 > MAX_DECK_POINTS) return;
-
-      for (let i = startIndex; i < eligibleCards.length; i++) {
-        const candidate = eligibleCards[i];
-        if (currentPr + candidate.recruitPoints <= MAX_DECK_POINTS) {
-          current.push(candidate);
-          search(
-            i + 1,
-            current,
-            currentPr + candidate.recruitPoints,
-            currentCp + candidate.combatPower
-          );
-          current.pop();
-        }
-        if (bestDeck.length === REQUIRED_DECK_SIZE && i > startIndex + 25) break;
       }
     }
-
-    search(0, [], 0, 0);
-
-    // Se o knapsack inicial por CP não completou 6 cartas dentro de 20 PR:
-    if (bestDeck.length !== REQUIRED_DECK_SIZE) {
-      // Executa algoritmo de downgrade search ordenando pelo menor PR e maior CP
-      const sortedByPr = [...eligibleCards].sort(
-        (a, b) => a.recruitPoints - b.recruitPoints || b.combatPower - a.combatPower
-      );
-      const lowestPrCandidates = sortedByPr.slice(0, REQUIRED_DECK_SIZE);
-      const lowestPrSum = lowestPrCandidates.reduce((acc, c) => acc + c.recruitPoints, 0);
-
-      if (lowestPrCandidates.length === REQUIRED_DECK_SIZE && lowestPrSum <= MAX_DECK_POINTS) {
-        bestDeck = lowestPrCandidates;
-      } else {
-        throw new Error(
-          translate("battle.insufficientLowPrCards", locale) ||
-            "Coleção insuficiente para montar um deck tático válido (mínimo de 6 cartas com até 20 PR). Abra novos pacotes para obter cartas básicas!"
-        );
-      }
-    }
+    const best = [...states[REQUIRED_DECK_SIZE].values()].sort((a, b) => b.power - a.power)[0];
+    if (!best) throw new DomainError("battle.insufficientLowPrCards");
+    const bestDeck = best.picks;
 
     const totalPoints = bestDeck.reduce((acc, c) => acc + c.recruitPoints, 0);
     const totalCp = bestDeck.reduce((acc, c) => acc + c.combatPower, 0);

@@ -1,4 +1,4 @@
-import { BackendLocale, translate } from "../i18n";
+import { type BackendLocale, translate } from "../i18n";
 
 type ResponseMountedOptions<T> = {
   ok: boolean;
@@ -10,7 +10,7 @@ type ResponseMountedOptions<T> = {
 export const sucessResponse = <T>(
   data: T,
   toast?: string,
-  locale: BackendLocale = "en"
+  locale: BackendLocale = "pt"
 ): ResponseMountedOptions<T> => {
   const resolvedToast = toast ? translate(toast, locale) : null;
   return {
@@ -24,7 +24,7 @@ export const sucessResponse = <T>(
 export const errorResponse = <T>(
   error: string,
   toast?: string,
-  locale: BackendLocale = "en"
+  locale: BackendLocale = "pt"
 ): ResponseMountedOptions<T> => {
   const resolvedToast = toast ? translate(toast, locale) : null;
   const resolvedError = error ? translate(error, locale) : error;

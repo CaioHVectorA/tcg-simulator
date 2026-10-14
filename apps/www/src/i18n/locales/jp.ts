@@ -432,6 +432,8 @@ export const jp = {
     flipCard: "カードをめくる",
     nextCard: "次のカード",
     viewSummary: "サマリーを見る",
+    cards: "カード",
+    from: "最低価格",
   },
   albums: {
     title: "公式アルバム＆コレクション報酬",
@@ -538,6 +540,7 @@ export const jp = {
     buildManually: "手動で構築",
     deckIncompleteTitle: "デッキが未完成です",
     deckIncompleteNotice: "ジムリーダーに挑戦するには正確に6枚のカードが必要です（現在：{current}/6枚）。",
+    deckSavedAndReady: "チームを保存しました。バトルの準備ができました！",
   },
   socialHub: {
     friends: "フレンド",

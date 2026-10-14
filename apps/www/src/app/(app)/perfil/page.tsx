@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -119,6 +120,7 @@ const RANDOM_NAMES = [
 ];
 
 export default function PerfilPage() {
+  const ui = useUiText();
   const { t, locale } = useTranslation();
   const { get, post, patch } = useApi();
   const { toast } = useToast();
@@ -282,8 +284,7 @@ export default function PerfilPage() {
               <Camera className="size-5" />
               <span>{t("common.edit")}</span>
             </div>
-            <Badge className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono font-bold text-xs bg-primary text-primary-foreground px-2.5 shadow-sm pointer-events-none">
-              NV. {stats.level}
+            <Badge className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono font-bold text-xs bg-primary text-primary-foreground px-2.5 shadow-sm pointer-events-none"> <LocalizedText text={"NV."} /> {stats.level}
             </Badge>
           </div>
 
@@ -327,7 +328,7 @@ export default function PerfilPage() {
                 <span className="font-sans text-muted-foreground font-semibold">
                   {t("profile.progressToLevel").replace("{level}", String(stats.level + 1))}
                 </span>
-                <span className="font-mono font-bold text-foreground">{stats.xp} / {stats.nextLevelXp} XP</span>
+                <span className="font-mono font-bold text-foreground">{stats.xp} / {stats.nextLevelXp} <LocalizedText text={"XP"} /></span>
               </div>
               <Progress value={stats.levelProgress} className="h-2.5" />
             </div>
@@ -400,16 +401,15 @@ export default function PerfilPage() {
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : "bg-muted text-muted-foreground"
                       }`}
-                    >
-                      Nv. {m.level}
+                    > <LocalizedText text={"Nv."} /> {m.level}
                     </Badge>
-                    <span className="text-lg leading-none" title={m.title}>
+                    <span className="text-lg leading-none" title={ui(m.title)}>
                       {m.badge}
                     </span>
                   </div>
 
-                  <h3 className="text-xs font-bold text-foreground line-clamp-1 mb-2.5" title={m.title}>
-                    {m.title}
+                  <h3 className="text-xs font-bold text-foreground line-clamp-1 mb-2.5" title={ui(m.title)}>
+                    {ui(m.title)}
                   </h3>
 
                   <div className="space-y-1.5 mb-3.5 text-[11px] font-sans">
@@ -563,14 +563,13 @@ export default function PerfilPage() {
                 <div className="relative rounded-xl overflow-hidden aspect-[2.5/3.5] mb-2">
                   <TcgCardImage
                     src={card.image_url}
-                    alt={card.name}
+                    alt={ui(card.name)}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <Badge className="absolute top-1.5 right-1.5 bg-black/70 text-amber-300 text-[10px] font-mono backdrop-blur-xs">
-                    ★ Tier {card.rarity}
+                  <Badge className="absolute top-1.5 right-1.5 bg-black/70 text-amber-300 text-[10px] font-mono backdrop-blur-xs"> <LocalizedText text={"★ Tier"} /> {card.rarity}
                   </Badge>
                 </div>
-                <p className="text-xs font-bold text-foreground truncate text-center">{card.name}</p>
+                <p className="text-xs font-bold text-foreground truncate text-center">{ui(card.name)}</p>
               </div>
             ))}
           </div>
@@ -631,8 +630,7 @@ export default function PerfilPage() {
                   src={newPicture || user.picture}
                   className="size-16 sm:size-18 shadow-md ring-2 ring-primary/30"
                 />
-                <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0 shadow-xs">
-                  NV. {stats.level}
+                <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0 shadow-xs"> <LocalizedText text={"NV."} /> {stats.level}
                 </Badge>
               </div>
               <div className="flex-1 min-w-0">
@@ -657,8 +655,7 @@ export default function PerfilPage() {
                   onClick={generateRandomName}
                   className="text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold"
                 >
-                  <Dice5 className="size-3.5" /> 🎲 Sugerir Nome
-                </button>
+                  <Dice5 className="size-3.5" /> <LocalizedText text={"🎲 Sugerir Nome"} /> </button>
               </label>
               <Input
                 value={newUsername}
@@ -705,11 +702,11 @@ export default function PerfilPage() {
                               ? "border-primary bg-primary/10 ring-2 ring-primary shadow-sm"
                               : "border-border/70 bg-background/50 hover:border-primary/50 hover:bg-accent/40"
                           }`}
-                          title={preset.name}
+                          title={ui(preset.name)}
                         >
                           <img
                             src={preset.url}
-                            alt={preset.name}
+                            alt={ui(preset.name)}
                             className="size-9 object-contain group-hover:scale-110 transition-transform"
                             loading="lazy"
                           />
@@ -779,9 +776,7 @@ export default function PerfilPage() {
                     placeholder={t("profileModal.urlPlaceholder")}
                     className="rounded-xl h-10 font-mono text-xs bg-background/60"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Insira o link direto de uma imagem (JPG, PNG, WebP) para usá-la como seu avatar exclusivo.
-                  </p>
+                  <p className="text-[11px] text-muted-foreground"> <LocalizedText text={"Insira o link direto de uma imagem (JPG, PNG, WebP) para usá-la como seu avatar exclusivo."} /> </p>
                 </TabsContent>
               </Tabs>
             </div>

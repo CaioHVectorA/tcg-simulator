@@ -1,4 +1,5 @@
 'use client'
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import Link from 'next/link'
 import { reportError } from '../../actions/reportError'
 
 export default function PaginaDeErro() {
+  const ui = useUiText();
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { toast } = useToast()
 
@@ -35,33 +37,31 @@ export default function PaginaDeErro() {
         <div className="flex items-center justify-center min-h-screen p-4">
             <Card className="max-w-md w-full">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-center">Ops! Algo deu errado</CardTitle>
-                    <CardDescription className="text-center">
-                        Não se preocupe, não é culpa sua. Nossos Pokémon estão trabalhando duro para resolver isso!
-                    </CardDescription>
+                    <CardTitle className="text-2xl font-bold text-center"><LocalizedText text={"Ops! Algo deu errado"} /></CardTitle>
+                    <CardDescription className="text-center"> <LocalizedText text={"Não se preocupe, não é culpa sua. Nossos Pokémon estão trabalhando duro para resolver isso!"} /> </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-center mb-4">
-                        <p className="text-lg">Desculpe pelo inconveniente. Enquanto isso, que tal voltar para a página inicial e explorar mais do nosso jogo?</p>
+                        <p className="text-lg"><LocalizedText text={"Desculpe pelo inconveniente. Enquanto isso, que tal voltar para a página inicial e explorar mais do nosso jogo?"} /></p>
                     </div>
                     <form action={handleSubmit} className="space-y-4">
                         <div>
-                            <h3 className="text-lg font-semibold mb-2">Ajude-nos a melhorar!</h3>
-                            <p className="text-sm mb-2">Conte-nos o que aconteceu. Sua experiência nos ajuda a tornar o jogo ainda melhor para todos os treinadores!</p>
+                            <h3 className="text-lg font-semibold mb-2"><LocalizedText text={"Ajude-nos a melhorar!"} /></h3>
+                            <p className="text-sm mb-2"><LocalizedText text={"Conte-nos o que aconteceu. Sua experiência nos ajuda a tornar o jogo ainda melhor para todos os treinadores!"} /></p>
                             <Textarea
                                 name="description"
-                                placeholder="Descreva o que você estava fazendo quando o erro ocorreu..."
+                                placeholder={ui("Descreva o que você estava fazendo quando o erro ocorreu...")}
                                 className="w-full"
                             />
                         </div>
                         <Button type="submit" className="w-full" disabled={isSubmitting}>
-                            {isSubmitting ? "Enviando..." : "Enviar Relatório"}
+                            {isSubmitting ? ui("Enviando...") : ui("Enviar Relatório")}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <Button asChild variant="outline">
-                        <Link href="/">Voltar para a Página Inicial</Link>
+                        <Link href="/"><LocalizedText text={"Voltar para a Página Inicial"} /></Link>
                     </Button>
                 </CardFooter>
             </Card>

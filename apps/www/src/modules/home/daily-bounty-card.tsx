@@ -1,4 +1,7 @@
 "use client";
+import { useUiText } from "@/i18n/localized-text";
+import { event } from "@/lib/telemetry";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect } from "react";
 import { useApi } from "@/hooks/use-api";
@@ -40,6 +43,7 @@ function formatCountdown(ms: number) {
 }
 
 export function DailyBountyCard() {
+  const ui = useUiText();
   const { get, post } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -78,6 +82,7 @@ export function DailyBountyCard() {
     },
     onSuccess: (res: any) => {
       if (res?.ok) {
+        event("daily_reward_claimed");
         const claimed = data?.todayReward?.coins || 500;
         soundFx.playLegendaryFanfare();
         setRewardAmount(claimed);
@@ -142,11 +147,11 @@ export function DailyBountyCard() {
                   ? "border-amber-500/40 text-amber-500 bg-amber-500/10"
                   : "border-border text-muted-foreground"
               }`}>
-                {isReady ? "Disponível Hoje" : "Aguardando Recarga"}
+                {isReady ? ui("Disponível Hoje") : ui("Aguardando Recarga")}
               </Badge>
               <span className="text-[11px] font-mono text-muted-foreground font-semibold flex items-center gap-1">
                 <Flame className="size-3 text-amber-500 fill-amber-500" />
-                <span>Dia {currentDay} de 30</span>
+                <span><LocalizedText text={"Dia"} /> {currentDay} <LocalizedText text={"de 30"} /></span>
               </span>
             </div>
 
@@ -157,8 +162,7 @@ export function DailyBountyCard() {
             </h3>
 
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>
-                Prêmio de hoje: <strong className="text-foreground">+{balanceTranslate(todayReward?.coins || 500)} moedas</strong>
+              <span> <LocalizedText text={"Prêmio de hoje:"} /> <strong className="text-foreground">+{balanceTranslate(todayReward?.coins || 500)} <LocalizedText text={"moedas"} /></strong>
                 {todayReward?.packName ? ` + 1x ${todayReward.packName}` : ""}
               </span>
             </p>
@@ -174,7 +178,7 @@ export function DailyBountyCard() {
             className="h-10 text-xs font-syne font-bold flex-1 md:flex-initial gap-1.5"
           >
             <Calendar className="size-3.5 text-amber-500" />
-            <span>Ver Estrada 30 Dias</span>
+            <span><LocalizedText text={"Ver Estrada 30 Dias"} /></span>
           </Button>
 
           {isReady ? (
@@ -184,7 +188,7 @@ export function DailyBountyCard() {
               className="h-10 text-xs sm:text-sm font-syne font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex-1 md:flex-initial"
             >
               <Sparkles className="size-3.5 mr-1" />
-              <span>{claiming ? "Resgatando..." : `Coletar Dia ${currentDay}`}</span>
+              <span>{claiming ? ui("Resgatando...") : `Coletar Dia ${currentDay}`}</span>
             </Button>
           ) : (
             <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-xl border border-border text-xs text-muted-foreground font-mono flex-1 md:flex-initial justify-center">

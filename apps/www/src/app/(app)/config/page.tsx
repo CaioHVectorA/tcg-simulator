@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -82,8 +83,8 @@ export default function ConfigPage() {
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">🇧🇷</span>
                 <div className="text-left">
-                  <p className="font-bold text-sm">Português</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">Brasil (pt-BR)</p>
+                  <p className="font-bold text-sm"><LocalizedText text={"Português"} /></p>
+                  <p className="text-[10px] text-muted-foreground font-mono"><LocalizedText text={"Brasil (pt-BR)"} /></p>
                 </div>
               </div>
               {locale === "pt" && <Check className="size-4 text-primary stroke-[3]" />}
@@ -101,8 +102,8 @@ export default function ConfigPage() {
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">🇺🇸</span>
                 <div className="text-left">
-                  <p className="font-bold text-sm">English</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">United States (en-US)</p>
+                  <p className="font-bold text-sm"><LocalizedText text={"English"} /></p>
+                  <p className="text-[10px] text-muted-foreground font-mono"><LocalizedText text={"United States (en-US)"} /></p>
                 </div>
               </div>
               {locale === "en" && <Check className="size-4 text-primary stroke-[3]" />}
@@ -184,10 +185,10 @@ export default function ConfigPage() {
 
         {/* Seção 4: Conta & Sessão */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs">
-          <h2 className="text-base font-bold text-foreground mb-1">Informações da Conta</h2>
+          <h2 className="text-base font-bold text-foreground mb-1"><LocalizedText text={"Informações da Conta"} /></h2>
           <div className="font-sans text-xs text-muted-foreground space-y-1 mb-4">
-            <p>Treinador: <b className="text-foreground font-syne">{username}</b></p>
-            <p>Email: <b className="text-foreground">{email}</b></p>
+            <p><LocalizedText text={"Treinador:"} /> <b className="text-foreground font-syne">{username}</b></p>
+            <p><LocalizedText text={"Email:"} /> <b className="text-foreground">{email}</b></p>
           </div>
 
           <div className="pt-3 border-t border-border/60">

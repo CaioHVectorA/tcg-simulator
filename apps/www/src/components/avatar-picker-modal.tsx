@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import {
@@ -106,6 +107,7 @@ export function AvatarPickerModal({
   currentPicture = "",
   username,
 }: AvatarPickerModalProps) {
+  const ui = useUiText();
   const { get, patch } = useApi();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -170,12 +172,8 @@ export function AvatarPickerModal({
       <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-6 rounded-3xl overflow-hidden font-syne">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="size-5 text-amber-400" />
-            Escolha seu Avatar
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground font-sans">
-            Selecione um Pokémon lendário, use a arte de uma de suas cartas da coleção ou insira uma URL personalizada.
-          </DialogDescription>
+            <Sparkles className="size-5 text-amber-400" /> <LocalizedText text={"Escolha seu Avatar"} /> </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground font-sans"> <LocalizedText text={"Selecione um Pokémon lendário, use a arte de uma de suas cartas da coleção ou insira uma URL personalizada."} /> </DialogDescription>
         </DialogHeader>
 
         {/* Live Preview Bar */}
@@ -189,12 +187,10 @@ export function AvatarPickerModal({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h4 className="font-bold text-foreground truncate">{username}</h4>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                Pré-visualização
-              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold"> <LocalizedText text={"Pré-visualização"} /> </span>
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5 font-sans">
-              {selectedAvatar ? "Avatar selecionado pronto para salvar" : "Nenhum avatar customizado"}
+              {selectedAvatar ? ui("Avatar selecionado pronto para salvar") : ui("Nenhum avatar customizado")}
             </p>
           </div>
           <Button
@@ -206,23 +202,18 @@ export function AvatarPickerModal({
               <Loader2 className="size-4 animate-spin mr-1.5" />
             ) : (
               <Check className="size-4 mr-1.5" />
-            )}
-            Salvar Avatar
-          </Button>
+            )} <LocalizedText text={"Salvar Avatar"} /> </Button>
         </div>
 
         {/* Tabs de Seleção */}
         <Tabs defaultValue="gallery" className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid grid-cols-3 h-10 rounded-xl bg-accent/60 p-1 mb-3 shrink-0">
             <TabsTrigger value="gallery" className="rounded-lg text-xs gap-1.5 font-semibold">
-              <ImageIcon className="size-3.5" /> Galeria
-            </TabsTrigger>
+              <ImageIcon className="size-3.5" /> <LocalizedText text={"Galeria"} /> </TabsTrigger>
             <TabsTrigger value="cards" className="rounded-lg text-xs gap-1.5 font-semibold">
-              <Layers className="size-3.5" /> Minhas Cartas
-            </TabsTrigger>
+              <Layers className="size-3.5" /> <LocalizedText text={"Minhas Cartas"} /> </TabsTrigger>
             <TabsTrigger value="custom" className="rounded-lg text-xs gap-1.5 font-semibold">
-              <Link2 className="size-3.5" /> Link / URL
-            </TabsTrigger>
+              <Link2 className="size-3.5" /> <LocalizedText text={"Link / URL"} /> </TabsTrigger>
           </TabsList>
 
           {/* 1. Galeria Pokémon */}
@@ -244,13 +235,13 @@ export function AvatarPickerModal({
                     <div className="size-16 sm:size-20 flex items-center justify-center relative">
                       <img
                         src={p.url}
-                        alt={p.name}
+                        alt={ui(p.name)}
                         className="max-h-full max-w-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-200"
                         loading="lazy"
                       />
                     </div>
                     <span className="text-[11px] font-bold text-foreground mt-2 truncate w-full text-center">
-                      {p.name}
+                      {ui(p.name)}
                     </span>
                     {isSelected && (
                       <div className="absolute top-1.5 right-1.5 size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -268,13 +259,13 @@ export function AvatarPickerModal({
             {loadingCards ? (
               <div className="py-16 flex flex-col items-center justify-center gap-2">
                 <Loader2 className="size-6 animate-spin text-primary" />
-                <p className="text-xs text-muted-foreground font-sans">Carregando suas cartas...</p>
+                <p className="text-xs text-muted-foreground font-sans"><LocalizedText text={"Carregando suas cartas..."} /></p>
               </div>
             ) : userCards.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground font-sans">
                 <Layers className="size-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-bold font-syne text-foreground">Nenhuma carta encontrada</p>
-                <p className="text-xs mt-1">Abra booster packs na loja ou inventário para obter cartas!</p>
+                <p className="text-sm font-bold font-syne text-foreground"><LocalizedText text={"Nenhuma carta encontrada"} /></p>
+                <p className="text-xs mt-1"><LocalizedText text={"Abra booster packs na loja ou inventário para obter cartas!"} /></p>
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 p-1">
@@ -297,13 +288,13 @@ export function AvatarPickerModal({
                       <div className="w-full aspect-[2.5/3.5] rounded-lg overflow-hidden relative shadow-xs">
                         <img
                           src={cardImg}
-                          alt={card.name}
+                          alt={ui(card.name)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           loading="lazy"
                         />
                       </div>
                       <span className="text-[10px] font-bold text-foreground mt-1.5 truncate w-full text-center">
-                        {card.name}
+                        {ui(card.name)}
                       </span>
                       {isSelected && (
                         <div className="absolute top-1 right-1 size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
@@ -320,27 +311,21 @@ export function AvatarPickerModal({
           {/* 3. Link Customizado */}
           <TabsContent value="custom" className="flex-1 p-2 space-y-4 font-sans text-xs">
             <div className="bg-card border border-border/80 rounded-2xl p-4 space-y-3">
-              <label className="font-semibold text-foreground block">
-                Insira a URL direta da imagem (PNG, WebP, JPG):
-              </label>
+              <label className="font-semibold text-foreground block"> <LocalizedText text={"Insira a URL direta da imagem (PNG, WebP, JPG):"} /> </label>
               <div className="flex gap-2">
                 <Input
                   value={customUrl}
                   onChange={(e) => setCustomUrl(e.target.value)}
-                  placeholder="https://i.imgur.com/exemplo.png"
+                  placeholder={ui("https://i.imgur.com/exemplo.png")}
                   className="rounded-xl h-10 font-mono text-xs"
                 />
                 <Button
                   onClick={handleCustomUrlApply}
                   disabled={!customUrl.trim()}
                   className="h-10 px-4 rounded-xl font-syne font-bold shrink-0"
-                >
-                  Testar
-                </Button>
+                > <LocalizedText text={"Testar"} /> </Button>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Dica: Certifique-se de que a imagem tenha proporções quadradas para melhor visualização no perfil.
-              </p>
+              <p className="text-[11px] text-muted-foreground"> <LocalizedText text={"Dica: Certifique-se de que a imagem tenha proporções quadradas para melhor visualização no perfil."} /> </p>
             </div>
           </TabsContent>
         </Tabs>

@@ -1,4 +1,5 @@
 "use client"
+import { useUiText } from "@/i18n/localized-text";
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Gift, Zap, Package, Sparkles } from "lucide-react"
@@ -6,6 +7,7 @@ import { Gift, Zap, Package, Sparkles } from "lucide-react"
 import { useTranslation } from "@/i18n/LanguageContext"
 
 export function Navigation() {
+  const ui = useUiText();
     const { t } = useTranslation()
     const [activeSection, setActiveSection] = useState("standard")
 
@@ -65,7 +67,7 @@ export function Navigation() {
                                 />
                             )}
                             <Icon className="size-3.5 shrink-0" />
-                            <span>{sec.label}</span>
+                            <span>{ui(sec.label)}</span>
                         </button>
                     )
                 })}

@@ -1,12 +1,15 @@
 import axios, { AxiosError } from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "https://poke-tcg-center.fly.dev";
+const configuredURL = process.env.NEXT_PUBLIC_API_URL;
+if (process.env.NODE_ENV === "production" && !configuredURL) throw new Error("NEXT_PUBLIC_API_URL is required in production");
+const baseURL = configuredURL || "http://localhost:8080";
 export const API_URL = baseURL;
 export const WS_URL = baseURL.replace(/^http/, "ws");
 
 export const api = axios.create({
   baseURL,
   withCredentials: true,
+  timeout: 15_000,
   validateStatus: (status) => {
     // Treat 2xx as success, allow 400/404 to pass through for application-level error toasts
     return status >= 200 && status < 500;
@@ -15,9 +18,11 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const savedLocale = localStorage.getItem("tcg_locale") || "pt";
+    const cookieLocale = document.cookie.match(/(?:^|;\s*)tcg_locale=(pt|en|es|jp)(?:;|$)/)?.[1];
+    const savedLocale = cookieLocale || localStorage.getItem("tcg_locale") || "pt";
     config.headers["X-Locale"] = savedLocale;
-    config.headers["Accept-Language"] = savedLocale === "en" ? "en-US,en;q=0.9" : "pt-BR,pt;q=0.9";
+    const languages: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES", jp: "ja-JP" };
+    config.headers["Accept-Language"] = languages[savedLocale] || "pt-BR";
   }
   return config;
 });
@@ -30,7 +35,7 @@ api.interceptors.response.use(
     return response;
   },
   (error: AxiosError<any>) => {
-    console.error("[API Error]", error.response?.data || error.message);
+    if (!axios.isCancel(error)) console.error("[API Error]", { status: error.response?.status, code: error.code });
     if (error.response?.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/entrar")) {
       window.location.href = "/entrar";
     }

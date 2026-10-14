@@ -1,3 +1,4 @@
+import { publicError } from "../lib/public-error";
 import { Elysia, t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
 import { getUserUserMiddleware } from "../middlewares/jwt";
@@ -27,7 +28,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const data = await PackageService.getAllPackages();
         return sucessResponse(data, undefined, locale);
       } catch (error: any) {
-        return errorResponse(error.message, "Erro ao listar pacotes.", locale);
+        return errorResponse(publicError(error), "Erro ao listar pacotes.", locale);
       }
     })
 
@@ -44,7 +45,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           const data = await PackageService.getPackageCards(packageId, page, sort);
           return sucessResponse(data, undefined, locale);
         } catch (error: any) {
-          return errorResponse(error.message, "Erro ao listar cartas do pacote.", locale);
+          return errorResponse(publicError(error), "Erro ao listar cartas do pacote.", locale);
         }
       },
       {
@@ -79,7 +80,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         return sucessResponse(package_, undefined, locale);
       } catch (error: any) {
         set.status = 500;
-        return errorResponse(error.message, "Erro ao buscar pacote.", locale);
+        return errorResponse(publicError(error), "Erro ao buscar pacote.", locale);
       }
     })
 
@@ -95,11 +96,11 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
       async ({ user, headers, set }) => {
         const locale = getLocaleFromHeaders(headers);
         try {
-          const packages = await PackageService.getUserInventoryPackages(user.id, user.email);
+          const packages = await PackageService.getUserInventoryPackages(user.id);
           return sucessResponse(packages, undefined, locale);
         } catch (error: any) {
           set.status = 500;
-          return errorResponse(error.message, "Erro ao carregar inventário.", locale);
+          return errorResponse(publicError(error), "Erro ao carregar inventário.", locale);
         }
       },
       {
@@ -120,15 +121,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { packageId } = body;
-          await PackageService.buyPackage(user.id, packageId);
+          await PackageService.buyPackage(user.id, packageId, headers["idempotency-key"]);
           return sucessResponse(null, "Comprado com sucesso!", locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message || "Ocorreu um erro ao comprar o pacote.", locale);
+          return errorResponse(publicError(error), publicError(error) || "Ocorreu um erro ao comprar o pacote.", locale);
         }
       },
       {
-        body: t.Object({ packageId: t.Number() }),
+        body: t.Object({ packageId: t.Integer({ minimum: 1, maximum: 2147483647 }) }),
       }
     )
 
@@ -142,15 +143,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { packagesId } = body;
-          await PackageService.buyManyPackages(user.id, packagesId);
+          await PackageService.buyManyPackages(user.id, packagesId, headers["idempotency-key"]);
           return sucessResponse("Comprado com sucesso!", "Comprado com sucesso!", locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message || "Ocorreu um erro na compra em lote.", locale);
+          return errorResponse(publicError(error), publicError(error) || "Ocorreu um erro na compra em lote.", locale);
         }
       },
       {
-        body: t.Object({ packagesId: t.Array(t.Number()) }),
+        body: t.Object({ packagesId: t.Array(t.Integer({ minimum: 1, maximum: 2147483647 }), { minItems: 1, maxItems: 100 }) }),
         response: {
           200: baseResponse,
           400: baseResponse,
@@ -169,15 +170,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { packageId } = body;
-          const cards = await PackageService.openSinglePackage(user.id, packageId, user.email);
+          const cards = await PackageService.openSinglePackage(user.id, packageId, headers["idempotency-key"]);
           return sucessResponse(cards, undefined, locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message || "Erro ao abrir o pacote.", locale);
+          return errorResponse(publicError(error), publicError(error) || "Erro ao abrir o pacote.", locale);
         }
       },
       {
-        body: t.Object({ packageId: t.Number() }),
+        body: t.Object({ packageId: t.Integer({ minimum: 1, maximum: 2147483647 }) }),
       }
     )
 
@@ -191,15 +192,15 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { packagesId } = body;
-          const cards = await PackageService.openBatchPackages(user.id, packagesId, user.email);
+          const cards = await PackageService.openBatchPackages(user.id, packagesId, headers["idempotency-key"]);
           return sucessResponse(cards, undefined, locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message || "Erro ao abrir os pacotes.", locale);
+          return errorResponse(publicError(error), publicError(error) || "Erro ao abrir os pacotes.", locale);
         }
       },
       {
-        body: t.Object({ packagesId: t.Array(t.Number()) }),
+        body: t.Object({ packagesId: t.Array(t.Integer({ minimum: 1, maximum: 2147483647 }), { minItems: 1, maxItems: 100 }) }),
         response: {
           200: baseResponse,
           400: baseResponse,
@@ -218,7 +219,7 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { packageId, goldAmount } = body;
-          const result = await PackageService.openThematicLootbox(user.id, packageId, goldAmount);
+          const result = await PackageService.openThematicLootbox(user.id, packageId, goldAmount, headers["idempotency-key"]);
           return sucessResponse(
             result,
             `Pacote ${result.packageName} aberto com sucesso! Você recebeu ${result.cardsCount} cartas.`,
@@ -226,13 +227,13 @@ export const packageController = new Elysia({}).group("/packages", (app) => {
           );
         } catch (error: any) {
           set.status = error.message?.includes("não encontrado") ? 404 : 400;
-          return errorResponse(error.message, error.message || "Erro ao abrir pacote temático.", locale);
+          return errorResponse(publicError(error), publicError(error) || "Erro ao abrir pacote temático.", locale);
         }
       },
       {
         body: t.Object({
-          packageId: t.Number(),
-          goldAmount: t.Number(),
+          packageId: t.Integer({ minimum: 1, maximum: 2147483647 }),
+          goldAmount: t.Integer({ minimum: 1, maximum: 2147483647 }),
         }),
       }
     );

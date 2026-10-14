@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,6 +71,7 @@ interface SearchUserResult {
 }
 
 export const SocialHub: React.FC = () => {
+  const ui = useUiText();
   const user = useUser();
   const { t } = useTranslation();
   const { get, post, delete: del } = useApi();
@@ -87,13 +89,11 @@ export const SocialHub: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [friendFilter, setFriendFilter] = useState("");
 
-  if (user?.isGuest) {
-    return <GuestRestrictionCard featureTitle="a Central Social & Amigos" />;
-  }
 
   // 1. Query: Amigos
   const { data: friends = [], isLoading: loadingFriends } = useQuery<FriendUser[]>({
-    queryKey: ["friends"],
+    queryKey: ["friends", user?.id],
+    enabled: !!user?.id && !user.isGuest,
     queryFn: async () => {
       const res = await get("/user/friends");
       return res.data.data ?? [];
@@ -102,7 +102,8 @@ export const SocialHub: React.FC = () => {
 
   // 2. Query: Pedidos Recebidos
   const { data: receivedRequests = [], isLoading: loadingRequests } = useQuery<FriendRequest[]>({
-    queryKey: ["requests"],
+    queryKey: ["requests", user?.id],
+    enabled: !!user?.id && !user.isGuest,
     queryFn: async () => {
       const res = await get("/user/requests");
       return res.data.data ?? [];
@@ -111,7 +112,8 @@ export const SocialHub: React.FC = () => {
 
   // 3. Query: Pedidos Enviados
   const { data: sentRequests = [], isLoading: loadingSent } = useQuery<SentRequest[]>({
-    queryKey: ["requests-sent"],
+    queryKey: ["requests-sent", user?.id],
+    enabled: !!user?.id && !user.isGuest,
     queryFn: async () => {
       const res = await get("/user/requests/sent");
       return res.data.data ?? [];
@@ -126,7 +128,7 @@ export const SocialHub: React.FC = () => {
       const res = await get(`/user/search?q=${encodeURIComponent(searchQuery.trim())}`);
       return res.data.data ?? [];
     },
-    enabled: searchQuery.trim().length >= 2,
+    enabled: !!user?.id && !user.isGuest && searchQuery.trim().length >= 2,
   });
 
   // Mutações
@@ -204,6 +206,8 @@ export const SocialHub: React.FC = () => {
     f.username.toLowerCase().includes(friendFilter.toLowerCase())
   );
 
+  if (user?.isGuest) return <GuestRestrictionCard featureTitle="a Central Social & Amigos" />;
+
   return (
     <div className="w-full font-syne">
       <Tabs defaultValue="friends" className="w-full">
@@ -272,7 +276,7 @@ export const SocialHub: React.FC = () => {
                       <p className="text-sm font-bold truncate text-foreground">{friend.username}</p>
                       <span className="text-[11px] text-muted-foreground font-sans block">
                         {friend.online ? (
-                          <span className="text-emerald-500 font-semibold">Online</span>
+                          <span className="text-emerald-500 font-semibold"><LocalizedText text={"Online"} /></span>
                         ) : (
                           "Offline"
                         )}
@@ -285,7 +289,7 @@ export const SocialHub: React.FC = () => {
                       size="icon"
                       variant="outline"
                       className="size-8 rounded-lg opacity-40 cursor-not-allowed"
-                      title="Chat temporariamente em manutenção"
+                      title={ui("Chat temporariamente em manutenção")}
                       disabled
                     >
                       <MessageSquare className="size-4 text-muted-foreground" />
@@ -294,7 +298,7 @@ export const SocialHub: React.FC = () => {
                       size="icon"
                       variant="outline"
                       className="size-8 rounded-lg"
-                      title="Doar Moedas"
+                      title={ui("Doar Moedas")}
                       onClick={() => setDonationFriend(friend)}
                     >
                       <Gift className="size-4 text-pink-500" />
@@ -303,7 +307,7 @@ export const SocialHub: React.FC = () => {
                       size="icon"
                       variant="ghost"
                       className="size-8 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                      title="Desfazer Amizade"
+                      title={ui("Desfazer Amizade")}
                       onClick={() => {
                         if (confirm(`Deseja remover ${friend.username} da sua lista de amigos?`)) {
                           removeFriend(friend.id);
@@ -438,23 +442,16 @@ export const SocialHub: React.FC = () => {
                     <div>
                       <p className="text-sm font-bold text-foreground">{user.username}</p>
                       <span className="text-[11px] text-muted-foreground font-sans">
-                        {user.rarityPoints} pts de raridade
-                      </span>
+                        {user.rarityPoints} <LocalizedText text={"pts de raridade"} /> </span>
                     </div>
                   </div>
 
                   {user.relationStatus === "friend" ? (
-                    <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
-                      Amigos
-                    </Badge>
+                    <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30"> <LocalizedText text={"Amigos"} /> </Badge>
                   ) : user.relationStatus === "sent" ? (
-                    <Badge variant="secondary" className="text-xs">
-                      Enviado
-                    </Badge>
+                    <Badge variant="secondary" className="text-xs"> <LocalizedText text={"Enviado"} /> </Badge>
                   ) : user.relationStatus === "received" ? (
-                    <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400">
-                      Pendente
-                    </Badge>
+                    <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400"> <LocalizedText text={"Pendente"} /> </Badge>
                   ) : (
                     <Button
                       size="sm"
@@ -462,8 +459,7 @@ export const SocialHub: React.FC = () => {
                       disabled={sendingRequest}
                       onClick={() => sendRequest(user.id)}
                     >
-                      <UserPlus className="size-3.5 mr-1" /> Convidar
-                    </Button>
+                      <UserPlus className="size-3.5 mr-1" /> <LocalizedText text={"Convidar"} /> </Button>
                   )}
                 </div>
               ))
@@ -484,8 +480,7 @@ export const SocialHub: React.FC = () => {
         <DialogContent className="max-w-sm bg-card/95 border-border backdrop-blur-xl font-syne p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Gift className="size-5 text-pink-500" /> Doar Moedas
-            </DialogTitle>
+              <Gift className="size-5 text-pink-500" /> <LocalizedText text={"Doar Moedas"} /> </DialogTitle>
           </DialogHeader>
 
           {donationFriend && (
@@ -494,14 +489,12 @@ export const SocialHub: React.FC = () => {
                 <Avatar username={donationFriend.username} src={donationFriend.picture} className="size-10" />
                 <div>
                   <p className="text-sm font-bold">{donationFriend.username}</p>
-                  <p className="text-xs text-muted-foreground font-sans">Enviar presente de moedas</p>
+                  <p className="text-xs text-muted-foreground font-sans"><LocalizedText text={"Enviar presente de moedas"} /></p>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground block mb-1.5 font-sans">
-                  Quantidade de Moedas:
-                </label>
+                <label className="text-xs text-muted-foreground block mb-1.5 font-sans"> <LocalizedText text={"Quantidade de Moedas:"} /> </label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -534,9 +527,7 @@ export const SocialHub: React.FC = () => {
                 disabled={donating || donationAmount <= 0}
                 className="w-full h-11 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold"
               >
-                {donating ? <Loader2 className="size-4 animate-spin mr-2" /> : <Gift className="size-4 mr-2" />}
-                Confirmar Doação
-              </Button>
+                {donating ? <Loader2 className="size-4 animate-spin mr-2" /> : <Gift className="size-4 mr-2" />} <LocalizedText text={"Confirmar Doação"} /> </Button>
             </div>
           )}
         </DialogContent>

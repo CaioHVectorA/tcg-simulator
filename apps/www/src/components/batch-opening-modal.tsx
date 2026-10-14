@@ -1,4 +1,6 @@
 "use client";
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -54,7 +56,10 @@ export function BatchOpeningModal({
   pack,
   quantityToOpen,
 }: BatchOpeningModalProps) {
+  const ui = useUiText();
   const { post, loading } = useApi();
+  const requestKey = useRef<string>();
+  const session = useRef(0);
   const qClient = useQueryClient();
 
   const [phase, setPhase] = useState<"opening" | "revealed" | "error">("opening");
@@ -69,6 +74,7 @@ export function BatchOpeningModal({
   const isStandardPack = !pack.tcg_id || !pack.image_url || pack.image_url.includes("placeholder");
 
   useEffect(() => {
+    const version = ++session.current;
     if (!isOpen) {
       // Reset for next open session
       hasExecutedRef.current = false;
@@ -76,6 +82,7 @@ export function BatchOpeningModal({
     }
     if (isOpen && quantityToOpen > 0 && !hasExecutedRef.current) {
       hasExecutedRef.current = true;
+      requestKey.current ||= crypto.randomUUID();
       setPhase("opening");
       setCards([]);
       setActiveFilter("all");
@@ -84,8 +91,9 @@ export function BatchOpeningModal({
         try {
           soundFx.playPackTear();
           const packagesId = Array(quantityToOpen).fill(pack.id);
-          const res = await post("/packages/open-packages", { packagesId });
-          const allCards: BatchCard[] = res.data?.data || res.data || [];
+          const res = await post("/packages/open-packages", { packagesId }, requestKey.current);
+          if (!res.data?.ok) throw new Error(res.data?.toast || "Could not open packs");
+          const allCards: BatchCard[] = res.data.data;
 
           // Pré-carrega imagens das cartas
           allCards.forEach((c) => {
@@ -95,8 +103,11 @@ export function BatchOpeningModal({
             }
           });
 
-          // Tempo mínimo para a animação de rasgo em lote fluir
-          setTimeout(() => {
+          // Ignore a response from an obsolete opening session.
+          if (version !== session.current) return;
+          {
+            event("first_pack_opened", {}, true);
+            event("pack_opened", { count: quantityToOpen });
             setCards(allCards);
             setPhase("revealed");
 
@@ -111,13 +122,15 @@ export function BatchOpeningModal({
               }
             }
 
-            qClient.invalidateQueries({ queryKey: ["packages"] });
+
             qClient.invalidateQueries({ queryKey: ["user"] });
             qClient.invalidateQueries({ queryKey: ["cards"] });
-          }, 800);
+            requestKey.current = undefined;
+          }
         } catch (err: any) {
           console.error("Batch open error:", err);
-          const msg = err?.response?.data?.toast || err?.response?.data?.error || "Erro ao abrir pacotes em lote. Verifique se você ainda possui esses pacotes em seu inventário.";
+          if (version !== session.current) return;
+          const msg = err?.message || err?.response?.data?.toast || err?.response?.data?.error || "Erro ao abrir pacotes em lote. Verifique se você ainda possui esses pacotes em seu inventário.";
           setErrorMessage(msg);
           setPhase("error");
         }
@@ -140,26 +153,35 @@ export function BatchOpeningModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[850px] p-0 border border-slate-800 bg-slate-950/98 backdrop-blur-2xl text-white font-syne overflow-hidden flex flex-col justify-between shadow-2xl">
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open && !inspectCard) {
+            qClient.invalidateQueries({ queryKey: ["packages"] });
+            onClose();
+          }
+        }}
+      >
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="max-w-5xl w-[95vw] h-[90vh] max-h-[850px] p-0 border border-slate-800 bg-slate-950/98 backdrop-blur-2xl text-white font-syne overflow-hidden flex flex-col justify-between shadow-2xl"
+        >
           <DialogHeader className="sr-only">
-            <DialogTitle>Abertura de {quantityToOpen}x {pack.name}</DialogTitle>
+            <DialogTitle><LocalizedText text={"Abertura de"} /> {quantityToOpen}<LocalizedText text={"x"} /> {ui(pack.name)}</DialogTitle>
           </DialogHeader>
 
           {/* Topo do Modal */}
           <div className="p-4 sm:p-5 flex items-center justify-between border-b border-white/10 bg-slate-900/60 z-10">
             <div className="flex items-center gap-3">
               <span className="text-lg sm:text-2xl font-black text-amber-400">
-                {pack.name}
+                {ui(pack.name)}
               </span>
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono text-xs">
-                Abertura de {quantityToOpen}x Pacotes
-              </Badge>
+              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono text-xs"> <LocalizedText text={"Abertura de"} /> {quantityToOpen}<LocalizedText text={"x Pacotes"} /> </Badge>
             </div>
 
             {phase === "revealed" && (
-              <span className="font-mono text-xs text-slate-400">
-                Total: <strong className="text-white">{cards.length} cartas</strong>
+              <span className="font-mono text-xs text-slate-400"> <LocalizedText text={"Total:"} /> <strong className="text-white">{cards.length} <LocalizedText text={"cartas"} /></strong>
               </span>
             )}
           </div>
@@ -191,7 +213,7 @@ export function BatchOpeningModal({
                       ) : (
                         <img
                           src={loadTcgImg(pack.image_url)}
-                          alt={pack.name}
+                          alt={ui(pack.name)}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -204,12 +226,8 @@ export function BatchOpeningModal({
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-xl sm:text-2xl font-black text-white">
-                      Abrindo {quantityToOpen} Booster Packs...
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-400">
-                      Rasgando lacres e sorteando cartas para seu deck.
-                    </p>
+                    <h3 className="text-xl sm:text-2xl font-black text-white"> <LocalizedText text={"Abrindo"} /> {quantityToOpen} <LocalizedText text={"Booster Packs..."} /> </h3>
+                    <p className="text-xs sm:text-sm text-slate-400"> <LocalizedText text={"Rasgando lacres e sorteando cartas para seu deck."} /> </p>
                   </div>
                 </motion.div>
               ) : phase === "error" ? (
@@ -223,16 +241,14 @@ export function BatchOpeningModal({
                   <div className="size-16 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
                     <PackageIcon className="size-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-white">Falha ao Abrir Pacotes</h3>
+                  <h3 className="text-xl font-bold text-white"><LocalizedText text={"Falha ao Abrir Pacotes"} /></h3>
                   <p className="text-sm text-slate-400">
-                    {errorMessage || "Não foi possível abrir os pacotes selecionados. Verifique se possui unidades suficientes no inventário."}
+                    {errorMessage || ui("Não foi possível abrir os pacotes selecionados. Verifique se possui unidades suficientes no inventário.")}
                   </p>
                   <Button
-                    onClick={onClose}
+                    onClick={() => { qClient.invalidateQueries({ queryKey: ["packages"] }); onClose(); }}
                     className="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-6 h-10 rounded-xl"
-                  >
-                    Fechar
-                  </Button>
+                  > <LocalizedText text={"Fechar"} /> </Button>
                 </motion.div>
               ) : (
                 /* FASE REVELADA: RESUMO COMPLETO EM LOTE */
@@ -252,8 +268,7 @@ export function BatchOpeningModal({
                         className={`text-xs h-8 rounded-lg font-mono font-bold ${
                           activeFilter === "all" ? "bg-amber-500 text-slate-950" : "border-slate-700 text-slate-300"
                         }`}
-                      >
-                        Todas ({cards.length})
+                      > <LocalizedText text={"Todas ("} />{cards.length})
                       </Button>
 
                       {legendaries.length > 0 && (
@@ -264,8 +279,7 @@ export function BatchOpeningModal({
                           className={`text-xs h-8 rounded-lg font-mono font-bold ${
                             activeFilter === 5 ? "bg-rose-500 text-white" : "border-rose-500/40 text-rose-300"
                           }`}
-                        >
-                          👑 Lendárias ({legendaries.length})
+                        > <LocalizedText text={"👑 Lendárias ("} />{legendaries.length})
                         </Button>
                       )}
 
@@ -277,8 +291,7 @@ export function BatchOpeningModal({
                           className={`text-xs h-8 rounded-lg font-mono font-bold ${
                             activeFilter === 4 ? "bg-amber-500 text-slate-950" : "border-amber-500/40 text-amber-300"
                           }`}
-                        >
-                          ✨ Místicas ({mythics.length})
+                        > <LocalizedText text={"✨ Místicas ("} />{mythics.length})
                         </Button>
                       )}
 
@@ -290,8 +303,7 @@ export function BatchOpeningModal({
                           className={`text-xs h-8 rounded-lg font-mono font-bold ${
                             activeFilter === 3 ? "bg-purple-600 text-white" : "border-purple-500/40 text-purple-300"
                           }`}
-                        >
-                          💎 Épicas ({epics.length})
+                        > <LocalizedText text={"💎 Épicas ("} />{epics.length})
                         </Button>
                       )}
 
@@ -303,15 +315,12 @@ export function BatchOpeningModal({
                           className={`text-xs h-8 rounded-lg font-mono font-bold ${
                             activeFilter === 2 ? "bg-sky-600 text-white" : "border-sky-500/40 text-sky-300"
                           }`}
-                        >
-                          ⭐ Raras ({rares.length})
+                        > <LocalizedText text={"⭐ Raras ("} />{rares.length})
                         </Button>
                       )}
                     </div>
 
-                    <span className="text-[11px] text-slate-400 font-sans hidden sm:inline">
-                      Clique em uma carta para ampliar
-                    </span>
+                    <span className="text-[11px] text-slate-400 font-sans hidden sm:inline"> <LocalizedText text={"Clique em uma carta para ampliar"} /> </span>
                   </div>
 
                   {/* Grid de Cartas */}
@@ -340,7 +349,7 @@ export function BatchOpeningModal({
                             <div className="relative aspect-[2.5/3.5] rounded-lg overflow-hidden bg-slate-950">
                               <TcgCardImage
                                 src={card.image_url}
-                                alt={card.name}
+                                alt={ui(card.name)}
                                 className="w-full h-full object-cover"
                               />
 
@@ -351,10 +360,10 @@ export function BatchOpeningModal({
                             </div>
 
                             <div className="p-1.5 text-left">
-                              <p className="font-bold text-xs text-white truncate">{card.name}</p>
+                              <p className="font-bold text-xs text-white truncate">{ui(card.name)}</p>
                               <div className="flex items-center justify-between mt-0.5">
                                 <span className="text-[10px] font-mono text-amber-300 font-semibold">
-                                  {RARITY_LABELS[card.rarity || 1]?.label}
+                                  {ui(`rarities.tier${card.rarity || 1}`)}
                                 </span>
                                 <Badge className="text-[9px] font-mono px-1 py-0 bg-slate-800 text-slate-300">
                                   ★{card.rarity}
@@ -374,16 +383,13 @@ export function BatchOpeningModal({
           {/* Rodapé */}
           {phase === "revealed" && (
             <div className="p-4 sm:p-5 border-t border-white/10 bg-slate-900/60 flex items-center justify-between gap-3 shrink-0">
-              <span className="text-xs text-slate-400 font-sans hidden sm:inline">
-                Todas as cartas foram adicionadas com sucesso à sua coleção.
-              </span>
+              <span className="text-xs text-slate-400 font-sans hidden sm:inline"> <LocalizedText text={"Todas as cartas foram adicionadas com sucesso à sua coleção."} /> </span>
 
               <Button
-                onClick={onClose}
+                onClick={() => { qClient.invalidateQueries({ queryKey: ["packages"] }); onClose(); }}
                 className="w-full sm:w-auto px-8 h-11 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20"
               >
-                <CheckCircle2 className="size-4 mr-2" /> Concluir & Adicionar ao Deck
-              </Button>
+                <CheckCircle2 className="size-4 mr-2" /> <LocalizedText text={"Concluir & Adicionar ao Deck"} /> </Button>
             </div>
           )}
         </DialogContent>

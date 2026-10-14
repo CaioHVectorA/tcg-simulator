@@ -1,3 +1,9 @@
+import { PasswordService } from "../services/password.service";
+import { getLocaleFromHeaders } from "../i18n";
+import type { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+import { DomainError } from "../lib/domain-error";
+import { verifyGoogleIdentity } from "../lib/google-identity";
 import Elysia, { t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
 import { receiveUser } from "../middlewares/jwt";
@@ -13,50 +19,21 @@ const baseResponse = t.Object({
   data: t.Any(),
 });
 
-async function grantStarterPacks(userId: number) {
-  try {
-    const basicPackage = await prisma.package.findFirst({
-      where: {
-        OR: [
-          { name: { contains: "simples", mode: "insensitive" } },
-          { name: { contains: "básico", mode: "insensitive" } },
-          { name: { contains: "basico", mode: "insensitive" } },
-        ],
-      },
-      orderBy: { price: "asc" },
-    });
-    if (basicPackage) {
-      await prisma.packages_User.createMany({
-        data: Array.from({ length: 5 }).map(() => ({
-          userId,
-          packageId: basicPackage.id,
-          opened: false,
-        })),
-      });
-    }
-  } catch (err) {
-    console.error("Erro ao conceder pacotes iniciais:", err);
-  }
-}
-
-async function setupUserDefaultQuests(userId: number) {
-  try {
-    const standardQuests = await prisma.quest.findMany({
-      where: { isDiary: false },
-      select: { id: true },
-    });
-    if (standardQuests.length === 0) return;
-
-    await prisma.questUser.createMany({
-      data: standardQuests.map((q) => ({
-        user_id: userId,
-        quest_id: q.id,
-      })),
-      skipDuplicates: true,
-    });
-  } catch (err) {
-    console.error("Erro ao conceder missões padrão:", err);
-  }
+async function createTrainer(data: Prisma.UserCreateInput, referrer?: string | null) {
+  return prisma.$transaction(async (tx) => {
+    const protocol = referrer ? await tx.referrerProtocol.findUnique({ where: { hash: referrer } }) : null;
+    if (referrer && !protocol) throw new DomainError("auth.invalidReferral");
+    const [pack, quests] = await Promise.all([
+      tx.package.findFirst({ where: { OR: ["simples", "básico", "basico"].map((name) => ({ name: { contains: name, mode: "insensitive" as const } })) }, orderBy: { price: "asc" } }),
+      tx.quest.findMany({ where: { isDiary: false }, select: { id: true } }),
+    ]);
+    if (!pack) throw new DomainError("auth.onboardingUnavailable", 503);
+    const user = await tx.user.create({ data, select: { id: true, username: true, isGuest: true, authVersion: true } });
+    await tx.packages_User.createMany({ data: Array.from({ length: 5 }, () => ({ userId: user.id, packageId: pack.id })) });
+    if (quests.length) await tx.questUser.createMany({ data: quests.map((q) => ({ user_id: user.id, quest_id: q.id })), skipDuplicates: true });
+    if (protocol) await tx.referred.create({ data: { referrerProtocolId: protocol.id, referredId: user.id } });
+    return user;
+  });
 }
 
 export const authController = new Elysia({}).group("/auth", (app) => {
@@ -100,8 +77,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           return errorResponse("Senha inválida", "Senha inválida");
         }
 
-        const token = await jwt.sign({ id: user.id });
-        console.log({ token, verify: await jwt.verify(token) });
+        const token = await jwt.sign({ id: user.id, version: user.authVersion });
 
         return sucessResponse({ token }, "Login efetuado com sucesso!");
       },
@@ -109,7 +85,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         body: t.Object({
           email: t.Optional(t.String()),
           username: t.Optional(t.String()),
-          password: t.String(),
+          password: t.String({ minLength: 6, maxLength: 128 }),
         }),
         detail: { tags: ["Auth"], description: "Login to the system with email or username" },
         response: {
@@ -122,60 +98,23 @@ export const authController = new Elysia({}).group("/auth", (app) => {
     .post(
       "/register",
       async ({ body, jwt, set }) => {
-        const { email, password, username, withBonus, referrer } = body;
-        const alreadyExists = await prisma.user.findFirst({ where: { email } });
+        const { password, referrer } = body;
+        const email = body.email.trim().toLowerCase();
+        const username = body.username.trim();
+        const alreadyExists = await prisma.user.findFirst({ where: { OR: [{ email: { equals: email, mode: "insensitive" } }, { username: { equals: username, mode: "insensitive" } }] } });
         if (alreadyExists) {
-          set.status = 400;
-          return errorResponse("O usuário já existe!", "O usuário já existe!");
+          set.status = 409;
+          return errorResponse("auth.accountExists", "auth.accountExists");
         }
-        let referralId = undefined;
-        if (referrer) {
-          const referralProtocol = await prisma.referrerProtocol.findFirst({
-            where: { hash: referrer },
-          });
-          if (!referralProtocol) {
-            set.status = 400;
-            return errorResponse(
-              "Protocolo de referência inválido",
-              "Protocolo de referência inválido"
-            );
-          }
-
-          referralId = referralProtocol.id;
-        }
-        let initialMoney = 500;
-        const hashed = await hash(password, 10);
-        const money = initialMoney;
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const user = await prisma.user.create({
-          data: {
-            email,
-            password: hashed,
-            username,
-            money,
-            last_daily_bounty: yesterday,
-            fromReferralId: referralId,
-          },
-        });
-        if (referralId) {
-          await prisma.referred.create({
-            data: {
-              referrerProtocolId: referralId,
-              referredId: user.id,
-            },
-          });
-        }
-        await grantStarterPacks(user.id);
-        await setupUserDefaultQuests(user.id);
-        const token = await jwt.sign({ id: user.id });
+        const user = await createTrainer({ email, username, password: await hash(password, 10), money: 500, last_daily_bounty: null }, referrer);
+        const token = await jwt.sign({ id: user.id, version: user.authVersion });
         return sucessResponse({ token }, "Usuário criado com sucesso!");
       },
       {
         body: t.Object({
-          email: t.String(),
-          password: t.String(),
-          username: t.String(),
+          email: t.String({ format: "email", maxLength: 254 }),
+          password: t.String({ minLength: 6, maxLength: 128 }),
+          username: t.String({ minLength: 3, maxLength: 30 }),
           withBonus: t.Optional(t.Boolean()),
           referrer: t.Optional(t.String()),
         }),
@@ -183,6 +122,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         response: {
           200: baseResponse,
           400: baseResponse,
+          409: baseResponse,
         },
       }
     )
@@ -195,69 +135,17 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           picture?: string;
         };
 
-        let finalName = "";
-        if (nickname && nickname.trim().length >= 2) {
-          const clean = nickname.trim();
-          const existing = await prisma.user.findFirst({
-            where: { username: clean },
-          });
-          if (existing) {
-            finalName = `${clean}_${Math.floor(Math.random() * 900 + 100)}`;
-          } else {
-            finalName = clean;
-          }
-        } else {
-          let count = await prisma.user.count({
-            where: { username: { startsWith: "Treinador" } },
-          });
-          finalName = `Treinador_${Math.floor(Math.random() * 1000 + count + 1)}`;
-          while (true) {
-            const user = await prisma.user.findFirst({
-              where: { username: finalName },
-            });
-            if (!user) break;
-            finalName = `Treinador_${Math.floor(Math.random() * 9000 + 1000)}`;
-          }
-        }
-
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const randomPass = await hash((Math.random() * 100_000_000).toFixed(6), 10);
-        const emailSlug = finalName.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-        const newUser = await prisma.user.create({
-          data: {
-            username: finalName,
-            email: `${emailSlug}_${Date.now()}@guest.simtcg.com`,
-            password: randomPass,
-            isGuest: true,
-            authProvider: "guest",
-            picture: picture || "/wallpaper.jpg",
-            last_daily_bounty: yesterday,
-          },
-          select: { id: true, username: true, isGuest: true },
-        });
-
-        if (referrer) {
-          const referralProtocol = await prisma.referrerProtocol.findFirst({
-            where: { hash: referrer },
-          });
-          if (referralProtocol) {
-            await prisma.referred.create({
-              data: {
-                referrerProtocolId: referralProtocol.id,
-                referredId: newUser.id,
-              },
-            });
-          }
-        }
-
-        await grantStarterPacks(newUser.id);
-        await setupUserDefaultQuests(newUser.id);
-        const token = await jwt.sign({ id: newUser.id });
+        const suffix = randomUUID().slice(0, 8);
+        const finalName = `${nickname?.trim() || "Trainer"}_${suffix}`;
+        const newUser = await createTrainer({
+          username: finalName, email: `${randomUUID()}@guest.simtcg.com`,
+          password: await hash(randomUUID(), 10), isGuest: true, authProvider: "guest",
+          picture: picture || "/wallpaper.jpg", last_daily_bounty: null,
+        }, referrer);
+        const token = await jwt.sign({ id: newUser.id, version: newUser.authVersion });
         return sucessResponse(
-          { token, user: newUser },
-          `Bem-vindo(a), ${newUser.username}! Modo Convidado iniciado.`
+          { token, user: { id: newUser.id, username: newUser.username, isGuest: newUser.isGuest } },
+          "auth.guestCreated"
         );
       },
       {
@@ -336,7 +224,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
           },
         });
 
-        const newToken = await jwt.sign({ id: user.id });
+        const newToken = await jwt.sign({ id: user.id, version: user.authVersion });
 
         return sucessResponse(
           { user: updatedUser, token: newToken },
@@ -345,7 +233,7 @@ export const authController = new Elysia({}).group("/auth", (app) => {
       },
       {
         body: t.Object({
-          email: t.String(),
+          email: t.String({ format: "email", maxLength: 254 }),
           password: t.String({ minLength: 6 }),
           username: t.Optional(t.String({ minLength: 3, maxLength: 30 })),
         }),
@@ -357,59 +245,41 @@ export const authController = new Elysia({}).group("/auth", (app) => {
         },
       }
     )
+    .post("/password/forgot", async ({ body, headers, set }) => {
+      await PasswordService.request(body.email, getLocaleFromHeaders(headers));
+      set.status = 202;
+      return sucessResponse(null, "auth.resetRequested", getLocaleFromHeaders(headers));
+    }, { body: t.Object({ email: t.String({ format: "email", maxLength: 254 }) }) })
+    .post("/password/reset", async ({ body, headers }) => {
+      await PasswordService.reset(body.token, body.password);
+      return sucessResponse(null, "auth.passwordReset", getLocaleFromHeaders(headers));
+    }, { body: t.Object({ token: t.String({ pattern: "^[a-f0-9]{64}$" }), password: t.String({ minLength: 8, maxLength: 128 }) }) })
     .post(
       "/google",
-      async ({ body, jwt }) => {
-        const { name, image, email, referrer } = body;
-        const user = await prisma.user.findFirst({ where: { email } });
-        if (user) {
-          if (user.authProvider !== "google") {
-            return errorResponse("Usuário já existe", "Usuário já existe");
-          }
-          const token = await jwt.sign({ id: user.id });
-          return sucessResponse({ token });
+      async ({ body, jwt, set }) => {
+        const identity = await verifyGoogleIdentity(body.idToken);
+        let user = await prisma.user.findFirst({ where: { OR: [{ googleSubject: identity.subject }, { email: { equals: identity.email, mode: "insensitive" } }] } });
+        if (user && (user.authProvider !== "google" || (user.googleSubject && user.googleSubject !== identity.subject))) {
+          set.status = 409;
+          return errorResponse("auth.accountExists", "auth.accountExists");
         }
-        const newUser = await prisma.user.create({
-          data: {
-            email,
-            username: name,
-            picture: image,
-            authProvider: "google",
-            isGuest: false,
-            password: await hash((Math.random() * 100_000_000).toFixed(6), 10),
-          },
-          select: { id: true },
-        });
-        console.log({ referrer });
-        if (referrer) {
-          const referralProtocol = await prisma.referrerProtocol.findFirst({
-            where: { hash: referrer },
-          });
-          if (referralProtocol) {
-            await prisma.referred.create({
-              data: {
-                referrerProtocolId: referralProtocol.id,
-                referredId: newUser.id,
-              },
-            });
-          }
+        if (user && !user.googleSubject) {
+          user = await prisma.user.update({ where: { id: user.id }, data: { googleSubject: identity.subject } });
         }
-        await grantStarterPacks(newUser.id);
-        await setupUserDefaultQuests(newUser.id);
-        const token = await jwt.sign({ id: newUser.id });
-        return sucessResponse({ token });
+        const userId = user?.id ?? (await createTrainer({
+          email: identity.email, username: `${identity.name.slice(0, 20)}_${randomUUID().slice(0, 8)}`,
+          picture: identity.picture, authProvider: "google", googleSubject: identity.subject,
+          password: await hash(randomUUID(), 10),
+        }, body.referrer)).id;
+        const saved = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { authVersion: true } });
+        return sucessResponse({ token: await jwt.sign({ id: userId, version: saved.authVersion }) });
       },
       {
         body: t.Object({
-          name: t.String(),
-          image: t.String(),
-          referrer: t.Nullable(t.String()),
-          email: t.String(),
+          idToken: t.String({ minLength: 20, maxLength: 8192 }),
+          referrer: t.Optional(t.Nullable(t.String({ maxLength: 100 }))),
         }),
-        response: {
-          // 200: baseResponse,
-          // 400: baseResponse,
-        },
+        response: { 200: baseResponse, 400: baseResponse, 401: baseResponse, 409: baseResponse, 503: baseResponse },
       }
     );
 });

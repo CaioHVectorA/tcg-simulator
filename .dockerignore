@@ -10,3 +10,13 @@ apps/www/public
 .gemini
 tests
 *.log
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/*.db
+**/*.db-journal
+**/*.sqlite*
+playwright-report
+test-results

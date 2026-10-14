@@ -1,4 +1,6 @@
 "use client";
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -25,6 +27,7 @@ export function UpgradeAccountModal({
   onOpenChange,
   currentUsername = "",
 }: UpgradeAccountModalProps) {
+  const ui = useUiText();
   const isModalOpen = open !== undefined ? open : Boolean(isOpen);
   const handleClose = () => {
     if (onOpenChange) onOpenChange(false);
@@ -104,57 +107,47 @@ export function UpgradeAccountModal({
           <div className="size-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 mb-1">
             <Sparkles className="size-6" />
           </div>
-          <DialogTitle className="text-xl font-bold tracking-tight">
-            Aprimorar sua Conta de Treinador
-          </DialogTitle>
-          <DialogDescription className="font-sans text-xs text-muted-foreground leading-relaxed">
-            Transforme seu acesso em uma conta permanente. Todas as suas cartas, pacotes, moedas e missões serão 100% preservadas!
-          </DialogDescription>
+          <DialogTitle className="text-xl font-bold tracking-tight"> <LocalizedText text={"Aprimorar sua Conta de Treinador"} /> </DialogTitle>
+          <DialogDescription className="font-sans text-xs text-muted-foreground leading-relaxed"> <LocalizedText text={"Transforme seu acesso em uma conta permanente. Todas as suas cartas, pacotes, moedas e missões serão 100% preservadas!"} /> </DialogDescription>
         </DialogHeader>
 
         {/* Vantagens desbloqueadas */}
         <div className="grid grid-cols-2 gap-2.5 my-2">
           <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/10 border border-primary/20 text-xs">
             <Users className="size-4 text-primary shrink-0" />
-            <span className="font-semibold text-primary font-sans">Amigos & Chat</span>
+            <span className="font-semibold text-primary font-sans"><LocalizedText text={"Amigos & Chat"} /></span>
           </div>
           <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
             <ShieldCheck className="size-4 text-amber-400 shrink-0" />
-            <span className="font-semibold text-amber-300 font-sans">Mercado de Trocas</span>
+            <span className="font-semibold text-amber-300 font-sans"><LocalizedText text={"Mercado de Trocas"} /></span>
           </div>
         </div>
 
         <form onSubmit={handleUpgrade} className="space-y-4 pt-2 font-sans">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground block mb-1">
-              Nome de Treinador (Nickname):
-            </label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1"> <LocalizedText text={"Nome de Treinador (Nickname):"} /> </label>
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Seu nome"
+              placeholder={ui("Seu nome")}
               className="rounded-xl h-10 font-syne"
             />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground block mb-1">
-              Seu E-mail:
-            </label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1"> <LocalizedText text={"Seu E-mail:"} /> </label>
             <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="treinador@exemplo.com"
+              placeholder={ui("treinador@exemplo.com")}
               className="rounded-xl h-10 font-sans"
             />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground block mb-1">
-              Criar uma Senha Segura (mín. 6 caracteres):
-            </label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1"> <LocalizedText text={"Criar uma Senha Segura (mín. 6 caracteres):"} /> </label>
             <Input
               type="password"
               required
@@ -174,9 +167,7 @@ export function UpgradeAccountModal({
               <Loader2 className="size-4 animate-spin mr-2" />
             ) : (
               <ArrowRight className="size-4 mr-2" />
-            )}
-            Salvar e Aprimorar Conta
-          </Button>
+            )} <LocalizedText text={"Salvar e Aprimorar Conta"} /> </Button>
         </form>
       </DialogContent>
     </Dialog>

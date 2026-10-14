@@ -1,4 +1,6 @@
 "use client";
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -146,6 +148,7 @@ const RARITY_STYLING: Record<
 };
 
 export default function TrocasPage() {
+  const ui = useUiText();
   const { t } = useTranslation();
   const user = useUser();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -324,6 +327,7 @@ export default function TrocasPage() {
       return res.data;
     },
     onSuccess: () => {
+      event("first_trade_completed", {}, true);
       soundFx.playTradeSuccess();
       toast({
         title: "Troca Realizada com Sucesso! 🎉",
@@ -379,6 +383,7 @@ export default function TrocasPage() {
       return res.data;
     },
     onSuccess: () => {
+      event("first_trade_completed", {}, true);
       soundFx.playTradeSuccess();
       toast({
         title: "Contraproposta Aceita! 🤝",
@@ -489,17 +494,13 @@ export default function TrocasPage() {
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2.5">
                 <Sparkles className="size-4 text-amber-500 shrink-0" />
-                <span className="text-muted-foreground font-sans">
-                  Você está visualizando o mercado como <strong>Convidado</strong>. Salve sua conta para aceitar trocas e enviar contrapropostas.
-                </span>
+                <span className="text-muted-foreground font-sans"> <LocalizedText text={"Você está visualizando o mercado como"} /> <strong><LocalizedText text={"Convidado"} /></strong><LocalizedText text={". Salve sua conta para aceitar trocas e enviar contrapropostas."} /> </span>
               </div>
               <Button
                 size="sm"
                 onClick={() => setUpgradeOpen(true)}
                 className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs h-8 shrink-0 rounded-lg shadow-xs"
-              >
-                Salvar Minha Conta
-              </Button>
+              > <LocalizedText text={"Salvar Minha Conta"} /> </Button>
             </div>
           )}
 
@@ -510,7 +511,7 @@ export default function TrocasPage() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por nome do Pokémon ou título da troca (ex: Charizard, Pikachu, Mewtwo)..."
+                placeholder={ui("Buscar por nome do Pokémon ou título da troca (ex: Charizard, Pikachu, Mewtwo)...")}
                 className="pl-10 pr-9 h-11 rounded-xl text-xs font-sans bg-secondary/40 border-border/60"
               />
               {searchQuery && (
@@ -536,8 +537,7 @@ export default function TrocasPage() {
                     ? "bg-foreground text-background border-foreground shadow-xs"
                     : "bg-secondary/60 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
-              >
-                Todas ({rawTrades.length})
+              > <LocalizedText text={"Todas ("} />{rawTrades.length})
               </button>
 
               <button
@@ -553,7 +553,7 @@ export default function TrocasPage() {
                 }`}
               >
                 <CheckCircle2 className="size-3.5" />
-                <span>Posso Aceitar Já</span>
+                <span><LocalizedText text={"Posso Aceitar Já"} /></span>
                 <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-700/80 text-[10px]">
                   {canFulfillCount}
                 </span>
@@ -572,7 +572,7 @@ export default function TrocasPage() {
                 }`}
               >
                 <Crown className="size-3" />
-                <span>God Pulls (★5)</span>
+                <span><LocalizedText text={"God Pulls (★5)"} /></span>
               </button>
 
               <button
@@ -588,7 +588,7 @@ export default function TrocasPage() {
                 }`}
               >
                 <Sparkles className="size-3" />
-                <span>Místicas (★4)</span>
+                <span><LocalizedText text={"Místicas (★4)"} /></span>
               </button>
 
               <button
@@ -602,9 +602,7 @@ export default function TrocasPage() {
                     ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
                     : "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20"
                 }`}
-              >
-                Épicas (★3)
-              </button>
+              > <LocalizedText text={"Épicas (★3)"} /> </button>
 
               <button
                 type="button"
@@ -619,7 +617,7 @@ export default function TrocasPage() {
                 }`}
               >
                 <Coins className="size-3 text-amber-400" />
-                <span>Com Moedas</span>
+                <span><LocalizedText text={"Com Moedas"} /></span>
               </button>
             </div>
           </div>
@@ -628,16 +626,16 @@ export default function TrocasPage() {
           {loadingMarket ? (
             <div className="py-24 flex flex-col items-center justify-center gap-3">
               <Loader2 className="size-8 animate-spin text-amber-500" />
-              <span className="text-xs font-mono text-muted-foreground">Carregando ofertas da comunidade...</span>
+              <span className="text-xs font-mono text-muted-foreground"><LocalizedText text={"Carregando ofertas da comunidade..."} /></span>
             </div>
           ) : filteredTrades.length === 0 ? (
             <div className="bg-card/40 border border-border/80 rounded-3xl p-16 text-center text-muted-foreground">
               <RefreshCw className="size-12 mx-auto mb-3 opacity-30 text-amber-500" />
-              <p className="text-lg font-bold text-foreground font-syne">Nenhuma troca encontrada</p>
+              <p className="text-lg font-bold text-foreground font-syne"><LocalizedText text={"Nenhuma troca encontrada"} /></p>
               <p className="text-xs font-sans mt-1 max-w-md mx-auto">
                 {filterMode === "can-fulfill"
-                  ? "Você ainda não possui as cartas solicitadas para as trocas ativas. Abra mais pacotes na Loja ou limpe o filtro!"
-                  : "Nenhuma oferta corresponde aos filtros selecionados. Tente buscar outro nome ou crie sua própria oferta!"}
+                  ? ui("Você ainda não possui as cartas solicitadas para as trocas ativas. Abra mais pacotes na Loja ou limpe o filtro!")
+                  : ui("Nenhuma oferta corresponde aos filtros selecionados. Tente buscar outro nome ou crie sua própria oferta!")}
               </p>
               <Button
                 variant="outline"
@@ -647,9 +645,7 @@ export default function TrocasPage() {
                   setSearchQuery("");
                 }}
                 className="mt-4 text-xs font-bold"
-              >
-                Restaurar Todos os Filtros
-              </Button>
+              > <LocalizedText text={"Restaurar Todos os Filtros"} /> </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -676,12 +672,11 @@ export default function TrocasPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-bold text-sm text-foreground leading-tight font-syne">
-                                {trade.creator?.username || "Treinador da Liga"}
+                                {trade.creator?.username || ui("Treinador da Liga")}
                               </h3>
                               {trade.creator?.rarityPoints ? (
                                 <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-secondary text-muted-foreground border border-border/60">
-                                  {trade.creator.rarityPoints.toLocaleString("pt-BR")} RP
-                                </span>
+                                  {trade.creator.rarityPoints.toLocaleString("pt-BR")} <LocalizedText text={"RP"} /> </span>
                               ) : null}
                             </div>
                             <span className="text-[11px] text-muted-foreground font-sans flex items-center gap-1.5 mt-0.5">
@@ -699,16 +694,14 @@ export default function TrocasPage() {
                         {/* STATUS DE DISPONIBILIDADE E CHAT */}
                         <div className="flex items-center gap-2">
                           {trade.canFulfill && (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 shadow-xs animate-pulse">
-                              ✓ Disponível p/ Você
-                            </Badge>
+                            <Badge className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 shadow-xs animate-pulse"> <LocalizedText text={"✓ Disponível p/ Você"} /> </Badge>
                           )}
                           {trade.creator && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-8 rounded-xl opacity-30 cursor-not-allowed"
-                              title="Chat temporariamente em manutenção"
+                              title={ui("Chat temporariamente em manutenção")}
                               disabled
                             >
                               <MessageSquare className="size-4 text-muted-foreground" />
@@ -734,8 +727,7 @@ export default function TrocasPage() {
                         {/* LADO ESQUERDO: VOCÊ RECEBE (OFERTADO) */}
                         <div className="sm:col-span-5 flex flex-col items-center sm:items-start text-center sm:text-left">
                           <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest block mb-2 flex items-center gap-1">
-                            <Sparkles className="size-3" /> Você Recebe:
-                          </span>
+                            <Sparkles className="size-3" /> <LocalizedText text={"Você Recebe:"} /> </span>
 
                           <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start">
                             {trade.offeredCards.map((card) => {
@@ -752,7 +744,7 @@ export default function TrocasPage() {
                                 >
                                   <TcgCardImage
                                     src={card.image_url}
-                                    alt={card.name}
+                                    alt={ui(card.name)}
                                     className="w-full h-full object-cover"
                                   />
                                   <div className="absolute top-1 left-1">
@@ -762,7 +754,7 @@ export default function TrocasPage() {
                                   </div>
                                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1">
                                     <span className="text-[9px] font-bold text-white truncate w-full">
-                                      {card.name}
+                                      {ui(card.name)}
                                     </span>
                                   </div>
                                 </div>
@@ -773,7 +765,7 @@ export default function TrocasPage() {
                           {trade.moneySending > 0 && (
                             <div className="mt-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono font-bold text-xs">
                               <Coins className="size-3" />
-                              <span>+ {trade.moneySending.toLocaleString("pt-BR")} moedas</span>
+                              <span>+ {trade.moneySending.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /></span>
                             </div>
                           )}
                         </div>
@@ -783,22 +775,17 @@ export default function TrocasPage() {
                           <div className="size-9 rounded-full bg-secondary border border-border/80 flex items-center justify-center shadow-xs">
                             <ArrowLeftRight className="size-4 text-amber-400 animate-pulse" />
                           </div>
-                          <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mt-1">
-                            Troca
-                          </span>
+                          <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mt-1"> <LocalizedText text={"Troca"} /> </span>
                         </div>
 
                         {/* LADO DIREITO: VOCÊ ENTREGA (SOLICITADO COM INDICADOR DE POSSE) */}
                         <div className="sm:col-span-5 flex flex-col items-center sm:items-end text-center sm:text-right">
                           <span className="text-[10px] font-mono font-bold text-sky-400 uppercase tracking-widest block mb-2 flex items-center gap-1">
-                            <Layers className="size-3" /> Você Entrega:
-                          </span>
+                            <Layers className="size-3" /> <LocalizedText text={"Você Entrega:"} /> </span>
 
                           <div className="flex flex-wrap gap-2.5 justify-center sm:justify-end">
                             {trade.requestedCards.length === 0 ? (
-                              <div className="p-3 rounded-xl border border-dashed border-border/80 text-xs font-sans text-muted-foreground italic">
-                                Qualquer oferta justa
-                              </div>
+                              <div className="p-3 rounded-xl border border-dashed border-border/80 text-xs font-sans text-muted-foreground italic"> <LocalizedText text={"Qualquer oferta justa"} /> </div>
                             ) : (
                               trade.requestedCards.map((card) => {
                                 const style = RARITY_STYLING[card.rarity] || RARITY_STYLING[1];
@@ -819,7 +806,7 @@ export default function TrocasPage() {
                                   >
                                     <TcgCardImage
                                       src={card.image_url}
-                                      alt={card.name}
+                                      alt={ui(card.name)}
                                       className="w-full h-full object-cover"
                                     />
                                     {/* BADGE DE POSSE EM TEMPO REAL */}
@@ -840,7 +827,7 @@ export default function TrocasPage() {
                                           ownsCard ? "bg-emerald-950/90 text-emerald-300 border border-emerald-500/50" : "bg-slate-950/90 text-slate-400"
                                         }`}
                                       >
-                                        {ownsCard ? "✓ No Binder" : "🔒 Falta"}
+                                        {ownsCard ? ui("✓ No Binder") : ui("🔒 Falta")}
                                       </span>
                                     </div>
                                   </div>
@@ -852,7 +839,7 @@ export default function TrocasPage() {
                           {trade.moneyReceiving > 0 && (
                             <div className="mt-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono font-bold text-xs">
                               <Coins className="size-3" />
-                              <span>Pede {trade.moneyReceiving.toLocaleString("pt-BR")} moedas</span>
+                              <span><LocalizedText text={"Pede"} /> {trade.moneyReceiving.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /></span>
                             </div>
                           )}
                         </div>
@@ -864,17 +851,14 @@ export default function TrocasPage() {
                       <div className="flex items-center gap-2 text-xs text-muted-foreground font-sans">
                         {trade.offersCount > 0 && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-400 font-mono text-[11px] font-bold">
-                            <MessageSquare className="size-3" /> {trade.offersCount} propostas ativas
-                          </span>
+                            <MessageSquare className="size-3" /> {trade.offersCount} <LocalizedText text={"propostas ativas"} /> </span>
                         )}
-                        <span>{trade.acceptOffers ? "Aceita contrapropostas" : "Troca direta 1x1"}</span>
+                        <span>{trade.acceptOffers ? ui("Aceita contrapropostas") : ui("Troca direta 1x1")}</span>
                       </div>
 
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         {trade.isCreator ? (
-                          <Badge variant="outline" className="text-xs font-mono py-1 px-3 border-amber-500/40 text-amber-500">
-                            Sua Oferta de Troca
-                          </Badge>
+                          <Badge variant="outline" className="text-xs font-mono py-1 px-3 border-amber-500/40 text-amber-500"> <LocalizedText text={"Sua Oferta de Troca"} /> </Badge>
                         ) : (
                           <>
                             {trade.acceptOffers && (
@@ -892,9 +876,7 @@ export default function TrocasPage() {
                                   soundFx.playCardFlip();
                                 }}
                                 className="text-xs h-10 px-4 rounded-xl font-bold border-border/80 hover:bg-secondary"
-                              >
-                                Fazer Proposta
-                              </Button>
+                              > <LocalizedText text={"Fazer Proposta"} /> </Button>
                             )}
 
                             <Button
@@ -915,7 +897,7 @@ export default function TrocasPage() {
                               }`}
                             >
                               <CheckCircle2 className="size-4 mr-1.5" />
-                              {trade.canFulfill ? "Aceitar Troca" : "Faltam Itens"}
+                              {trade.canFulfill ? ui("Aceitar Troca") : ui("Faltam Itens")}
                             </Button>
                           </>
                         )}
@@ -937,32 +919,30 @@ export default function TrocasPage() {
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-mono mb-2">
                   <PlusCircle className="size-3.5" />
-                  <span>Novo Anúncio no Mercado</span>
+                  <span><LocalizedText text={"Novo Anúncio no Mercado"} /></span>
                 </div>
-                <h2 className="text-2xl font-black text-foreground font-syne">Configurar Oferta de Troca</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground font-sans mt-0.5">
-                  Selecione as cartas marcadas da sua coleção que deseja ceder e configure os requisitos que deseja receber.
-                </p>
+                <h2 className="text-2xl font-black text-foreground font-syne"><LocalizedText text={"Configurar Oferta de Troca"} /></h2>
+                <p className="text-xs sm:text-sm text-muted-foreground font-sans mt-0.5"> <LocalizedText text={"Selecione as cartas marcadas da sua coleção que deseja ceder e configure os requisitos que deseja receber."} /> </p>
               </div>
 
               {/* TÍTULO E DESCRIÇÃO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-xs">
                 <div>
-                  <label className="font-bold text-foreground block mb-1">Título do Anúncio:</label>
+                  <label className="font-bold text-foreground block mb-1"><LocalizedText text={"Título do Anúncio:"} /></label>
                   <Input
                     value={tradeTitle}
                     onChange={(e) => setTradeTitle(e.target.value)}
-                    placeholder="Ex: Troco Charizard por Blastoise ou cartas de Água"
+                    placeholder={ui("Ex: Troco Charizard por Blastoise ou cartas de Água")}
                     className="rounded-xl h-11 font-syne text-sm bg-secondary/40"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-foreground block mb-1">Mensagem para a Comunidade:</label>
+                  <label className="font-bold text-foreground block mb-1"><LocalizedText text={"Mensagem para a Comunidade:"} /></label>
                   <Input
                     value={tradeDesc}
                     onChange={(e) => setTradeDesc(e.target.value)}
-                    placeholder="Ex: Aberto a contrapropostas com cartas de raridade equivalente"
+                    placeholder={ui("Ex: Aberto a contrapropostas com cartas de raridade equivalente")}
                     className="rounded-xl h-11 bg-secondary/40"
                   />
                 </div>
@@ -973,31 +953,25 @@ export default function TrocasPage() {
                 <div className="bg-teal-500/10 border border-teal-500/30 rounded-2xl p-4 flex items-start gap-3 text-xs text-teal-300">
                   <ArrowLeftRight className="size-4 shrink-0 text-teal-400 mt-0.5" />
                   <div>
-                    <strong className="block mb-0.5 text-teal-200">Apenas cartas marcadas para troca:</strong>
-                    Você pode selecionar abaixo cartas que marcou na sua Coleção. Lembre-se: cartas marcadas para troca ficam bloqueadas para montagem de decks no modo Batalha!
-                  </div>
+                    <strong className="block mb-0.5 text-teal-200"><LocalizedText text={"Apenas cartas marcadas para troca:"} /></strong> <LocalizedText text={"Você pode selecionar abaixo cartas que marcou na sua Coleção. Lembre-se: cartas marcadas para troca ficam bloqueadas para montagem de decks no modo Batalha!"} /> </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-foreground flex items-center gap-2">
                     <Layers className="size-4 text-emerald-500" />
-                    <span>1. Suas Cartas Ofertadas ({myInventory.length} disponíveis):</span>
+                    <span><LocalizedText text={"1. Suas Cartas Ofertadas ("} />{myInventory.length} <LocalizedText text={"disponíveis):"} /></span>
                   </span>
                   <span className="text-xs font-mono text-muted-foreground">
-                    {selectedSenderCards.length} selecionada(s)
-                  </span>
+                    {selectedSenderCards.length} <LocalizedText text={"selecionada(s)"} /> </span>
                 </div>
 
                 {myInventory.length === 0 ? (
                   <div className="py-10 px-4 text-center rounded-2xl border border-dashed border-border/80 flex flex-col items-center justify-center gap-3">
                     <Layers className="size-8 text-muted-foreground/40" />
-                    <p className="text-xs text-muted-foreground max-w-md">
-                      Você ainda não marcou nenhuma carta para troca na sua coleção.
-                    </p>
+                    <p className="text-xs text-muted-foreground max-w-md"> <LocalizedText text={"Você ainda não marcou nenhuma carta para troca na sua coleção."} /> </p>
                     <Button asChild variant="outline" size="sm" className="text-xs font-bold gap-2 border-teal-500/40 text-teal-400 hover:bg-teal-500/10">
                       <Link href="/colecao">
-                        <ArrowLeftRight className="size-3.5" /> Ir para Minha Coleção & Marcar Cartas
-                      </Link>
+                        <ArrowLeftRight className="size-3.5" /> <LocalizedText text={"Ir para Minha Coleção & Marcar Cartas"} /> </Link>
                     </Button>
                   </div>
                 ) : (
@@ -1024,7 +998,7 @@ export default function TrocasPage() {
                         >
                           <TcgCardImage
                             src={card.image_url}
-                            alt={card.name}
+                            alt={ui(card.name)}
                             className="w-full h-full object-cover"
                           />
                           {isSelected && (
@@ -1039,7 +1013,7 @@ export default function TrocasPage() {
                 )}
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
-                  <span className="text-xs text-muted-foreground font-sans">Incluir moedas na oferta (opcional):</span>
+                  <span className="text-xs text-muted-foreground font-sans"><LocalizedText text={"Incluir moedas na oferta (opcional):"} /></span>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
@@ -1047,7 +1021,7 @@ export default function TrocasPage() {
                       value={sendMoney}
                       onChange={(e) => setSendMoney(Math.max(0, Number(e.target.value)))}
                       className="w-32 h-10 rounded-xl font-mono text-xs bg-secondary/40"
-                      placeholder="0 moedas"
+                      placeholder={ui("0 moedas")}
                     />
                     {[2000, 5000, 20000].map((amt) => (
                       <button
@@ -1059,8 +1033,7 @@ export default function TrocasPage() {
                         }}
                         className="text-[11px] font-mono px-2 py-1 rounded-lg border border-border/60 bg-secondary/60 hover:text-foreground text-muted-foreground"
                       >
-                        +{amt / 1000}k
-                      </button>
+                        +{amt / 1000}<LocalizedText text={"k"} /> </button>
                     ))}
                   </div>
                 </div>
@@ -1071,11 +1044,10 @@ export default function TrocasPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-foreground flex items-center gap-2">
                     <Sparkles className="size-4 text-sky-400" />
-                    <span>2. O que você deseja receber do outro treinador:</span>
+                    <span><LocalizedText text={"2. O que você deseja receber do outro treinador:"} /></span>
                   </span>
                   <span className="text-xs font-mono text-muted-foreground">
-                    {selectedReceiverCards.length} selecionada(s)
-                  </span>
+                    {selectedReceiverCards.length} <LocalizedText text={"selecionada(s)"} /> </span>
                 </div>
 
                 {/* BUSCA NO CATÁLOGO E FILTRO POR RARIDADE */}
@@ -1085,7 +1057,7 @@ export default function TrocasPage() {
                     <Input
                       value={catalogSearch}
                       onChange={(e) => setCatalogSearch(e.target.value)}
-                      placeholder="Buscar no catálogo oficial (ex: Pikachu, Mewtwo, Rayquaza)..."
+                      placeholder={ui("Buscar no catálogo oficial (ex: Pikachu, Mewtwo, Rayquaza)...")}
                       className="pl-9 h-10 rounded-xl text-xs font-sans bg-secondary/40"
                     />
                   </div>
@@ -1135,7 +1107,7 @@ export default function TrocasPage() {
                         >
                           <TcgCardImage
                             src={card.image_url}
-                            alt={card.name}
+                            alt={ui(card.name)}
                             className="w-full h-full object-cover"
                           />
                           {isSelected && (
@@ -1150,14 +1122,14 @@ export default function TrocasPage() {
                 )}
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
-                  <span className="text-xs text-muted-foreground font-sans">Pedir moedas na troca (opcional):</span>
+                  <span className="text-xs text-muted-foreground font-sans"><LocalizedText text={"Pedir moedas na troca (opcional):"} /></span>
                   <Input
                     type="number"
                     min={0}
                     value={receiveMoney}
                     onChange={(e) => setReceiveMoney(Math.max(0, Number(e.target.value)))}
                     className="w-32 h-10 rounded-xl font-mono text-xs bg-secondary/40"
-                    placeholder="0 moedas"
+                    placeholder={ui("0 moedas")}
                   />
                 </div>
               </div>
@@ -1168,11 +1140,9 @@ export default function TrocasPage() {
                   <div>
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                       <Clock className="size-4 text-amber-500" />
-                      <span>3. Duração da Oferta no Mercado:</span>
+                      <span><LocalizedText text={"3. Duração da Oferta no Mercado:"} /></span>
                     </span>
-                    <span className="text-[11px] text-muted-foreground font-sans">
-                      Taxa de publicação oficial: 2.000 moedas por dia
-                    </span>
+                    <span className="text-[11px] text-muted-foreground font-sans"> <LocalizedText text={"Taxa de publicação oficial: 2.000 moedas por dia"} /> </span>
                   </div>
                   <Badge className="font-mono text-xs bg-amber-500/15 border-amber-500/30 text-amber-400">
                     {durationDays} {durationDays === 1 ? "dia" : "dias"}
@@ -1181,12 +1151,12 @@ export default function TrocasPage() {
 
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {[
-                    { days: 1, label: "1 dia" },
-                    { days: 3, label: "3 dias" },
-                    { days: 5, label: "5 dias" },
-                    { days: 7, label: "7 dias" },
-                    { days: 14, label: "14 dias" },
-                    { days: 30, label: "30 dias" },
+                    { days: 1, label: ui("1 dia") },
+                    { days: 3, label: ui("3 dias") },
+                    { days: 5, label: ui("5 dias") },
+                    { days: 7, label: ui("7 dias") },
+                    { days: 14, label: ui("14 dias") },
+                    { days: 30, label: ui("30 dias") },
                   ].map((opt) => {
                     const isSelected = durationDays === opt.days;
                     const optFee = calculateTradeFee(opt.days);
@@ -1205,7 +1175,7 @@ export default function TrocasPage() {
                         }`}
                       >
                         <span className={`text-xs font-bold ${isSelected ? "text-amber-400" : "text-foreground"}`}>
-                          {opt.label}
+                          {ui(opt.label)}
                         </span>
                         <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-0.5">
                           <Coins className="size-3 text-amber-500" /> {optFee.toLocaleString("pt-BR")}
@@ -1218,29 +1188,25 @@ export default function TrocasPage() {
                 {/* TRADE TICKET: RESUMO DE NEGOCIAÇÃO */}
                 <div className="p-4 rounded-2xl bg-secondary/50 border border-border/80 space-y-2.5 text-xs font-sans">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Taxa de publicação ({durationDays} dias):</span>
+                    <span className="text-muted-foreground"><LocalizedText text={"Taxa de publicação ("} />{durationDays} <LocalizedText text={"dias):"} /></span>
                     <span className="font-mono font-bold text-amber-400 flex items-center gap-1">
-                      <Coins className="size-3.5" /> {tradeFee.toLocaleString("pt-BR")} moedas
-                    </span>
+                      <Coins className="size-3.5" /> {tradeFee.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
                   </div>
 
                   {sendMoney > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Moedas inclusas na troca:</span>
+                      <span className="text-muted-foreground"><LocalizedText text={"Moedas inclusas na troca:"} /></span>
                       <span className="font-mono font-bold text-foreground">
-                        + {sendMoney.toLocaleString("pt-BR")} moedas
-                      </span>
+                        + {sendMoney.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
                     </div>
                   )}
 
                   <div className="pt-2 border-t border-border/60 flex items-center justify-between">
-                    <span className="font-bold text-foreground">Total exigido para publicar:</span>
+                    <span className="font-bold text-foreground"><LocalizedText text={"Total exigido para publicar:"} /></span>
                     <div className="text-right">
                       <span className="font-mono font-black text-sm text-foreground block">
-                        {totalRequiredMoney.toLocaleString("pt-BR")} moedas
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        Seu saldo atual:{" "}
+                        {totalRequiredMoney.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
+                      <span className="text-[10px] text-muted-foreground"> <LocalizedText text={"Seu saldo atual:"} />{" "}
                         <strong className={!hasEnoughBalance ? "text-destructive" : "text-emerald-400"}>
                           {userMoney.toLocaleString("pt-BR")}
                         </strong>
@@ -1251,7 +1217,7 @@ export default function TrocasPage() {
                   {!hasEnoughBalance && (
                     <div className="flex items-center gap-2 text-destructive font-bold text-xs bg-destructive/10 border border-destructive/20 rounded-xl p-2.5 mt-2">
                       <AlertCircle className="size-4 shrink-0" />
-                      <span>Saldo insuficiente para a taxa e moedas (faltam {totalRequiredMoney - userMoney} moedas)</span>
+                      <span><LocalizedText text={"Saldo insuficiente para a taxa e moedas (faltam"} /> {totalRequiredMoney - userMoney} <LocalizedText text={"moedas)"} /></span>
                     </div>
                   )}
                 </div>
@@ -1260,10 +1226,8 @@ export default function TrocasPage() {
               {/* PERMITIR CONTRAPROPOSTAS */}
               <div className="pt-3 border-t border-border/60 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-foreground block">Permitir Contrapropostas</span>
-                  <span className="text-[11px] text-muted-foreground font-sans">
-                    Outros treinadores poderão sugerir cartas alternativas caso não possuam a solicitada
-                  </span>
+                  <span className="text-xs font-bold text-foreground block"><LocalizedText text={"Permitir Contrapropostas"} /></span>
+                  <span className="text-[11px] text-muted-foreground font-sans"> <LocalizedText text={"Outros treinadores poderão sugerir cartas alternativas caso não possuam a solicitada"} /> </span>
                 </div>
                 <Switch
                   checked={allowOffers}
@@ -1289,9 +1253,7 @@ export default function TrocasPage() {
                   <Loader2 className="size-4 animate-spin mr-2" />
                 ) : (
                   <PlusCircle className="size-4 mr-2" />
-                )}
-                Publicar Oferta de Troca ({tradeFee.toLocaleString("pt-BR")} moedas)
-              </Button>
+                )} <LocalizedText text={"Publicar Oferta de Troca ("} />{tradeFee.toLocaleString("pt-BR")} <LocalizedText text={"moedas)"} /> </Button>
             </div>
           )}
         </TabsContent>
@@ -1307,8 +1269,8 @@ export default function TrocasPage() {
           ) : myTrades.length === 0 ? (
             <div className="bg-card/40 border border-border/80 rounded-3xl p-16 text-center text-muted-foreground">
               <Clock className="size-12 mx-auto mb-3 opacity-30 text-amber-500" />
-              <p className="text-lg font-bold text-foreground font-syne">Você não tem trocas ativas no momento</p>
-              <p className="text-xs font-sans mt-1">Crie uma nova oferta na aba "Criar Oferta" para anunciar suas cartas.</p>
+              <p className="text-lg font-bold text-foreground font-syne"><LocalizedText text={"Você não tem trocas ativas no momento"} /></p>
+              <p className="text-xs font-sans mt-1"><LocalizedText text={"Crie uma nova oferta na aba \"Criar Oferta\" para anunciar suas cartas."} /></p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -1320,8 +1282,7 @@ export default function TrocasPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h3 className="font-bold text-base text-foreground font-syne">{trade.name}</h3>
-                      <span className="text-xs text-muted-foreground font-sans">
-                        Publicado em {new Date(trade.createdAt).toLocaleDateString("pt-BR")}
+                      <span className="text-xs text-muted-foreground font-sans"> <LocalizedText text={"Publicado em"} /> {new Date(trade.createdAt).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
 
@@ -1334,9 +1295,7 @@ export default function TrocasPage() {
                         }
                       }}
                       className="rounded-xl text-xs h-9 px-4 font-bold"
-                    >
-                      Cancelar Oferta
-                    </Button>
+                    > <LocalizedText text={"Cancelar Oferta"} /> </Button>
                   </div>
 
                   {/* CONTRAPROPOSTAS RECEBIDAS */}
@@ -1344,7 +1303,7 @@ export default function TrocasPage() {
                     <div className="pt-4 border-t border-border/60">
                       <h4 className="text-xs font-bold text-foreground mb-3 flex items-center gap-2">
                         <Sparkles className="size-3.5 text-amber-400" />
-                        <span>Contrapropostas Recebidas ({trade.offers.length}):</span>
+                        <span><LocalizedText text={"Contrapropostas Recebidas ("} />{trade.offers.length}):</span>
                       </h4>
 
                       <div className="space-y-3">
@@ -1369,13 +1328,12 @@ export default function TrocasPage() {
                                       key={idx}
                                       className="text-[11px] bg-card px-2.5 py-0.5 rounded-lg border border-border/80 text-foreground font-medium"
                                     >
-                                      {c.cards.name}
+                                      {ui(c.cards.name)}
                                     </span>
                                   ))}
                                   {offer.money > 0 && (
                                     <span className="text-xs font-mono text-amber-400 font-bold">
-                                      +{offer.money.toLocaleString("pt-BR")} moedas
-                                    </span>
+                                      +{offer.money.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
                                   )}
                                 </div>
                               </div>
@@ -1386,9 +1344,7 @@ export default function TrocasPage() {
                               onClick={() => acceptCounterOffer(offer.id)}
                               disabled={acceptingCounter}
                               className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-syne cursor-pointer"
-                            >
-                              Aceitar Proposta
-                            </Button>
+                            > <LocalizedText text={"Aceitar Proposta"} /> </Button>
                           </div>
                         ))}
                       </div>
@@ -1409,8 +1365,8 @@ export default function TrocasPage() {
           ) : tradeHistory.length === 0 ? (
             <div className="bg-card/40 border border-border/80 rounded-3xl p-16 text-center text-muted-foreground">
               <History className="size-12 mx-auto mb-3 opacity-30 text-amber-500" />
-              <p className="text-lg font-bold text-foreground font-syne">Nenhuma troca concluída ainda</p>
-              <p className="text-xs font-sans mt-1">Suas negociações finalizadas com outros jogadores serão listadas aqui.</p>
+              <p className="text-lg font-bold text-foreground font-syne"><LocalizedText text={"Nenhuma troca concluída ainda"} /></p>
+              <p className="text-xs font-sans mt-1"><LocalizedText text={"Suas negociações finalizadas com outros jogadores serão listadas aqui."} /></p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1422,7 +1378,7 @@ export default function TrocasPage() {
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
                     <div>
-                      <p className="text-sm font-bold text-foreground">{h.name}</p>
+                      <p className="text-sm font-bold text-foreground">{ui(h.name)}</p>
                       <span className="text-xs text-muted-foreground font-sans">
                         {h.iWasCreator
                           ? `Você negociou com ${h.acceptor?.username}`
@@ -1431,8 +1387,7 @@ export default function TrocasPage() {
                     </div>
                   </div>
 
-                  <span className="text-xs text-muted-foreground font-mono">
-                    Concluída em {new Date(h.updatedAt || h.createdAt).toLocaleDateString("pt-BR")}
+                  <span className="text-xs text-muted-foreground font-mono"> <LocalizedText text={"Concluída em"} /> {new Date(h.updatedAt || h.createdAt).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
               ))}
@@ -1447,13 +1402,10 @@ export default function TrocasPage() {
           <DialogHeader className="text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono mb-1 w-fit">
               <ArrowLeftRight className="size-3.5" />
-              <span>Confirmar Troca Direta</span>
+              <span><LocalizedText text={"Confirmar Troca Direta"} /></span>
             </div>
-            <DialogTitle className="text-xl font-black text-foreground">
-              Finalizar Troca de Cartas
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-sans">
-              Você está prestes a concluir a troca "{confirmAcceptTrade?.name}" com {confirmAcceptTrade?.creator?.username}.
+            <DialogTitle className="text-xl font-black text-foreground"> <LocalizedText text={"Finalizar Troca de Cartas"} /> </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans"> <LocalizedText text={"Você está prestes a concluir a troca \""} />{confirmAcceptTrade?.name}<LocalizedText text={"\" com"} /> {confirmAcceptTrade?.creator?.username}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1462,38 +1414,32 @@ export default function TrocasPage() {
               <div className="bg-secondary/40 border border-border/60 p-4 rounded-2xl space-y-3">
                 {/* O QUE VOCÊ RECEBERÁ */}
                 <div>
-                  <span className="text-emerald-400 font-bold block mb-1.5 font-mono text-[11px] uppercase tracking-wider">
-                    ✓ Você Receberá:
-                  </span>
+                  <span className="text-emerald-400 font-bold block mb-1.5 font-mono text-[11px] uppercase tracking-wider"> <LocalizedText text={"✓ Você Receberá:"} /> </span>
                   <div className="flex flex-wrap gap-2">
                     {confirmAcceptTrade.offeredCards.map((c) => (
                       <span key={c.id} className="text-xs bg-card px-2.5 py-1 rounded-lg border border-emerald-500/40 text-foreground font-bold">
-                        {c.name} (★{c.rarity})
+                        {ui(c.name)} (★{c.rarity})
                       </span>
                     ))}
                     {confirmAcceptTrade.moneySending > 0 && (
                       <span className="text-xs bg-amber-500/20 border border-amber-500/40 text-amber-400 font-mono font-bold px-2.5 py-1 rounded-lg">
-                        +{confirmAcceptTrade.moneySending.toLocaleString("pt-BR")} moedas
-                      </span>
+                        +{confirmAcceptTrade.moneySending.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
                     )}
                   </div>
                 </div>
 
                 {/* O QUE VOCÊ ENTREGARÁ */}
                 <div className="pt-3 border-t border-border/60">
-                  <span className="text-rose-400 font-bold block mb-1.5 font-mono text-[11px] uppercase tracking-wider">
-                    ⇄ Você Entregará:
-                  </span>
+                  <span className="text-rose-400 font-bold block mb-1.5 font-mono text-[11px] uppercase tracking-wider"> <LocalizedText text={"⇄ Você Entregará:"} /> </span>
                   <div className="flex flex-wrap gap-2">
                     {confirmAcceptTrade.requestedCards.map((c) => (
                       <span key={c.id} className="text-xs bg-card px-2.5 py-1 rounded-lg border border-border/80 text-foreground font-medium">
-                        {c.name}
+                        {ui(c.name)}
                       </span>
                     ))}
                     {confirmAcceptTrade.moneyReceiving > 0 && (
                       <span className="text-xs bg-amber-500/20 border border-amber-500/40 text-amber-400 font-mono font-bold px-2.5 py-1 rounded-lg">
-                        -{confirmAcceptTrade.moneyReceiving.toLocaleString("pt-BR")} moedas
-                      </span>
+                        -{confirmAcceptTrade.moneyReceiving.toLocaleString("pt-BR")} <LocalizedText text={"moedas"} /> </span>
                     )}
                   </div>
                 </div>
@@ -1508,9 +1454,7 @@ export default function TrocasPage() {
                   <Loader2 className="size-4 animate-spin mr-2" />
                 ) : (
                   <CheckCircle2 className="size-4 mr-2" />
-                )}
-                Confirmar e Concluir Troca Agora
-              </Button>
+                )} <LocalizedText text={"Confirmar e Concluir Troca Agora"} /> </Button>
             </div>
           )}
         </DialogContent>
@@ -1522,26 +1466,19 @@ export default function TrocasPage() {
           <DialogHeader className="text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold font-mono mb-1 w-fit">
               <Sparkles className="size-3.5" />
-              <span>Contraproposta entre Treinadores</span>
+              <span><LocalizedText text={"Contraproposta entre Treinadores"} /></span>
             </div>
-            <DialogTitle className="text-xl font-black text-foreground">
-              Sugerir Acordo Alternativo
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-sans">
-              Ofereça cartas do seu inventário de trocas e moedas ao criador da oferta "{offerTradeTarget?.name}".
+            <DialogTitle className="text-xl font-black text-foreground"> <LocalizedText text={"Sugerir Acordo Alternativo"} /> </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans"> <LocalizedText text={"Ofereça cartas do seu inventário de trocas e moedas ao criador da oferta \""} />{offerTradeTarget?.name}".
             </DialogDescription>
           </DialogHeader>
 
           {offerTradeTarget && (
             <div className="space-y-4 my-2">
-              <p className="text-xs font-bold text-foreground font-sans">
-                Selecione as cartas que deseja oferecer em contrapartida:
-              </p>
+              <p className="text-xs font-bold text-foreground font-sans"> <LocalizedText text={"Selecione as cartas que deseja oferecer em contrapartida:"} /> </p>
 
               {myInventory.length === 0 ? (
-                <div className="p-6 rounded-2xl border border-dashed text-center text-xs text-muted-foreground">
-                  Você não possui cartas marcadas para troca no seu binder.
-                </div>
+                <div className="p-6 rounded-2xl border border-dashed text-center text-xs text-muted-foreground"> <LocalizedText text={"Você não possui cartas marcadas para troca no seu binder."} /> </div>
               ) : (
                 <div className="max-h-56 overflow-y-auto p-3 bg-secondary/30 rounded-2xl border border-border/40 grid grid-cols-4 sm:grid-cols-6 gap-2.5">
                   {myInventory.map((item) => {
@@ -1566,7 +1503,7 @@ export default function TrocasPage() {
                       >
                         <TcgCardImage
                           src={card.image_url}
-                          alt={card.name}
+                          alt={ui(card.name)}
                           className="w-full h-full object-cover"
                         />
                         {isSelected && (
@@ -1581,14 +1518,14 @@ export default function TrocasPage() {
               )}
 
               <div className="flex items-center gap-3 font-sans text-xs">
-                <span className="text-muted-foreground">Moedas adicionais para o criador:</span>
+                <span className="text-muted-foreground"><LocalizedText text={"Moedas adicionais para o criador:"} /></span>
                 <Input
                   type="number"
                   min={0}
                   value={offerMoney}
                   onChange={(e) => setOfferMoney(Math.max(0, Number(e.target.value)))}
                   className="w-32 h-10 rounded-xl font-mono text-xs bg-secondary/40"
-                  placeholder="0 moedas"
+                  placeholder={ui("0 moedas")}
                 />
               </div>
 
@@ -1601,9 +1538,7 @@ export default function TrocasPage() {
                   <Loader2 className="size-4 animate-spin mr-2" />
                 ) : (
                   <RefreshCw className="size-4 mr-2" />
-                )}
-                Enviar Contraproposta ao Criador
-              </Button>
+                )} <LocalizedText text={"Enviar Contraproposta ao Criador"} /> </Button>
             </div>
           )}
         </DialogContent>

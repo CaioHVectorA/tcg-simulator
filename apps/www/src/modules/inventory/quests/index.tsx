@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +96,7 @@ function QuestCard({
   onClaim: (quest: Quest) => void;
   isClaiming: boolean;
 }) {
+  const ui = useUiText();
   const { t } = useTranslation();
   const isReadyToClaim = quest.completed && !quest.fullCompleted;
   const progressPercent = Math.min((quest.progress / quest.total) * 100, 100);
@@ -121,7 +123,7 @@ function QuestCard({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                  {quest.name}
+                  {ui(quest.name)}
                 </CardTitle>
                 {quest.isDiary && (
                   <Badge variant="outline" className="text-[10px] uppercase font-mono border-sky-500/40 text-sky-400 bg-sky-500/10">
@@ -130,7 +132,7 @@ function QuestCard({
                 )}
               </div>
               <CardDescription className="text-xs text-muted-foreground leading-relaxed">
-                {quest.description}
+                {ui(quest.description)}
               </CardDescription>
             </div>
 
@@ -148,7 +150,7 @@ function QuestCard({
 
         <CardContent className="p-4 sm:p-5 pt-0 pb-3">
           <div className="flex items-center justify-between text-xs text-muted-foreground font-mono mb-1.5">
-            <span>Progresso</span>
+            <span><LocalizedText text={"Progresso"} /></span>
             <span className="font-bold text-foreground">
               {quest.progress} / {quest.total} ({Math.round(progressPercent)}%)
             </span>
@@ -208,6 +210,7 @@ function QuestCard({
 }
 
 export function Quests() {
+  const ui = useUiText();
   const { get, post, patch } = useApi();
   const { t } = useTranslation();
   const [rewardModalOpen, setRewardModalOpen] = useState(false);
@@ -367,7 +370,7 @@ export function Quests() {
     return (
       <div className="col-span-full py-16 flex flex-col items-center justify-center gap-3 font-syne text-muted-foreground">
         <Sparkles className="size-8 text-amber-400 animate-spin" />
-        <p>Carregando missões e objetivos...</p>
+        <p><LocalizedText text={"Carregando missões e objetivos..."} /></p>
       </div>
     );
   }
@@ -383,13 +386,11 @@ export function Quests() {
           </div>
           <div>
             <span className="text-xs text-muted-foreground font-semibold block">
-              {isBountyAvailable ? "Bônus Diário" : "Próximo Reset Diário"}
+              {isBountyAvailable ? ui("Bônus Diário") : ui("Próximo Reset Diário")}
             </span>
             {isBountyAvailable ? (
               <span className="text-base font-bold font-mono text-emerald-400 flex items-center gap-1">
-                <span className="size-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Disponível agora!
-              </span>
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping inline-block" /> <LocalizedText text={"Disponível agora!"} /> </span>
             ) : (
               <span className="text-base font-bold font-mono text-sky-400">
                 {dailyResetTime || "Calculando..."}
@@ -404,12 +405,9 @@ export function Quests() {
             <Trophy className="size-6" />
           </div>
           <div>
-            <span className="text-xs text-muted-foreground font-semibold block">
-              Missões Concluídas
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold block"> <LocalizedText text={"Missões Concluídas"} /> </span>
             <span className="text-base font-bold font-mono text-foreground">
-              {completedQuests.length} / {questsList.length} completas
-            </span>
+              {completedQuests.length} / {questsList.length} <LocalizedText text={"completas"} /> </span>
           </div>
         </div>
 
@@ -478,7 +476,7 @@ export function Quests() {
         open={rewardModalOpen}
         onOpenChange={setRewardModalOpen}
         iconType="quest"
-        title="Recompensa de Missão Coletada! 🏆"
+        title={ui("Recompensa de Missão Coletada! 🏆")}
         description={rewardTitle}
         rewardAmount={rewardAmount || undefined}
       />

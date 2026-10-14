@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useKart } from "./use-kart";
@@ -12,6 +13,7 @@ import { PurchaseSuccessModal } from "./purchase-success-modal";
 import { CheckoutDialog } from "./checkout-dialog";
 
 export function KartFloating() {
+  const ui = useUiText();
     const { kart, loading, removeItem, editItem, successModalOpen, setSuccessModalOpen, lastPurchasedCount } = useKart()
     const total = kart.reduce((acc, item) => acc + item.price * item.quantity, 0)
     const totalItems = kart.reduce((acc, item) => acc + item.quantity, 0)
@@ -21,7 +23,7 @@ export function KartFloating() {
     return (
         <>
             {/* Purchase Success Modal with high Pokémon TCG identity */}
-            <PurchaseSuccessModal 
+            <PurchaseSuccessModal
                 open={successModalOpen}
                 onOpenChange={setSuccessModalOpen}
                 itemCount={lastPurchasedCount}
@@ -43,8 +45,8 @@ export function KartFloating() {
                         className="fixed bottom-3 left-2 right-2 sm:left-auto sm:right-6 sm:w-96 z-[990] max-w-[calc(100vw-1rem)]"
                     >
                         <div className="bg-card text-foreground rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-border flex items-center justify-between gap-2">
-                            <button 
-                                onClick={() => setOpen(true)} 
+                            <button
+                                onClick={() => setOpen(true)}
                                 className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 text-left group hover:opacity-90 transition-opacity"
                             >
                                 <div className="size-9 sm:size-10 rounded-xl bg-muted border border-border flex items-center justify-center relative shrink-0">
@@ -65,13 +67,13 @@ export function KartFloating() {
                                 </div>
                             </button>
 
-                            <Button 
-                                onClick={() => setCheckoutOpen(true)} 
+                            <Button
+                                onClick={() => setCheckoutOpen(true)}
                                 disabled={loading}
                                 size="sm"
                                 className="bg-foreground text-background hover:bg-foreground/90 font-bold px-3 sm:px-4 py-1.5 h-8 sm:h-9 rounded-xl text-xs gap-1 shrink-0 shadow-xs cursor-pointer"
                             >
-                                <span>Finalizar</span>
+                                <span><LocalizedText text={"Finalizar"} /></span>
                                 <ArrowRight className="size-3.5 shrink-0" />
                             </Button>
                         </div>
@@ -83,11 +85,9 @@ export function KartFloating() {
                             <SheetHeader className="pb-2">
                                 <SheetTitle className="font-bold text-lg sm:text-xl text-foreground flex items-center gap-2">
                                     <ShoppingBag className="size-5 text-primary" />
-                                    <span>Seu Carrinho</span>
+                                    <span><LocalizedText text={"Seu Carrinho"} /></span>
                                 </SheetTitle>
-                                <SheetDescription className="text-muted-foreground text-xs">
-                                    Revise e edite a quantidade dos seus itens.
-                                </SheetDescription>
+                                <SheetDescription className="text-muted-foreground text-xs"> <LocalizedText text={"Revise e edite a quantidade dos seus itens."} /> </SheetDescription>
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto pr-1 py-2 space-y-2">
@@ -102,11 +102,11 @@ export function KartFloating() {
                                             className="p-2.5 sm:p-3 rounded-xl bg-secondary border border-border flex items-center justify-between gap-2"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-xs text-foreground truncate">{item.name}</h4>
+                                                <h4 className="font-bold text-xs text-foreground truncate">{ui(item.name)}</h4>
                                                 <div className="flex items-center gap-1 font-bold text-xs text-foreground mt-0.5">
                                                     <Coins className="size-3 text-amber-500 fill-amber-500/20 shrink-0" />
                                                     <span>{balanceTranslate(item.price * item.quantity)}</span>
-                                                    <span className="text-muted-foreground font-normal text-[10px] sm:text-[11px] truncate">({balanceTranslate(item.price)} un)</span>
+                                                    <span className="text-muted-foreground font-normal text-[10px] sm:text-[11px] truncate">({balanceTranslate(item.price)} <LocalizedText text={"un)"} /></span>
                                                 </div>
                                             </div>
 
@@ -132,10 +132,10 @@ export function KartFloating() {
                                                     </Button>
                                                 </div>
 
-                                                <Button 
-                                                    size="icon" 
-                                                    variant="ghost" 
-                                                    onClick={() => removeItem(item.id)} 
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => removeItem(item.id)}
                                                     className="size-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg shrink-0"
                                                 >
                                                     <Trash2 className="size-3.5" />
@@ -148,7 +148,7 @@ export function KartFloating() {
 
                             <div className="pt-3 space-y-3 border-t border-border">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground font-medium">Total:</span>
+                                    <span className="text-muted-foreground font-medium"><LocalizedText text={"Total:"} /></span>
                                     <div className="flex items-center gap-1 font-bold text-foreground text-lg sm:text-xl">
                                         <Coins className="size-4 sm:size-5 text-amber-500 fill-amber-500/20" />
                                         <span>{balanceTranslate(total)}</span>
@@ -156,15 +156,15 @@ export function KartFloating() {
                                 </div>
 
                                 <SheetFooter>
-                                    <Button 
+                                    <Button
                                         onClick={() => {
                                             setOpen(false);
                                             setCheckoutOpen(true);
-                                        }} 
+                                        }}
                                         disabled={loading}
                                         className="w-full font-bold text-xs sm:text-sm gap-2 h-10 cursor-pointer"
                                     >
-                                        <span>Revisar e Finalizar Compra</span>
+                                        <span><LocalizedText text={"Revisar e Finalizar Compra"} /></span>
                                         <ArrowRight className="size-4" />
                                     </Button>
                                 </SheetFooter>

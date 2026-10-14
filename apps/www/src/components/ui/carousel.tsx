@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText } from "@/i18n/localized-text";
 
 import * as React from "react"
 import useEmblaCarousel, {
@@ -216,7 +217,7 @@ const CarouselPrevious = React.forwardRef<
       {...props}
     >
       <ArrowLeftIcon className="h-4 w-4" />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only"><LocalizedText text={"Previous slide"} /></span>
     </Button>
   )
 })
@@ -245,7 +246,7 @@ const CarouselNext = React.forwardRef<
       {...props}
     >
       <ArrowRightIcon className="h-4 w-4" />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only"><LocalizedText text={"Next slide"} /></span>
     </Button>
   )
 })

@@ -1,4 +1,7 @@
 "use client"
+import { translateText } from "@/i18n/text";
+import { getCookie } from "@/lib/cookies";
+import type { Locale } from "@/i18n/LanguageContext";
 
 // Inspired by react-hot-toast library
 import * as React from "react"
@@ -141,6 +144,10 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  const language = getCookie("tcg_locale") || "pt";
+  const locale: Locale = ["pt", "en", "es", "jp"].includes(language) ? language as Locale : "pt";
+  if (typeof props.title === "string") props.title = translateText(props.title, locale);
+  if (typeof props.description === "string") props.description = translateText(props.description, locale);
   const id = genId()
 
   const update = (props: ToasterToast) =>

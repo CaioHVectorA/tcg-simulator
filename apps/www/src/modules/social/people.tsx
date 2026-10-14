@@ -1,3 +1,4 @@
+import { LocalizedText } from "@/i18n/localized-text";
 import { Avatar } from "@/components/avatar";
 import { Friend } from ".";
 
@@ -8,7 +9,7 @@ export function People({ friend }: { friend: Friend }) {
             <Avatar src={friend.picture} username={friend.username} />
             <div>
                 <h2 className="text-lg font-semibold">{friend.username}</h2>
-                <p className="text-sm text-gray-500">Online</p>
+                <p className="text-sm text-gray-500"><LocalizedText text={"Online"} /></p>
             </div>
         </div>
     )

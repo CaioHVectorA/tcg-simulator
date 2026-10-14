@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,7 @@ export function Cards({
   filters = {},
   isLoading = false,
 }: CollectionProps) {
+  const ui = useUiText();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation();
@@ -339,8 +341,8 @@ export function Cards({
         <Tabs value={currentView} onValueChange={(v) => handleViewChange(v as any)} className="w-full">
           {/* Header Oculto da TabList (substituído pelo seletor visual acima) */}
           <TabsList className="hidden">
-            <TabsTrigger value="cards">Cards</TabsTrigger>
-            <TabsTrigger value="albums">Albums</TabsTrigger>
+            <TabsTrigger value="cards"><LocalizedText text={"Cards"} /></TabsTrigger>
+            <TabsTrigger value="albums"><LocalizedText text={"Albums"} /></TabsTrigger>
           </TabsList>
 
 
@@ -595,8 +597,7 @@ export function Cards({
                     >
                       {/* Badge de Quantidade */}
                       {card.quantity > 1 && (
-                        <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-xs border border-white/20 text-white font-mono font-bold text-[10px] shadow">
-                          x{card.quantity}
+                        <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-xs border border-white/20 text-white font-mono font-bold text-[10px] shadow"> <LocalizedText text={"x"} />{card.quantity}
                         </div>
                       )}
 
@@ -629,7 +630,7 @@ export function Cards({
                       <div className="relative aspect-[1/1.4] w-full flex items-center justify-center overflow-hidden bg-slate-950">
                         <TcgCardImage
                           src={card.image_url}
-                          alt={card.name}
+                          alt={ui(card.name)}
                           lowQuality={true}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -638,8 +639,8 @@ export function Cards({
 
                       {/* Detalhes no Rodapé */}
                       <div className="p-2.5 bg-card/95 border-t border-border/50 flex flex-col justify-between flex-1">
-                        <h4 className="font-bold text-xs text-foreground truncate" title={card.name}>
-                          {card.name}
+                        <h4 className="font-bold text-xs text-foreground truncate" title={ui(card.name)}>
+                          {ui(card.name)}
                         </h4>
 
                         <div className="flex items-center justify-between mt-2">
@@ -697,7 +698,7 @@ export function Cards({
         <Dialog open={!!selectedCard} onOpenChange={(open) => !open && setSelectedCard(null)}>
           <DialogContent className="max-w-md bg-zinc-950 text-white border-zinc-800 p-5 text-center">
             <DialogTitle className="text-white font-bold text-lg mb-1 truncate">
-              {selectedCard?.name}
+              {ui(selectedCard?.name)}
             </DialogTitle>
             <DialogDescription className="text-xs text-zinc-400 mb-3">
               #{selectedCard?.id} • {selectedCard ? (t(RARITY_MAP[selectedCard.rarity]?.labelKey) || RARITY_MAP[selectedCard.rarity]?.fallbackLabel || "Comum") : ""}
@@ -708,7 +709,7 @@ export function Cards({
                 <div className="relative aspect-[1/1.4] max-h-[65vh] w-full rounded-xl overflow-hidden shadow-2xl mx-auto flex items-center justify-center bg-black border border-zinc-800">
                   <TcgCardImage
                     src={selectedCard.image_url}
-                    alt={selectedCard.name}
+                    alt={ui(selectedCard.name)}
                     className="w-full h-full object-contain"
                   />
                 </div>

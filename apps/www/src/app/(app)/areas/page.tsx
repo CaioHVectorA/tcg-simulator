@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ export default function AreasPage() {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 font-syne">
       <LoaderSimple />
-      <p className="text-sm text-muted-foreground">Redirecionando para o inventário...</p>
+      <p className="text-sm text-muted-foreground"><LocalizedText text={"Redirecionando para o inventário..."} /></p>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 'use client'
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import * as React from 'react'
 import { SessionProvider, signIn, useSession } from 'next-auth/react'
@@ -40,6 +42,7 @@ const LoginForm = ({ onSubmit, loading }: {
     onSubmit: (values: z.infer<typeof loginSchema>) => void,
     loading: boolean,
 }) => {
+  const ui = useUiText();
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
@@ -56,9 +59,9 @@ const LoginForm = ({ onSubmit, loading }: {
                     name="username"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Nome de Treinador ou E-mail</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Nome de Treinador ou E-mail"} /></FormLabel>
                             <FormControl>
-                                <Input placeholder="Ex: AshKetchum ou treinador@exemplo.com" className="h-10 text-sm font-sans" {...field} />
+                                <Input placeholder={ui("Ex: AshKetchum ou treinador@exemplo.com")} className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                         </FormItem>
@@ -69,7 +72,7 @@ const LoginForm = ({ onSubmit, loading }: {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Senha Secreta</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Senha Secreta"} /></FormLabel>
                             <FormControl>
                                 <Input type="password" placeholder="••••••••" className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
@@ -78,14 +81,16 @@ const LoginForm = ({ onSubmit, loading }: {
                     )}
                 />
                 <Button type="submit" disabled={loading} className="w-full h-11 font-syne font-bold bg-primary text-primary-foreground shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all">
-                    {loading ? <LoaderSimple /> : "Entrar na Minha Conta"}
+                    {loading ? <LoaderSimple /> : ui("Entrar na Minha Conta")}
                 </Button>
+                <Link href="/recuperar-senha" className="block text-sm underline text-center">{ui("auth.forgotPassword")}</Link>
             </form>
         </Form>
     )
 }
 
 const CheckAuth = ({ referrer }: { referrer: string | null }) => {
+  const ui = useUiText();
     const { status, data } = useSession();
     const alreadyToast = React.useRef(false);
     const { push } = useRouter()
@@ -99,12 +104,10 @@ const CheckAuth = ({ referrer }: { referrer: string | null }) => {
             });
             alreadyToast.current = true;
             const loginGoogle = async () => {
-                const response = await api.post('/auth/google', {
-                    name: data?.user?.name,
-                    email: data?.user?.email,
-                    image: data?.user?.image,
-                    referrer
-                });
+                const response = await fetch('/api/auth/exchange', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Locale': localStorage.getItem('tcg_locale') || 'pt' },
+                    body: JSON.stringify({ referrer })
+                }).then(async (res) => ({ data: await res.json() }));
                 if (response.data.ok) {
                     const token = response.data.data.token;
                     setCookie('token', token, 7);
@@ -117,7 +120,10 @@ const CheckAuth = ({ referrer }: { referrer: string | null }) => {
                     });
                 }
             }
-            loginGoogle()
+            loginGoogle().catch(() => {
+                alreadyToast.current = false;
+                toast({ title: "Erro ao conectar conta Google", variant: "destructive" });
+            })
         }
     }, [status]);
 
@@ -129,6 +135,7 @@ const RegisterForm = ({ onSubmit, referrer, loading }: {
     referrer?: string,
     loading: boolean,
 }) => {
+  const ui = useUiText();
     const form = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -147,9 +154,9 @@ const RegisterForm = ({ onSubmit, referrer, loading }: {
                     name="username"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Nome de Treinador</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Nome de Treinador"} /></FormLabel>
                             <FormControl>
-                                <Input placeholder="Ex: AshKetchum151" className="h-10 text-sm font-sans" {...field} />
+                                <Input placeholder={ui("Ex: AshKetchum151")} className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                         </FormItem>
@@ -160,9 +167,9 @@ const RegisterForm = ({ onSubmit, referrer, loading }: {
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Email</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Email"} /></FormLabel>
                             <FormControl>
-                                <Input placeholder="treinador@exemplo.com" className="h-10 text-sm font-sans" {...field} />
+                                <Input placeholder={ui("treinador@exemplo.com")} className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                         </FormItem>
@@ -173,7 +180,7 @@ const RegisterForm = ({ onSubmit, referrer, loading }: {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Senha (mínimo 8 caracteres)</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Senha (mínimo 8 caracteres)"} /></FormLabel>
                             <FormControl>
                                 <Input type="password" placeholder="••••••••" className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
@@ -186,16 +193,16 @@ const RegisterForm = ({ onSubmit, referrer, loading }: {
                     name="referrer"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs font-semibold text-foreground/90">Código de Indicação (Opcional)</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-foreground/90"><LocalizedText text={"Código de Indicação (Opcional)"} /></FormLabel>
                             <FormControl>
-                                <Input disabled={!!referrer} type="text" placeholder="Código de amigo" className="h-10 text-sm font-sans" {...field} />
+                                <Input disabled={!!referrer} type="text" placeholder={ui("Código de amigo")} className="h-10 text-sm font-sans" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                         </FormItem>
                     )}
                 />
                 <Button type="submit" disabled={loading} className="w-full h-11 font-syne font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md">
-                    {loading ? <LoaderSimple /> : "Criar Minha Conta"}
+                    {loading ? <LoaderSimple /> : ui("Criar Minha Conta")}
                 </Button>
             </form>
         </Form>
@@ -212,6 +219,7 @@ const GuestForm = ({ onSubmit, loading }: {
     onSubmit: (values: { nickname: string }) => void,
     loading: boolean,
 }) => {
+  const ui = useUiText();
     const [nickname, setNickname] = React.useState("")
     const [diceSpin, setDiceSpin] = React.useState(0)
 
@@ -234,22 +242,20 @@ const GuestForm = ({ onSubmit, loading }: {
         <form onSubmit={handleSubmit} className="space-y-4 font-sans">
             {/* Campo de Nickname com Botão Tátil de Dados */}
             <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground/90 block">
-                    Apelido de Treinador
-                </label>
+                <label className="text-xs font-semibold text-foreground/90 block"> <LocalizedText text={"Apelido de Treinador"} /> </label>
                 <div className="flex gap-2">
-                    <Input 
-                        placeholder="Ex: TreinadorRed_151" 
-                        value={nickname} 
-                        onChange={(e) => setNickname(e.target.value)} 
+                    <Input
+                        placeholder={ui("Ex: TreinadorRed_151")}
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
                         className="h-10 text-sm font-sans"
                         maxLength={24}
                     />
-                    <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={generateRandomNick} 
-                        title="Sortear apelido lendário"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={generateRandomNick}
+                        title={ui("Sortear apelido lendário")}
                         className="h-10 px-3 shrink-0 hover:bg-amber-500/10 hover:border-amber-500/40"
                     >
                         <motion.div animate={{ rotate: diceSpin }} transition={{ duration: 0.4 }}>
@@ -257,29 +263,28 @@ const GuestForm = ({ onSubmit, loading }: {
                         </motion.div>
                     </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                    Clique no dado para sortear um nome épico ou digite seu preferido.
-                </p>
+                <p className="text-[11px] text-muted-foreground"> <LocalizedText text={"Clique no dado para sortear um nome épico ou digite seu preferido."} /> </p>
             </div>
 
             {/* Banner Informativo com Contraste Apropriado */}
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5 shadow-xs">
                 <Sparkles className="size-4 text-amber-500 shrink-0" />
-                <span>Progresso salvo no dispositivo. Crie uma conta definitiva a qualquer momento.</span>
+                <span><LocalizedText text={"Progresso salvo no dispositivo. Crie uma conta definitiva a qualquer momento."} /></span>
             </div>
 
-            <Button 
-                type="submit" 
-                disabled={loading} 
+            <Button
+                type="submit"
+                disabled={loading}
                 className="w-full h-11 font-syne font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
             >
-                {loading ? <LoaderSimple /> : "Jogar Imediatamente"}
+                {loading ? <LoaderSimple /> : ui("Jogar Imediatamente")}
             </Button>
         </form>
     )
 }
 
 export default function LoginRegisterPage() {
+  const ui = useUiText();
     const [activeTab, setActiveTab] = useState('login')
     const { post, loading } = useApi()
     const { toast } = useToast()
@@ -316,6 +321,7 @@ export default function LoginRegisterPage() {
         try {
             const response = await post('/auth/register', { ...values, withBonus })
             if (response?.data?.ok) {
+                event("account_registered");
                 const token = response.data.data.token
                 setCookie('token', token, 7)
                 soundFx.playLegendaryFanfare()
@@ -343,6 +349,7 @@ export default function LoginRegisterPage() {
                 nickname: data?.nickname
             })
             if (response?.data?.ok) {
+                event("guest_created");
                 const token = response.data.data.token
                 setCookie('token', token, 7)
                 soundFx.playSuccess()
@@ -375,15 +382,11 @@ export default function LoginRegisterPage() {
                     <div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold mb-6">
                             <Sparkles className="size-3.5 text-amber-400" />
-                            <span>Simulador Oficial Pokémon</span>
+                            <span><LocalizedText text={"Simulador Independente Pokémon"} /></span>
                         </div>
 
-                        <h1 className="font-syne text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-tight mb-2">
-                            SimTCG
-                        </h1>
-                        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
-                            Abra boosters, colecione cartas raras e monte sua coleção oficial.
-                        </p>
+                        <h1 className="font-syne text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-tight mb-2"> <LocalizedText text={"SimTCG"} /> </h1>
+                        <p className="font-sans text-xs text-muted-foreground leading-relaxed"> <LocalizedText text={"Abra boosters, colecione cartas raras e monte sua coleção."} /> </p>
                     </div>
 
                     {/* Visual Booster Pack Showcase */}
@@ -392,14 +395,10 @@ export default function LoginRegisterPage() {
                             <BoosterPackArt name="Pacote lendário" cardsQuantity={10} showCrimp={true} />
                         </div>
                         <span className="text-[11px] font-mono text-muted-foreground mt-3 flex items-center gap-1.5">
-                            <Sparkles className="size-3 text-amber-400" />
-                            Milhares de cartas e pacotes oficiais
-                        </span>
+                            <Sparkles className="size-3 text-amber-400" /> <LocalizedText text={"Milhares de cartas e pacotes oficiais"} /> </span>
                     </div>
 
-                    <Link href="/" className="font-sans text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
-                        ← Voltar para a página inicial
-                    </Link>
+                    <Link href="/" className="font-sans text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"> <LocalizedText text={"← Voltar para a página inicial"} /> </Link>
                 </div>
 
                 {/* Coluna do Formulário de Acesso */}
@@ -413,10 +412,10 @@ export default function LoginRegisterPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="font-syne text-2xl font-bold text-foreground">
-                                        {activeTab === 'login' ? 'Acessar Simulador' : activeTab === 'register' ? 'Criar Conta de Treinador' : 'Acesso Convidado'}
+                                        {activeTab === 'login' ? ui("Acessar Simulador") : activeTab === 'register' ? ui("Criar Conta de Treinador") : ui("Acesso Convidado")}
                                     </CardTitle>
                                     <CardDescription className="font-sans text-xs text-muted-foreground mt-1">
-                                        {activeTab === 'login' ? 'Digite suas credenciais para continuar sua jornada' : activeTab === 'register' ? 'Cadastre-se para desbloquear todas as funções sociais' : 'Jogue agora mesmo sem necessidade de senha'}
+                                        {activeTab === 'login' ? ui("Digite suas credenciais para continuar sua jornada") : activeTab === 'register' ? ui("Cadastre-se para desbloquear todas as funções sociais") : ui("Jogue agora mesmo sem necessidade de senha")}
                                     </CardDescription>
                                 </div>
                             </div>
@@ -428,15 +427,9 @@ export default function LoginRegisterPage() {
                                 soundFx.playCardFlip();
                             }} className="w-full">
                                 <TabsList className="w-full grid grid-cols-3 bg-muted/60 p-1 rounded-xl mb-5">
-                                    <TabsTrigger value="login" className="rounded-lg text-xs font-semibold font-sans">
-                                        Entrar
-                                    </TabsTrigger>
-                                    <TabsTrigger value="register" className="rounded-lg text-xs font-semibold font-sans">
-                                        Registrar
-                                    </TabsTrigger>
-                                    <TabsTrigger value="guest" className="rounded-lg text-xs font-semibold font-sans">
-                                        ⚡ Convidado
-                                    </TabsTrigger>
+                                    <TabsTrigger value="login" className="rounded-lg text-xs font-semibold font-sans"> <LocalizedText text={"Entrar"} /> </TabsTrigger>
+                                    <TabsTrigger value="register" className="rounded-lg text-xs font-semibold font-sans"> <LocalizedText text={"Registrar"} /> </TabsTrigger>
+                                    <TabsTrigger value="guest" className="rounded-lg text-xs font-semibold font-sans"> <LocalizedText text={"⚡ Convidado"} /> </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="login">
@@ -457,29 +450,25 @@ export default function LoginRegisterPage() {
                                     <span className="w-full border-t border-border/60" />
                                 </div>
                                 <div className="relative flex justify-center text-[10px] uppercase font-sans tracking-wider">
-                                    <span className="bg-card px-2 text-muted-foreground">Ou conecte-se com</span>
+                                    <span className="bg-card px-2 text-muted-foreground"><LocalizedText text={"Ou conecte-se com"} /></span>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 w-full">
-                                <Button 
-                                    variant="outline" 
-                                    onClick={() => signIn('google')} 
+                                <Button
+                                    variant="outline"
+                                    onClick={() => signIn('google')}
                                     className="font-sans text-xs h-10 border-border hover:bg-secondary/60"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className='size-4 mr-2' viewBox="0 0 30 30">
                                         <path fill="currentColor" d="M 15.003906 3 C 8.3749062 3 3 8.373 3 15 C 3 21.627 8.3749062 27 15.003906 27 C 25.013906 27 27.269078 17.707 26.330078 13 L 25 13 L 22.732422 13 L 15 13 L 15 17 L 22.738281 17 C 21.848702 20.448251 18.725955 23 15 23 C 10.582 23 7 19.418 7 15 C 7 10.582 10.582 7 15 7 C 17.009 7 18.839141 7.74575 20.244141 8.96875 L 23.085938 6.1289062 C 20.951937 4.1849063 18.116906 3 15.003906 3 z" />
-                                    </svg>
-                                    Google
-                                </Button>
-                                <Button 
-                                    variant="outline" 
-                                    onClick={() => setActiveTab('guest')} 
+                                    </svg> <LocalizedText text={"Google"} /> </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setActiveTab('guest')}
                                     className="font-sans text-xs h-10 border-border hover:bg-secondary/60"
                                 >
-                                    <User className="size-4 mr-2 text-amber-500" />
-                                    Modo Convidado
-                                </Button>
+                                    <User className="size-4 mr-2 text-amber-500" /> <LocalizedText text={"Modo Convidado"} /> </Button>
                             </div>
                         </CardFooter>
                     </Card>

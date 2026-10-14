@@ -1,5 +1,5 @@
 # Usa a imagem oficial do Bun (leve e rápida)
-FROM oven/bun:1 AS base
+FROM oven/bun:1.3.5 AS base
 WORKDIR /myapp
 
 # Instala apenas o openssl (obrigatório para o Query Engine do Prisma rodar no Linux)
@@ -14,7 +14,7 @@ COPY apps/www/package.json ./apps/www/
 COPY prisma ./prisma/
 
 # Instala as dependências travadas pelo lockfile
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Gera o Prisma Client usando o Bun
 RUN bunx prisma generate
@@ -24,6 +24,7 @@ RUN bunx prisma generate
 COPY . .
 
 # Garante que o app vai rodar na porta que o Fly.io espera
+ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 

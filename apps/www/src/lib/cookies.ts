@@ -1,16 +1,18 @@
 // Set a cookie
 function setCookie(name: string, value: string, days: number) {
+    if (typeof document === "undefined") return;
     let expires = "";
     if (days) {
       const date = new Date();
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = "; expires=" + date.toUTCString();
     }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
   }
-  
+
   // Get a cookie
   function getCookie(name: string) {
+    if (typeof document === "undefined") return null;
     const nameEQ = name + "=";
     const ca = document.cookie.split(';');
     for(let i = 0; i < ca.length; i++) {
@@ -20,10 +22,10 @@ function setCookie(name: string, value: string, days: number) {
     }
     return null;
   }
-  
+
   // Delete a cookie
   function deleteCookie(name: string) {
     document.cookie = name + '=; Max-Age=-99999999;';
   }
-  
+
   export { setCookie, getCookie, deleteCookie };

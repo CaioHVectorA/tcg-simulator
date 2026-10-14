@@ -4,6 +4,7 @@ import { getUserInterceptor, getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
 import type { Prisma, User } from "@prisma/client";
+import { memoryCache, TTL } from "../lib/cache";
 const baseResponse = t.Object({
   ok: t.Boolean(),
   toast: t.Union([t.String(), t.Null()]),
@@ -283,6 +284,12 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
           baseWhere.FavoriteCard = { some: { userId: user.id } };
         }
 
+        const totalInGamePromise = memoryCache.getOrSet(
+          "total_cards_in_game",
+          () => prisma.card.count(),
+          TTL.THIRTY_MINUTES
+        );
+
         const [totalMatching, cards, totalInGame, distinctOwnedGroup, favsCount] = await Promise.all([
           prisma.card.count({ where: baseWhere }),
           prisma.card.findMany({
@@ -291,7 +298,7 @@ export const cardController = new Elysia({}).group("/cards", (app) => {
             take: limit,
             orderBy: [{ rarity: "desc" }, { id: "asc" }],
           }),
-          prisma.card.count(),
+          totalInGamePromise,
           prisma.cards_user.groupBy({
             by: ["cardId"],
             where: { userId: user.id },

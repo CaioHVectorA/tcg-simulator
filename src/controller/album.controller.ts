@@ -1,3 +1,5 @@
+import { consumeCards, lockUsers } from "../lib/economy";
+import { DomainError } from "../lib/domain-error";
 import { Elysia, t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
 import { getUserUserMiddleware } from "../middlewares/jwt";
@@ -9,6 +11,7 @@ export interface OfficialAlbumDef {
   id: string;
   title: string;
   category: "Regiões" | "Lendários" | "Especiais";
+  tier: "Fácil" | "Médio" | "Lendário";
   description: string;
   targetNames: string[];
   rewardGold: number;
@@ -27,266 +30,294 @@ export function matchesPokemonName(cardName: string, targetName: string): boolea
 
 export const OFFICIAL_ALBUMS: OfficialAlbumDef[] = [
   {
-    id: "kanto_trio",
-    title: "Trio das Aves de Kanto",
-    category: "Lendários",
-    description: "Consiga as lendárias aves elementais: Articuno (Gelo), Zapdos (Elétrico) e Moltres (Fogo).",
-    targetNames: ["Articuno", "Zapdos", "Moltres"],
-    rewardGold: 12000,
-    rewardXp: 400,
-    badge: "Ultra Raro",
-  },
-  {
     id: "kanto_starters",
     title: "Iniciais Clássicos de Kanto",
     category: "Regiões",
-    description: "O quarteto icônico de Pallet Town: Bulbasaur, Charmander, Squirtle e Pikachu.",
+    tier: "Fácil",
+    description: "O quarteto lendário de Pallet Town: Bulbasaur, Charmander, Squirtle e Pikachu.",
     targetNames: ["Bulbasaur", "Charmander", "Squirtle", "Pikachu"],
-    rewardGold: 8000,
-    rewardXp: 250,
+    rewardGold: 18000,
+    rewardXp: 450,
     badge: "Nostalgia",
   },
   {
     id: "johto_starters",
     title: "Iniciais de Johto",
     category: "Regiões",
+    tier: "Fácil",
     description: "Os companheiros de New Bark Town: Chikorita, Cyndaquil e Totodile.",
     targetNames: ["Chikorita", "Cyndaquil", "Totodile"],
-    rewardGold: 10000,
-    rewardXp: 300,
-    badge: "Ouro & Prata",
-  },
-  {
-    id: "johto_beasts",
-    title: "Cães Lendários de Johto",
-    category: "Lendários",
-    description: "Ressuscitados por Ho-Oh na Torre Queimada: Raikou, Entei e Suicune.",
-    targetNames: ["Raikou", "Entei", "Suicune"],
     rewardGold: 15000,
-    rewardXp: 500,
-    badge: "Lendário",
+    rewardXp: 400,
+    badge: "Ouro & Prata",
   },
   {
     id: "hoenn_starters",
     title: "Iniciais de Hoenn",
     category: "Regiões",
+    tier: "Fácil",
     description: "Os jovens exploradores de Littleroot Town: Treecko, Torchic e Mudkip.",
     targetNames: ["Treecko", "Torchic", "Mudkip"],
-    rewardGold: 10000,
-    rewardXp: 300,
+    rewardGold: 16000,
+    rewardXp: 400,
     badge: "Rubi & Safira",
-  },
-  {
-    id: "hoenn_weather",
-    title: "Guardiões do Clima de Hoenn",
-    category: "Lendários",
-    description: "Os titãs dos Mares, da Terra e dos Céus: Kyogre, Groudon e Rayquaza.",
-    targetNames: ["Kyogre", "Groudon", "Rayquaza"],
-    rewardGold: 20000,
-    rewardXp: 700,
-    badge: "Lendário",
-  },
-  {
-    id: "regi_titans",
-    title: "Titãs Selados (Regis)",
-    category: "Lendários",
-    description: "Forjados na era glacial e rochosa: Regirock, Regice, Registeel e o colosso Regigigas.",
-    targetNames: ["Regirock", "Regice", "Registeel", "Regigigas"],
-    rewardGold: 24000,
-    rewardXp: 800,
-    badge: "Ancestral",
   },
   {
     id: "sinnoh_starters",
     title: "Iniciais de Sinnoh",
     category: "Regiões",
+    tier: "Fácil",
     description: "Os parceiros do Professor Rowan: Turtwig, Chimchar e Piplup.",
     targetNames: ["Turtwig", "Chimchar", "Piplup"],
-    rewardGold: 12000,
-    rewardXp: 350,
-    badge: "Diamante & Pérola",
-  },
-  {
-    id: "lake_guardians",
-    title: "Guardiões dos Lagos de Sinnoh",
-    category: "Lendários",
-    description: "Espíritos da Sabedoria, Emoção e Força de Vontade: Uxie, Mesprit e Azelf.",
-    targetNames: ["Uxie", "Mesprit", "Azelf"],
     rewardGold: 16000,
-    rewardXp: 550,
-    badge: "Espiritual",
-  },
-  {
-    id: "sinnoh_creation",
-    title: "Trio da Criação de Sinnoh",
-    category: "Lendários",
-    description: "Os governantes do Tempo, Espaço e Antimatéria: Dialga, Palkia e Giratina.",
-    targetNames: ["Dialga", "Palkia", "Giratina"],
-    rewardGold: 22000,
-    rewardXp: 750,
-    badge: "Estelar",
-  },
-  {
-    id: "arceus_creator",
-    title: "O Alfa & Criador Universal",
-    category: "Especiais",
-    description: "Reúna o Deus Arceus junto aos pilares do universo (Arceus, Dialga, Palkia e Giratina).",
-    targetNames: ["Arceus", "Dialga", "Palkia", "Giratina"],
-    rewardGold: 40000,
-    rewardXp: 1200,
-    badge: "Divino",
+    rewardXp: 400,
+    badge: "Diamante & Pérola",
   },
   {
     id: "unova_starters",
     title: "Iniciais de Unova",
     category: "Regiões",
+    tier: "Fácil",
     description: "A nova geração de Nuvema Town: Snivy, Tepig e Oshawott.",
     targetNames: ["Snivy", "Tepig", "Oshawott"],
-    rewardGold: 12000,
-    rewardXp: 350,
+    rewardGold: 16000,
+    rewardXp: 400,
     badge: "Preto & Branco",
-  },
-  {
-    id: "unova_tao",
-    title: "Dragões Tao de Unova",
-    category: "Lendários",
-    description: "Verdade, Ideais e o Vazio Congelado: Reshiram, Zekrom e Kyurem.",
-    targetNames: ["Reshiram", "Zekrom", "Kyurem"],
-    rewardGold: 25000,
-    rewardXp: 850,
-    badge: "Místico",
   },
   {
     id: "kalos_starters",
     title: "Iniciais de Kalos & Greninja",
     category: "Regiões",
+    tier: "Fácil",
     description: "A elite de Vaniville: Chespin, Fennekin, Froakie e o supremo Greninja.",
     targetNames: ["Chespin", "Fennekin", "Froakie", "Greninja"],
-    rewardGold: 16000,
-    rewardXp: 500,
+    rewardGold: 22000,
+    rewardXp: 550,
     badge: "Kalosiano",
-  },
-  {
-    id: "kalos_mortals",
-    title: "Entidades da Vida & Morte",
-    category: "Lendários",
-    description: "O equilíbrio natural de Kalos: Xerneas (Vida), Yveltal (Destruição) e Zygarde (Equilíbrio).",
-    targetNames: ["Xerneas", "Yveltal", "Zygarde"],
-    rewardGold: 26000,
-    rewardXp: 900,
-    badge: "Aura Pura",
   },
   {
     id: "alola_stars",
     title: "Espíritos Tropicais de Alola",
     category: "Regiões",
+    tier: "Fácil",
     description: "Os companheiros das ilhas tropicais: Rowlet, Litten e Mimikyu.",
     targetNames: ["Rowlet", "Litten", "Mimikyu"],
-    rewardGold: 14000,
+    rewardGold: 18000,
     rewardXp: 450,
     badge: "Alola Alii",
-  },
-  {
-    id: "alola_light",
-    title: "Trio da Luz de Alola",
-    category: "Lendários",
-    description: "Os arautos do Sol, da Lua e do Prisma Estelar: Solgaleo, Lunala e Necrozma.",
-    targetNames: ["Solgaleo", "Lunala", "Necrozma"],
-    rewardGold: 28000,
-    rewardXp: 950,
-    badge: "Cósmico",
-  },
-  {
-    id: "galar_heroes",
-    title: "Espada & Escudo de Galar",
-    category: "Lendários",
-    description: "Os protetores da Noite Negra: Zacian, Zamazenta e o cataclísmico Eternatus.",
-    targetNames: ["Zacian", "Zamazenta", "Eternatus"],
-    rewardGold: 30000,
-    rewardXp: 1000,
-    badge: "Galar Heroico",
   },
   {
     id: "paldea_starters",
     title: "Iniciais de Paldea",
     category: "Regiões",
+    tier: "Fácil",
     description: "Os jovens aprendizes da Academia: Sprigatito, Fuecoco e Quaxly.",
     targetNames: ["Sprigatito", "Fuecoco", "Quaxly"],
-    rewardGold: 15000,
+    rewardGold: 18000,
     rewardXp: 500,
     badge: "Terastal",
   },
   {
-    id: "paldea_paradox",
-    title: "Dragões do Passado & Futuro",
+    id: "ghost_squad",
+    title: "Pesadelo Noturno",
+    category: "Especiais",
+    tier: "Médio",
+    description: "As assombrações mais temidas de Lavender Town: Gengar, Haunter e Gastly.",
+    targetNames: ["Gengar", "Haunter", "Gastly"],
+    rewardGold: 45000,
+    rewardXp: 800,
+    badge: "Fantasma",
+  },
+  {
+    id: "fire_dragons",
+    title: "Mestres de Chamas",
+    category: "Especiais",
+    tier: "Médio",
+    description: "O poder do calor supremo: Charizard, Typhlosion e Blaziken.",
+    targetNames: ["Charizard", "Typhlosion", "Blaziken"],
+    rewardGold: 50000,
+    rewardXp: 850,
+    badge: "Fogo Puro",
+  },
+  {
+    id: "kanto_trio",
+    title: "Trio das Aves de Kanto",
     category: "Lendários",
-    description: "Os ápices da linha temporal da Grande Cratera de Paldea: Koraidon, Miraidon e Cyclizar.",
-    targetNames: ["Koraidon", "Miraidon", "Cyclizar"],
-    rewardGold: 32000,
-    rewardXp: 1100,
-    badge: "Paradoxo",
+    tier: "Médio",
+    description: "As lendárias aves elementais: Articuno (Gelo), Zapdos (Elétrico) e Moltres (Fogo).",
+    targetNames: ["Articuno", "Zapdos", "Moltres"],
+    rewardGold: 60000,
+    rewardXp: 950,
+    badge: "Aves Lendárias",
+  },
+  {
+    id: "johto_beasts",
+    title: "Cães Lendários de Johto",
+    category: "Lendários",
+    tier: "Médio",
+    description: "Ressuscitados por Ho-Oh na Torre Queimada: Raikou, Entei e Suicune.",
+    targetNames: ["Raikou", "Entei", "Suicune"],
+    rewardGold: 65000,
+    rewardXp: 1000,
+    badge: "Besta Ancestral",
+  },
+  {
+    id: "lake_guardians",
+    title: "Guardiões dos Lagos de Sinnoh",
+    category: "Lendários",
+    tier: "Médio",
+    description: "Espíritos da Sabedoria, Emoção e Força de Vontade: Uxie, Mesprit e Azelf.",
+    targetNames: ["Uxie", "Mesprit", "Azelf"],
+    rewardGold: 65000,
+    rewardXp: 1000,
+    badge: "Espiritual",
   },
   {
     id: "eeveelutions_classic",
     title: "Eeveelutions Clássicas",
     category: "Especiais",
+    tier: "Médio",
     description: "A evolução elementar primária: Eevee, Vaporeon, Jolteon e Flareon.",
     targetNames: ["Eevee", "Vaporeon", "Jolteon", "Flareon"],
-    rewardGold: 16000,
-    rewardXp: 550,
+    rewardGold: 55000,
+    rewardXp: 900,
     badge: "Adaptação",
   },
   {
     id: "eeveelutions_modern",
     title: "Eeveelutions da Harmonia",
     category: "Especiais",
+    tier: "Médio",
     description: "As evoluções espirituais e afetivas: Espeon, Umbreon, Leafeon, Glaceon e Sylveon.",
     targetNames: ["Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon"],
-    rewardGold: 25000,
-    rewardXp: 850,
+    rewardGold: 75000,
+    rewardXp: 1100,
     badge: "Laços Puros",
-  },
-  {
-    id: "fire_dragons",
-    title: "Mestres de Chamas",
-    category: "Especiais",
-    description: "O poder do fogo e calor supremo: Charizard, Typhlosion e Blaziken.",
-    targetNames: ["Charizard", "Typhlosion", "Blaziken"],
-    rewardGold: 14000,
-    rewardXp: 450,
-    badge: "Fogo Puro",
   },
   {
     id: "psychic_gods",
     title: "Força Psíquica Suprema",
     category: "Especiais",
+    tier: "Médio",
     description: "A mente e o DNA mais avançados do mundo Pokémon: Mewtwo, Mew e Alakazam.",
     targetNames: ["Mewtwo", "Mew", "Alakazam"],
-    rewardGold: 25000,
-    rewardXp: 850,
+    rewardGold: 80000,
+    rewardXp: 1200,
     badge: "Psíquico",
   },
   {
-    id: "ghost_squad",
-    title: "Pesadelo Noturno",
-    category: "Especiais",
-    description: "As assombrações mais temidas de Lavender Town: Gengar, Haunter e Gastly.",
-    targetNames: ["Gengar", "Haunter", "Gastly"],
-    rewardGold: 10000,
-    rewardXp: 350,
-    badge: "Fantasma",
+    id: "hoenn_weather",
+    title: "Guardiões do Clima de Hoenn",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Os titãs dos Mares, da Terra e dos Céus: Kyogre, Groudon e Rayquaza.",
+    targetNames: ["Kyogre", "Groudon", "Rayquaza"],
+    rewardGold: 180000,
+    rewardXp: 2800,
+    badge: "Senhor do Clima",
+  },
+  {
+    id: "regi_titans",
+    title: "Titãs Selados (Regis)",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Forjados na era glacial e rochosa: Regirock, Regice, Registeel e o colosso Regigigas.",
+    targetNames: ["Regirock", "Regice", "Registeel", "Regigigas"],
+    rewardGold: 220000,
+    rewardXp: 3200,
+    badge: "Titã Ancestral",
+  },
+  {
+    id: "sinnoh_creation",
+    title: "Trio da Criação de Sinnoh",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Os governantes do Tempo, Espaço e Antimatéria: Dialga, Palkia e Giratina.",
+    targetNames: ["Dialga", "Palkia", "Giratina"],
+    rewardGold: 200000,
+    rewardXp: 3000,
+    badge: "Criadores",
+  },
+  {
+    id: "unova_tao",
+    title: "Dragões Tao de Unova",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Verdade, Ideais e o Vazio Congelado: Reshiram, Zekrom e Kyurem.",
+    targetNames: ["Reshiram", "Zekrom", "Kyurem"],
+    rewardGold: 190000,
+    rewardXp: 2900,
+    badge: "Dragão Tao",
+  },
+  {
+    id: "kalos_mortals",
+    title: "Entidades da Vida & Morte",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "O equilíbrio natural de Kalos: Xerneas (Vida), Yveltal (Destruição) e Zygarde (Equilíbrio).",
+    targetNames: ["Xerneas", "Yveltal", "Zygarde"],
+    rewardGold: 210000,
+    rewardXp: 3100,
+    badge: "Aura Cósmica",
+  },
+  {
+    id: "alola_light",
+    title: "Trio da Luz de Alola",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Os arautos do Sol, da Lua e do Prisma Estelar: Solgaleo, Lunala e Necrozma.",
+    targetNames: ["Solgaleo", "Lunala", "Necrozma"],
+    rewardGold: 230000,
+    rewardXp: 3300,
+    badge: "Luz Eterna",
+  },
+  {
+    id: "galar_heroes",
+    title: "Espada & Escudo de Galar",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Os protetores da Noite Negra: Zacian, Zamazenta e o cataclísmico Eternatus.",
+    targetNames: ["Zacian", "Zamazenta", "Eternatus"],
+    rewardGold: 250000,
+    rewardXp: 3600,
+    badge: "Galar Heroico",
+  },
+  {
+    id: "paldea_paradox",
+    title: "Dragões do Passado & Futuro",
+    category: "Lendários",
+    tier: "Lendário",
+    description: "Os ápices temporais da Grande Cratera de Paldea: Koraidon, Miraidon e Cyclizar.",
+    targetNames: ["Koraidon", "Miraidon", "Cyclizar"],
+    rewardGold: 260000,
+    rewardXp: 3800,
+    badge: "Fenda Temporal",
   },
   {
     id: "dragon_titans",
     title: "Dragões do Panteão",
     category: "Lendários",
+    tier: "Lendário",
     description: "Os dragões mais poderosos da história: Dragonite, Salamence, Garchomp e Rayquaza.",
     targetNames: ["Dragonite", "Salamence", "Garchomp", "Rayquaza"],
-    rewardGold: 30000,
-    rewardXp: 950,
-    badge: "Supremo",
+    rewardGold: 280000,
+    rewardXp: 4000,
+    badge: "Panteão Dragão",
+  },
+  {
+    id: "arceus_creator",
+    title: "O Alfa & Criador Universal",
+    category: "Especiais",
+    tier: "Lendário",
+    description: "O Deus Pokémon supremo e a criação de todo o cosmo: Arceus, Dialga, Palkia e Giratina.",
+    targetNames: ["Arceus", "Dialga", "Palkia", "Giratina"],
+    rewardGold: 500000,
+    rewardXp: 6000,
+    badge: "Divindade Suprema",
   },
 ];
+
+import { memoryCache, TTL } from "../lib/cache";
 
 export const albumController = new Elysia({}).group("/albums", (app) => {
   return app
@@ -295,49 +326,75 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
     .use(jwt)
     .onBeforeHandle(getUserUserMiddleware as any)
     .get("/", async ({ user, prisma }) => {
-      // Get all cards owned by the authenticated user
-      const userCards = await prisma.cards_user.findMany({
-        where: { userId: user.id },
-        include: {
-          Card: true,
-        },
-      });
-
-      // Get all claimed albums by this user
-      const claims = await prisma.transaction.findMany({
-        where: {
-          user_id: user.id,
-          idempotencyKey: { startsWith: `album_claim_${user.id}_` },
-          status: "COMPLETED",
-        },
-      });
-      const claimedAlbumIds = new Set(
-        claims.map((c) => c.idempotencyKey.replace(`album_claim_${user.id}_`, ""))
-      );
-
-      // Pre-fetch sample cards from database for the target names
+      // 1. Busca cartas de referência do cache em memória (TTL: 1h)
       const allTargetNames = Array.from(
         new Set(OFFICIAL_ALBUMS.flatMap((a) => a.targetNames))
       );
-      
-      const referenceCards = await prisma.card.findMany({
-        where: {
-          OR: allTargetNames.map((name) => ({
-            name: { contains: name, mode: "insensitive" as const },
-          })),
+
+      const referenceCardsPromise = memoryCache.getOrSet(
+        "album_reference_cards",
+        async () => {
+          return prisma.card.findMany({
+            where: {
+              OR: allTargetNames.map((name) => ({
+                name: { contains: name, mode: "insensitive" as const },
+              })),
+            },
+            select: {
+              id: true,
+              name: true,
+              image_url: true,
+              rarity: true,
+            },
+          });
         },
-      });
+        TTL.ONE_HOUR
+      );
+
+      // 2. Executa as consultas do usuário e recupera o cache em paralelo
+      const [userCards, claims, referenceCards] = await Promise.all([
+        prisma.cards_user.findMany({
+          where: { userId: user.id },
+          select: {
+            id: true,
+            cardId: true,
+            Card: {
+              select: {
+                id: true,
+                name: true,
+                image_url: true,
+                rarity: true,
+              },
+            },
+          },
+        }),
+        prisma.transaction.findMany({
+          where: {
+            user_id: user.id,
+            idempotencyKey: { startsWith: `album_claim_${user.id}_` },
+            status: "COMPLETED",
+          },
+          select: {
+            idempotencyKey: true,
+          },
+        }),
+        referenceCardsPromise,
+      ]);
+
+      const claimedAlbumIds = new Set(
+        claims.map((c) => c.idempotencyKey.replace(`album_claim_${user.id}_`, ""))
+      );
 
       const albumsWithProgress = OFFICIAL_ALBUMS.map((album) => {
         const isClaimed = claimedAlbumIds.has(album.id);
 
         const cardSlots = album.targetNames.map((targetName) => {
-          // Check if user owns any card matching targetName strictly
+          // Checa se o usuário possui alguma cópia correspondente
           const ownedMatch = userCards.find((uc) =>
             matchesPokemonName(uc.Card.name, targetName)
           );
 
-          // Sample card info for preview/silhouette
+          // Carta de referência para preview/silhueta
           const sampleCard =
             referenceCards.find((rc) =>
               matchesPokemonName(rc.name, targetName)
@@ -365,6 +422,7 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
           id: album.id,
           title: album.title,
           category: album.category,
+          tier: album.tier,
           description: album.description,
           badge: album.badge,
           rewardGold: album.rewardGold,
@@ -395,43 +453,101 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
       });
       if (existingClaim) {
         set.status = 400;
-        return errorResponse("Recompensa já coletada.", "Você já coletou a recompensa deste álbum.");
+        return errorResponse("Recompensa já coletada.", "Você já colou e resgatou este álbum.");
       }
 
-      // Check user cards to ensure 100% completion
+      // 1. Busca todas as cartas do usuário com IDs para consumir
       const userCards = await prisma.cards_user.findMany({
         where: { userId: user.id },
         include: { Card: true },
       });
 
-      const hasAllCards = albumDef.targetNames.every((targetName) =>
-        userCards.some((uc) =>
-          matchesPokemonName(uc.Card.name, targetName)
-        )
-      );
+      // 2. Identifica exatamente 1 cópia única de card_user para cada targetName do álbum
+      const cardsUserIdsToConsume: number[] = [];
+      const cardIdsConsumed: number[] = [];
+      const consumedCardUserIdsSet = new Set<number>();
 
-      if (!hasAllCards) {
-        set.status = 400;
-        return errorResponse("Álbum incompleto.", "Você ainda não possui todas as cartas necessárias deste álbum.");
+      for (const targetName of albumDef.targetNames) {
+        const matchingUserCard = userCards.find(
+          (uc) =>
+            !consumedCardUserIdsSet.has(uc.id) &&
+            matchesPokemonName(uc.Card.name, targetName)
+        );
+
+        if (!matchingUserCard) {
+          set.status = 400;
+          return errorResponse(
+            "Álbum incompleto.",
+            `Você não possui a carta necessária: ${targetName}. Obtenha todas as cartas antes de colar no fichário!`
+          );
+        }
+
+        consumedCardUserIdsSet.add(matchingUserCard.id);
+        cardsUserIdsToConsume.push(matchingUserCard.id);
+        cardIdsConsumed.push(matchingUserCard.cardId);
       }
 
-      // Atomic transaction: credit money + rarityPoints, record claim
-      await prisma.$transaction([
-        prisma.user.update({
+      // 3. Transação atômica: queima/consome as cartas, limpa trocas/favoritos se não sobrarem cópias, credita moedas e XP
+      await prisma.$transaction(async (tx) => {
+        await lockUsers(tx, [user.id]);
+        const reserved = await tx.tradeMarkedCard.count({ where: { userId: user.id, cardId: { in: cardIdsConsumed } } });
+        const offered = await tx.trade_Card.count({ where: { card_id: { in: cardIdsConsumed }, Trade: { userTrades: { some: { user_id: user.id, is_sender: true }, none: { is_sender: false } } } } });
+        if (reserved || offered) throw new DomainError("battle.notAllCardsOwnedOrTrade");
+        await consumeCards(tx, user.id, cardsUserIdsToConsume);
+
+        // Checa se o usuário ainda possui cópias remanescentes para limpar decks ou trocas
+        const remainingCards = await tx.cards_user.findMany({
+          where: {
+            userId: user.id,
+            cardId: { in: cardIdsConsumed },
+          },
+          select: { cardId: true },
+        });
+        const remainingCardIdsSet = new Set(remainingCards.map((rc) => rc.cardId));
+
+        const cardIdsWithZeroRemaining = cardIdsConsumed.filter(
+          (cardId) => !remainingCardIdsSet.has(cardId)
+        );
+
+        if (cardIdsWithZeroRemaining.length > 0) {
+          await tx.tradeMarkedCard.deleteMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIdsWithZeroRemaining },
+            },
+          });
+          await tx.favoriteCard.deleteMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIdsWithZeroRemaining },
+            },
+          });
+          await tx.userDeckCard.deleteMany({
+            where: {
+              userId: user.id,
+              cardId: { in: cardIdsWithZeroRemaining },
+            },
+          });
+        }
+
+        // Credita recompensas
+        await tx.user.update({
           where: { id: user.id },
           data: {
             money: { increment: albumDef.rewardGold },
             rarityPoints: { increment: albumDef.rewardXp },
           },
-        }),
-        prisma.transaction.create({
+        });
+
+        // Registra transação do claim
+        await tx.transaction.create({
           data: {
             idempotencyKey,
             status: "COMPLETED",
             user_id: user.id,
           },
-        }),
-      ]);
+        });
+      });
 
       return sucessResponse(
         {
@@ -439,8 +555,9 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
           rewardXp: albumDef.rewardXp,
           albumId: albumDef.id,
           albumTitle: albumDef.title,
+          consumedCardsCount: cardsUserIdsToConsume.length,
         },
-        `Parabéns! Álbum "${albumDef.title}" resgatado com sucesso! (+${albumDef.rewardGold} Moedas, +${albumDef.rewardXp} XP)`
+        `Parabéns! Álbum "${albumDef.title}" colado no seu Fichário! Você recebeu +${albumDef.rewardGold.toLocaleString("pt-BR")} Moedas e +${albumDef.rewardXp} XP.`
       );
     });
 });

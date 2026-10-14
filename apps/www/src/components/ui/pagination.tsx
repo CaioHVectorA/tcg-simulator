@@ -1,3 +1,4 @@
+import { LocalizedText } from "@/i18n/localized-text";
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { ButtonProps, buttonVariants } from "@/components/ui/button"
@@ -69,7 +70,7 @@ const PaginationPrevious = ({
     {...props}
   >
     <ChevronLeftIcon className="h-4 w-4" />
-    <span>Anterior</span>
+    <span><LocalizedText text={"Anterior"} /></span>
   </PaginationLink>
 )
 PaginationPrevious.displayName = "PaginationPrevious"
@@ -84,7 +85,7 @@ const PaginationNext = ({
     className={cn("gap-1 pr-2.5", className)}
     {...props}
   >
-    <span>Próximo</span>
+    <span><LocalizedText text={"Próximo"} /></span>
     <ChevronRightIcon className="h-4 w-4" />
   </PaginationLink>
 )
@@ -100,7 +101,7 @@ const PaginationEllipsis = ({
     {...props}
   >
     <DotsHorizontalIcon className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
+    <span className="sr-only"><LocalizedText text={"More pages"} /></span>
   </span>
 )
 PaginationEllipsis.displayName = "PaginationEllipsis"

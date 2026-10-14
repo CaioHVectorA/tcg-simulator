@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
+import { translatedList } from "@/i18n/text";
 import { useTranslation } from "@/i18n/LanguageContext";
 
 const DEFAULT_POKEMON_FLAVOR_TEXTS = [
@@ -24,10 +25,10 @@ export function LoadingRing({ className = "" }: { className?: string }) {
 }
 
 export function Loader({ customText }: { customText?: string }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [flavorIndex, setFlavorIndex] = useState(0);
 
-  const flavorTextsRaw = t("loading.loadingTexts") as unknown;
+  const flavorTextsRaw = translatedList("loading.loadingTexts", locale);
   const flavorTexts: string[] =
     Array.isArray(flavorTextsRaw) && flavorTextsRaw.length > 0
       ? (flavorTextsRaw as string[])
@@ -44,7 +45,7 @@ export function Loader({ customText }: { customText?: string }) {
   const currentText = customText || flavorTexts[flavorIndex % flavorTexts.length];
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-md font-syne select-none p-4">
+    <div className="relative min-h-[240px] w-full flex flex-col items-center justify-center bg-background font-syne select-none p-4">
       {/* Aura de fundo suave */}
       <div className="absolute size-56 rounded-full bg-red-500/10 blur-3xl pointer-events-none animate-pulse" />
 
