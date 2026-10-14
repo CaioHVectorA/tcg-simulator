@@ -45,11 +45,11 @@ Não há medição representativa de p50/p95 em produção ou promessa de latên
 
 ## GitHub e operação
 
-Branch de trabalho: `agents`; upstream `origin/agents`. A documentação de 13/10 foi publicada no commit `ce14544`. Esta implementação não foi promovida a main ou produção.
+Branch de trabalho: `agents`; upstream `origin/agents`. A documentação de 13/10 foi publicada no commit `ce14544`. A implementação foi promovida para `main` no commit `0797f34a5b3a74ac328e83d882d306da4f68f862` e publicada no Fly em 14/10/2026, após autorização explícita do proprietário.
 
-O problema histórico de token Fly ausente foi tratado com segredo do ambiente Production e token restrito de 30 dias. main exige CI e revisão; Production tem revisão própria. O workflow deploy usa o SHA validado por Validate. API exige origens CORS explícitas, configuração de banco e segredo de produção.
+O problema histórico de token Fly ausente foi tratado com segredo do ambiente Production e token restrito de 30 dias. main mantém os checks obrigatórios; as exigências de aprovação manual de PR e do ambiente Production foram removidas a pedido explícito do proprietário. O workflow deploy usa o SHA validado por Validate. API exige origens CORS explícitas, configuração de banco e segredo de produção.
 
-A máquina Fly estava **suspensa**. O banco existente tem **drift**: já contém tabelas ausentes do histórico antigo. Foi preparado um patch específico para revisão; nenhuma migration foi aplicada em produção. Leitura agregada encontrou zero emails/nomes normalizados duplicados e zero saldos negativos em 14/10. Repetir antes da manutenção.
+A máquina Fly estava suspensa antes da release. O banco existente tinha drift e recebeu o patch ensaiado em uma cópia PostgreSQL 17, após backup privado. As duas novas migrations foram registradas somente após diff vazio; o histórico anterior foi preservado. Leitura agregada encontrou zero emails/nomes normalizados duplicados e zero saldos negativos em 14/10. Repetir antes da manutenção.
 
 Cron/cache/buffer/WebSocket seguem locais ao processo. Fly foi configurado para uma máquina sempre ativa; escalar requer coordenação externa. `/ping` é liveness e `/health/ready` verifica banco; monitor/alertas externos ainda precisam ser configurados. Segredos reais Google, Resend e domínio web devem ser conferidos em staging.
 
@@ -60,10 +60,21 @@ Cron/cache/buffer/WebSocket seguem locais ao processo. Fly foi configurado para 
 - Typecheck API e build API passaram. Build Docker passou, não embute `.env`/SQLite; runtime recusou segredo ausente e readiness respondeu 200 com PostgreSQL local.
 - As 28 migrations foram aplicadas localmente. Backup local foi restaurado em `tcg_restore_test`, com histórico atualizado. Isso não valida restauração do banco real.
 - Inspeção visual mobile claro/escuro foi feita; matriz completa de dispositivos, rede lenta, todos os diálogos e artes reais permanece pendente.
-- Build web passou após as correções finais, incluindo tipos e geração de 28 rotas/páginas. CI remoto ainda precisa validar o commit publicado.
+- CI de branch, PR e main passaram, incluindo builds API/web/Docker e os nove cenários Playwright. O workflow Fly Deploy também passou para o SHA promovido.
 
 ## Prospecção e pendências externas
 
 Eventos agregados de entrada, abertura, conversão, primeira troca/batalha e diária foram instrumentados via Analytics. Não enviam identificadores ou conteúdo de jogador. Deduplicação é local; D1/D7 e campanhas ainda precisam de implementação/validação e dados reais.
 
-Para beta: concluir manutenção revisada do banco, configurar identidade/email/domínio, restaurar operação Fly, executar smoke completo em staging/produção, monitorar e convidar uma coorte pequena. Não houve contatos de divulgação nem confirmação de direitos de marcas/artes. Prioridades e critérios estão em `TODO.md`.
+Banco e operação Fly foram preparados. Para ampliar o beta, validar Google/Resend e o domínio personalizado, completar o smoke de troca/batalha/álbum/conversão em produção, configurar monitor externo e acompanhar uma coorte pequena. Não houve contatos de divulgação nem confirmação de direitos de marcas/artes. Prioridades e critérios estão em `TODO.md`.
+
+## Publicação confirmada em 14/10/2026
+
+- API: https://poke-tcg-center.fly.dev — release Fly 68, uma máquina em `gru`, iniciada e sem cordon; auto-stop desligado e mínimo de uma máquina.
+- `/ping` responde; `/health/ready` respondeu 200 com `ready:true`. CORS/preflight respondeu 204 para a origem pública verificada `https://tcg-caiohvectoras-projects.vercel.app`.
+- Backup completo foi salvo fora do repositório, em diretório privado; schema público/dados da aplicação foram restaurados numa cópia local PostgreSQL 17 sem erros. Patch e baseline foram ensaiados nessa cópia antes de produção.
+- Contagens preservadas na manutenção: cinco contas, 1.759 cópias de cartas e 130 pacotes. Os dois índices normalizados foram conferidos; não havia migrations falhas.
+- Smoke real verificou convidado, DTO sem password/authVersion, cinco pacotes iniciais, abertura, replay sem consumo adicional e raridade crescente. A conta temporária foi removida.
+- O primeiro start revelou que a máquina parada ainda não havia recebido os segredos preparados; `secrets deploy` e novo start resolveram. O processo confirmou JWT de 64 caracteres e conexão ao banco. Nenhum segredo foi publicado.
+- `tcgsim.com` não respondeu à verificação. O endereço Vercel acima foi confirmado como site SimTCG e usado provisoriamente; o domínio definitivo ainda precisa de confirmação do proprietário. Resend não está configurado nesta API; entrega de recuperação e OAuth real ainda não foram certificados.
+- Evidência: https://github.com/CaioHVectorA/tcg-simulator/actions/runs/38590393430 e https://github.com/CaioHVectorA/tcg-simulator/actions/runs/38590969868.

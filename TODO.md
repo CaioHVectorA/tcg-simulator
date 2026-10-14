@@ -21,11 +21,11 @@ Atualizado em 14/10/2026. `[x]` indica implementação com a evidência especifi
 
 ## P0 — Ainda necessário para publicar
 
-- [ ] **Banco existente:** backup real e restauração verificada; reproduzir drift em staging, revisar/aplicar patch e registrar migrations somente após equivalência comprovada. Aceite: diff/constraints/histórico conferidos e rollback ensaiado. Não executar migração histórica cegamente.
-- [ ] **Operação Fly:** resolver suspensão, confirmar recursos/cobrança, segredos e uma instância sempre ativa. Aceite: readiness estável, jobs após reinício e smoke test sem duplicação.
+- [x] **Banco existente:** backup real e restauração verificada; reproduzir drift em staging, revisar/aplicar patch e registrar migrations somente após equivalência comprovada. Aceite: diff/constraints/histórico conferidos e rollback ensaiado. Não executar migração histórica cegamente.
+- [x] **Operação Fly:** resolver suspensão, confirmar recursos/cobrança, segredos e uma instância sempre ativa. Aceite: readiness estável, jobs após reinício e smoke test sem duplicação.
 - [ ] **Identidade/email/domínio:** conferir client Google/callback, remetente Resend, recuperação entregue, URLs HTTPS/CORS/cookies e suporte. Aceite: login Google e recuperação reais em staging, sem expor token na sessão cliente.
 - [ ] **Smoke completo em staging:** cadastro → abertura → compra → quest → troca entre duas contas → GO → álbum → conversão → recuperação. Cobrir rede indisponível, sessão expirada e último pacote. Testes locais não substituem essa validação.
-- [ ] **CI do commit final e revisão:** todos os checks verdes; promover somente pelo PR revisado. Nunca fazer push em main apenas para sincronizar.
+- [x] **CI e promoção:** branch, PR e main verdes; promoção e deploy autorizados explicitamente pelo proprietário, sem aprovação manual. SHA de código `0797f34`, Fly release 68. Documentação posterior não altera esse código publicado.
 - [ ] **Observabilidade:** monitor externo, alertas de readiness/erros, logs operacionais e procedimento de incidente. Aceite: alerta e restauração ensaiados.
 - [ ] **Performance representativa:** medir p50/p95, erro, pool e memória com catálogo/volume real e rede lenta. Definir metas com dados, sem prometer 0ms.
 - [ ] **Matriz visual/editorial:** revisar falantes PT/EN/ES/JP, frases dinâmicas, artes reais, teclado/diálogos, claro/escuro e dispositivos adicionais. Corrigir evidências que a coorte trouxer.
@@ -54,4 +54,8 @@ Atualizado em 14/10/2026. `[x]` indica implementação com a evidência especifi
 
 ## Registro da revisão
 
-98 testes Bun e nove cenários Playwright passaram localmente. Integração utiliza PostgreSQL isolado e é ignorada sem `TCG_TEST_DATABASE_URL`. Builds API/web e visual passaram localmente; CI remoto final ainda precisa validar o commit publicado. Nenhuma issue foi encerrada automaticamente; #1, #55/#56, #60/#61/#72 e #73–#77 têm correções/evidências para revisão, sem afirmar escopo integral concluído.
+98 testes Bun e nove cenários Playwright passaram localmente. Integração utiliza PostgreSQL isolado e é ignorada sem `TCG_TEST_DATABASE_URL`. Builds API/web e visual passaram localmente; CI remoto de branch/PR/main e workflow Fly Deploy passaram. Nenhuma issue foi encerrada automaticamente; #1, #55/#56, #60/#61/#72 e #73–#77 têm correções/evidências para revisão, sem afirmar escopo integral concluído.
+
+## Evidência de publicação
+
+Em 14/10, banco real foi preparado com backup/restauração da aplicação em cópia PostgreSQL 17, patch transacional e baseline conferido. Fly está ativo em uma máquina, com readiness 200 e CORS confirmado. Smoke real de entrada/primeira abertura/replay passou e sua conta temporária foi removida. Monitor externo, domínio personalizado, Resend/OAuth real e demais fluxos de produção continuam pendentes conforme os itens acima.

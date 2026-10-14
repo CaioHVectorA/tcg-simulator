@@ -96,3 +96,6 @@ cd apps/www && bun run build
 - Economia usa `operation`, locks ordenados de participantes e chave de idempotência. A chave do cliente deve sobreviver a falhas de resposta incerta; nunca reutilizá-la com payload diferente.
 - JWT inclui `authVersion`; recuperação incrementa a versão e desconecta sockets. Não expor esse campo em DTOs públicos.
 - O banco existente tem drift conhecido; seguir `docs/release/2026-10-14.md`. Nunca executar automaticamente a migração completa ou o patch de schema existente em produção.
+
+- Publicação de 14/10 autorizada pelo proprietário: código `0797f34`, Fly release 68, banco existente preparado e migrations novas registradas após ensaio/backup. Aprovação manual de PR/Production foi removida; checks de código permanecem obrigatórios. Não inferir autorização para migrations novas a partir desta release.
+- A máquina de manutenção permaneceu parada/cordoned após atualizar a imagem. Confirmar aplicação de segredos, start, readiness e uncordon: workflow verde sozinho não comprova API operacional.
