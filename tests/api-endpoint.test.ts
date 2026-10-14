@@ -4,6 +4,9 @@ describe("Published frontend API endpoint", () => {
   it("never sends public users to a local development server", () => {
     for (const value of [undefined,"","http://localhost:8080","https://localhost:8080","https://127.0.0.1:8089","https://[::1]:8080","not a URL"]) expect(resolveApiEndpoint(value,true)).toBe(DEPLOYED_API_URL);
   });
+  it("never uses the website itself as the backend", () => {
+    for (const website of ["https://tcg-alpha.vercel.app", "https://tcg-caiohvectoras-projects.vercel.app", "https://tcgsim.com"]) expect(resolveApiEndpoint(website,true)).toBe(DEPLOYED_API_URL);
+  });
   it("keeps explicit HTTPS deployment overrides and normalizes trailing slashes", () => {
     expect(resolveApiEndpoint(" https://api.example.com/ ",true)).toBe("https://api.example.com");
     expect(resolveApiEndpoint(DEPLOYED_API_URL,true)).toBe(DEPLOYED_API_URL);

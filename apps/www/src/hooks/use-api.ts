@@ -31,7 +31,8 @@ export function useApi<T = Record<string, unknown>>(_options: { cache?: boolean 
     });
     try {
       const result = await task;
-      if (result.data?.ok === false) throw new AxiosError(result.data.toast || result.data.error || "Request failed", "ERR_APPLICATION", result.config, result.request, result);
+      if (!result.data || typeof result.data !== "object" || typeof result.data.ok !== "boolean") throw new AxiosError("Unexpected API response", "ERR_APPLICATION", result.config, result.request, result);
+      if (result.data.ok === false) throw new AxiosError(result.data.toast || result.data.error || "Request failed", "ERR_APPLICATION", result.config, result.request, result);
       if (mounted.current) { setResponse(result); setData(result.data?.data ?? result.data); }
       return result;
     } catch (err) {
