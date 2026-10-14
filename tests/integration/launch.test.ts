@@ -198,4 +198,54 @@ describe.skipIf(!databaseUrl)("Isolated PostgreSQL + HTTP launch contracts", () 
       expect(res.status).toBe(400);expect(res.body.toast).toContain(word);
     }
   });
+  it('interactive arena persists turns, isolates ownership and never repeats completion rewards',async()=>{
+    const {ArenaService}=await import('../../src/services/arena.service');
+    await db.cards_user.createMany({data:cardIds.map(cardId=>({userId,cardId}))});
+    await battles.saveUserDeck(userId,cardIds);
+    const started=await http('/battle/arena/start','POST',{npcId:'brock',selectedCardIds:cardIds.slice(0,3),key:'arena-start-test'});
+    expect(started.status).toBe(200);const initial=started.body.data;
+    expect(initial.status).toBe('active');expect(initial.turn).toBe(0);
+    expect((await http('/battle/arena')).body.data.id).toBe(initial.id);
+    await db.tradeMarkedCard.create({data:{userId,cardId:cardIds[0]}});
+    expect((await http('/battle/arena/action','POST',{id:initial.id,turn:0,action:{kind:'quick'},key:'invalidated-deck'})).status).toBe(400);
+    expect((await http('/battle/arena')).body.data.turn).toBe(0);
+    await db.tradeMarkedCard.deleteMany({where:{userId,cardId:cardIds[0]}});
+    await expect(ArenaService.act(otherId,initial.id,0,{kind:'quick'},'other-action')).rejects.toThrow();
+    const concurrent=await Promise.all([http('/battle/arena/action','POST',{id:initial.id,turn:0,action:{kind:'quick'},key:'arena-turn-one'}),http('/battle/arena/action','POST',{id:initial.id,turn:0,action:{kind:'quick'},key:'arena-turn-one'})]);
+    expect(concurrent.every(r=>r.body.ok)).toBe(true);expect(concurrent[0].body.data).toEqual(concurrent[1].body.data);
+    expect((await http('/battle/arena')).body.data.turn).toBe(1);
+    expect((await http('/battle/arena/action','POST',{id:initial.id,turn:0,action:{kind:'quick'},key:'stale-turn-test'})).status).toBe(409);
+    const before=(await db.user.findUniqueOrThrow({where:{id:userId}})).money;
+    const finished=await http('/battle/arena/action','POST',{id:initial.id,turn:1,action:{kind:'forfeit'},key:'arena-finish-test'});
+    expect(finished.body.data.status).toBe('lost');expect(finished.body.data.rewardCoins).toBe(0);
+    const replay=await http('/battle/arena/action','POST',{id:initial.id,turn:1,action:{kind:'forfeit'},key:'arena-finish-test'});
+    expect(replay.body.data).toEqual(finished.body.data);expect((await db.user.findUniqueOrThrow({where:{id:userId}})).money).toBe(before);
+    expect((await http('/battle/arena')).body.data).toBeNull();
+    // Play a real win through HTTP, then retry its decisive turn after completion.
+    await db.card.updateMany({where:{id:{in:cardIds}},data:{hp:300,type:'Water'}});
+    let live=(await http('/battle/arena/start','POST',{npcId:'brock',selectedCardIds:cardIds.slice(0,3),key:'arena-real-win'})).body.data;
+    let finalRequest: {id:string;turn:number;action:{kind:string};key:string}|undefined;
+    for(let step=0;step<60&&live.status==='active';step++) {
+      const kind=live.intent==='charge'&&live.shields>0?'shield':live.player[live.active].energy>=60?'charge':'quick';
+      finalRequest={id:live.id,turn:live.turn,action:{kind},key:`arena-play-${step}`};
+      const response=await http('/battle/arena/action','POST',finalRequest);expect(response.status).toBe(200);live=response.body.data;
+    }
+    expect(live.status).toBe('won');
+    const balance=(await db.user.findUniqueOrThrow({where:{id:userId}})).money;
+    expect(balance).toBe(before+live.rewardCoins);
+    const replayWin=await http('/battle/arena/action','POST',finalRequest);
+    expect(replayWin.body.data).toEqual(live);expect((await db.user.findUniqueOrThrow({where:{id:userId}})).money).toBe(balance);
+  });
+  it('all battle modes share finite rewards and losses cannot be farmed',async()=>{
+    const {battleReward}=await import('../../src/lib/battle-rewards');const {NPC_TRAINERS}=await import('../../src/lib/battle-engine');const npc=NPC_TRAINERS[0];
+    await db.userBattleRecord.deleteMany({where:{userId,npcId:npc.id}});
+    await db.$transaction(async tx=>{
+      const lost=await battleReward(tx,userId,npc,false);expect(lost.rewardCoins).toBe(0);expect(lost.rewardXp).toBe(0);
+      const first=await battleReward(tx,userId,npc,true);expect(first.rewardCoins).toBe(npc.rewardCoins);expect(first.rewardXp).toBe(npc.rewardXp/10);
+      await tx.userBattleRecord.create({data:{userId,npcId:npc.id,won:true,playerScore:3,opponentScore:0,...first}});
+      for(let i=0;i<2;i++) {const reward=await battleReward(tx,userId,npc,true);expect(reward.rewardCoins).toBe(npc.rewardCoins/10);expect(reward.rewardXp).toBe(0);await tx.userBattleRecord.create({data:{userId,npcId:npc.id,won:true,playerScore:3,opponentScore:0,...reward}});}
+      expect((await battleReward(tx,userId,npc,true)).rewardCoins).toBe(0);
+    });
+  });
+
 });

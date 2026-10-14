@@ -67,3 +67,12 @@ Em 14/10, banco real foi preparado com backup/restauração da aplicação em c�
 - [x] Confirmar convidado no navegador em `tcg-alpha.vercel.app`: publicação `f952ed2`, entrada em `/home`, inventário com cinco pacotes e 500 moedas; conta de teste removida. 103 testes Bun e dez cenários E2E passaram no CI da PR #83.
 - [ ] Validar Google com uma identidade real. Callback da origem alpha e client ID compatível com a API foram conferidos; isso não comprova o consentimento e login completos.
 - [ ] Ajustar variáveis na Vercel quando houver acesso: `API_URL` e `NEXT_PUBLIC_API_URL` devem apontar para `https://poke-tcg-center.fly.dev`. A versão publicada rejeita os domínios conhecidos do frontend e usa esse backend como fallback.
+
+## Batalha e balanceamento
+
+- [x] Implementar arena por turnos com energia/vida, intenção rival, escudo, troca, pausa/retomada, teclado e feedback imediato; preservar três escolhas de slots, inclusive cópias possuídas.
+- [x] Persistir no journal existente, isolar jogador, rejeitar turno desatualizado e premiar conclusão uma vez. Testes HTTP incluem partida vencida, retry da ação decisiva, concorrência e usuário alheio.
+- [x] Conter farm em todos os modos: sem prêmio por derrota e duas revanches remuneradas/NPC/dia UTC após primeira vitória.
+- [x] Auditar catálogo real sem escrita: relatório em `docs/balance/2026-10-14.md` e script agregado reproduzível.
+- [ ] Recalibrar preços/chances/diárias como uma curva, com estratégia de transição para níveis; corrigir XP proveniente dos próprios marcos monetários. Não transformar probabilidades de cópias em promessa de completar álbum.
+- [ ] Medir diversão e legibilidade do duelo com jogadores; treino e ausência de limite de tempo por ação não equivalem a feedback validado de uma coorte.

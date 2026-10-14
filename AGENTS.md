@@ -51,6 +51,8 @@ cd apps/www && bun run build
 - Temáticos usam `BoosterPackArt` e `logoUrl`, acabamento metalizado e proporções preservadas.
 - `/cards/my-tradeable` e `/trocas`: somente cartas marcadas pelo usuário em `TradeMarkedCard`. Cartas marcadas ficam indisponíveis para batalha.
 - Deck tático atual: 6 cartas, teto 20 PR; modo GO tem seleção de 3 cartas. Validar posse, multiplicidade e elegibilidade no servidor ao salvar e ao lutar.
+- Arena interativa: escolha três slots, não três tipos distintos; decisões/HP/energia são do servidor. Estado no journal `Transaction`, escopo por usuário, versão de turno e idempotência; fechar pausa, desistir não paga. Revalidar o deck a cada ação.
+- Premiação de batalha compartilhada entre modos: primeira vitória por NPC, depois duas revanches remuneradas por dia UTC a 10%; derrotas e demais treinos sem moedas/XP. Nunca premiar pelo clique ou pela animação.
 - Resgate de álbum consome cópias da coleção. Exigir confirmação clara, transação e prevenção de resgate repetido; reconciliar decks, favoritos e negociação.
 - Moedas, recompensas e consumo de inventário são decisões do servidor. Débito e concessão precisam ser atômicos, resistentes a concorrência e repetição.
 
