@@ -92,3 +92,11 @@ A validação no navegador publicado revelou outra configuração inválida: a c
 ### Verificação web publicada em 14/10
 
 A PR #83 (`f952ed2` em main) passou 103 testes Bun, builds e dez cenários E2E no GitHub; Vercel Production confirmou a publicação. No navegador real de `tcg-alpha.vercel.app`, convidado entrou em `/home` e leu inventário com cinco pacotes e 500 moedas. A conta temporária foi removida. Callback Google aponta para a origem alpha e client ID confere com a API; login com identidade Google real permanece não verificado. O painel Vercel não está conectado nesta sessão, portanto as variáveis incorretas não foram alteradas diretamente; o código protege contra os domínios web conhecidos e localhost.
+
+## Duelo interativo e auditoria econômica — implementação de 14/10
+
+A arena passa a resolver uma decisão por requisição: três cartas escolhidas entre os seis slots do deck, ataque rápido, carregado de 60 de energia, dois escudos contra golpe anunciado e troca com intervalo de três turnos. Vida/energia são reais e visíveis. Estado fica no journal `Transaction`, com escopo do jogador, expiração de 30 minutos, versão por turno e idempotência; pode retomar após reload/restart. Sem nova migration. Revalida todo o deck e as três escolhas a cada ação; desistência continua possível se a coleção mudar. Fechar o diálogo pausa, não concede prêmio. Partidas têm limite de 60 turnos.
+
+Premiação de todos os modos usa o mesmo histórico sob lock: primeira vitória mantém moedas-base; as duas revanches vitoriosas por NPC/dia UTC pagam 10%, sem XP. Derrotas não pagam. Pontos da primeira vitória passam a 10% dos antigos (o perfil multiplica pontos por dez para apresentar XP). Histórico e saldo não são recalculados. A lista de líderes mostra a premiação disponível agora.
+
+O relatório `docs/balance/2026-10-14.md` usa leitura agregada do catálogo real e probabilidades analíticas, não simulação de retenção. Encontrou curvas incoerentes (Grande: 600 moedas/~81% Tier 5; Tempestade: 42.000/~0,125%), trilha de 581.950 moedas e realimentação de XP por marcos monetários. Preços, chances e diárias permanecem para uma revisão específica com política de transição. `widgets/audit-economy.ts` reproduz a auditoria somente com leituras agregadas, sem dados de jogadores.

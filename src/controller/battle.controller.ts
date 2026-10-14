@@ -1,3 +1,5 @@
+import { ArenaService } from "../services/arena.service";
+import { DomainError } from "../lib/domain-error";
 import { publicError } from "../lib/public-error";
 import Elysia, { t } from "elysia";
 import { getUserUserMiddleware } from "../middlewares/jwt";
@@ -12,6 +14,16 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
     .use(jwt)
     .decorate("user", {} as User)
     .onBeforeHandle(getUserUserMiddleware as any)
+
+    .get("/arena", async ({user}) => sucessResponse(await ArenaService.resume(user.id)))
+    .post("/arena/start", async ({user,body,headers,set}) => {
+      try { return sucessResponse(await ArenaService.start(user.id,body.npcId,body.selectedCardIds,body.key)); }
+      catch(error) { set.status=error instanceof DomainError?error.status:500; return errorResponse(publicError(error),publicError(error),getLocaleFromHeaders(headers)); }
+    }, {body:t.Object({npcId:t.String({maxLength:30}),selectedCardIds:t.Array(t.Integer({minimum:1}),{minItems:3,maxItems:3}),key:t.String({minLength:8,maxLength:100})})})
+    .post("/arena/action", async ({user,body,headers,set}) => {
+      try { return sucessResponse(await ArenaService.act(user.id,body.id,body.turn,body.action,body.key)); }
+      catch(error) { set.status=error instanceof DomainError?error.status:500; return errorResponse(publicError(error),publicError(error),getLocaleFromHeaders(headers)); }
+    }, {body:t.Object({id:t.String({format:"uuid"}),turn:t.Integer({minimum:0,maximum:60}),key:t.String({minLength:8,maxLength:100}),action:t.Union([t.Object({kind:t.Literal("forfeit")}),t.Object({kind:t.Literal("quick")}),t.Object({kind:t.Literal("charge")}),t.Object({kind:t.Literal("shield")}),t.Object({kind:t.Literal("swap"),slot:t.Integer({minimum:0,maximum:2})})])})})
 
     /**
      * GET /battle/deck

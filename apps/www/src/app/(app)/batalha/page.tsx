@@ -1,8 +1,11 @@
 "use client";
+import { BattleArena } from "@/components/battle-arena";
+import type { ArenaState } from "../../../../../../shared/arena";
+import { useUser } from "@/context/UserContext";
 import { event } from "@/lib/telemetry";
 import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +129,7 @@ const RARITY_STYLE: Record<number, { color: string; border: string; bg: string }
 
 export default function BattlePage() {
   const ui = useUiText();
+  const user = useUser();
   const { t } = useTranslation();
   const { get, post } = useApi();
   const { toast } = useToast();
@@ -149,20 +153,17 @@ export default function BattlePage() {
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [selectedGymLeader, setSelectedGymLeader] = useState<GymLeaderItem | null>(null);
   const [isTeamPreviewOpen, setIsTeamPreviewOpen] = useState(false);
-  const [selectedGoPicks, setSelectedGoPicks] = useState<number[]>([]); // 3 card IDs
+  const [selectedGoPicks, setSelectedGoPicks] = useState<number[]>([]); // 3 distinct deck slots; duplicate card types remain selectable
 
   // Live Battle Arena State
   const [isGoBattleModalOpen, setIsGoBattleModalOpen] = useState(false);
-  const [currentGoBattle, setCurrentGoBattle] = useState<any | null>(null);
-  const [currentRoundIdx, setCurrentRoundIdx] = useState(0);
-  const [currentEventIdx, setCurrentEventIdx] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [currentGoBattle, setCurrentGoBattle] = useState<ArenaState | null>(null);
+  const startRequest = useRef<{payload:string;key:string}|null>(null);
   const [isBattling, setIsBattling] = useState(false);
 
   // 1. Fetch User Deck
   const { data: deckData } = useQuery({
-    queryKey: ["battle-deck"],
+    queryKey: ["battle-deck", user?.id],
     queryFn: async () => {
       const res = await get("/battle/deck");
       return res.data?.data || res.data;
@@ -171,7 +172,7 @@ export default function BattlePage() {
 
   // 2. Fetch Available Cards for Deck Builder
   const { data: availableCardsData } = useQuery({
-    queryKey: ["battle-available-cards"],
+    queryKey: ["battle-available-cards", user?.id],
     queryFn: async () => {
       const res = await get("/battle/available-cards");
       return res.data?.data || res.data;
@@ -180,7 +181,7 @@ export default function BattlePage() {
 
   // 3. Fetch NPC Gym Leaders
   const { data: npcsData } = useQuery({
-    queryKey: ["battle-npcs"],
+    queryKey: ["battle-npcs", user?.id],
     queryFn: async () => {
       const res = await get("/battle/npcs");
       return res.data.data.npcs;
@@ -189,7 +190,7 @@ export default function BattlePage() {
 
   // 4. Fetch Battle History
   const { data: historyData } = useQuery({
-    queryKey: ["battle-history"],
+    queryKey: ["battle-history", user?.id],
     queryFn: async () => {
       const res = await get("/battle/history");
       return res.data.data.history;
@@ -265,7 +266,7 @@ export default function BattlePage() {
     },
     onSuccess: () => {
       soundFx.playCardFlip();
-      queryClient.invalidateQueries({ queryKey: ["battle-deck"] });
+      queryClient.invalidateQueries({ queryKey: ["battle-deck", user?.id] });
       toast({
         title: t("battle.deckSaved") || "Deck Salvo!",
         description: t("battle.deckSavedDesc") || "Sua equipe de 6 cartas está pronta para o combate.",
@@ -332,43 +333,31 @@ export default function BattlePage() {
     },
   });
 
-  // Fight NPC Go Mutation (Blefe 6 leva 3)
+  const {data:resumedArena} = useQuery({queryKey:["battle-arena",user?.id],queryFn:async()=>{const res=await get("/battle/arena");return res.data.data as ArenaState|null;}});
+  useEffect(()=>{if(resumedArena) setCurrentGoBattle(resumedArena);},[resumedArena]);
+  const updateArena = (state:ArenaState) => {
+    setCurrentGoBattle(state);
+    if(state.status!=="active") {
+      event("first_battle_completed",{},true);
+      for(const key of ["battle-npcs","battle-history","user","level-road","dashboard"]) queryClient.invalidateQueries({queryKey:[key]});
+      queryClient.setQueryData(["battle-arena",user?.id],null);
+    }
+  };
   const fightNpcGoMutation = useMutation({
-    mutationFn: async ({ npcId, selectedCardIds }: { npcId: string; selectedCardIds: number[] }) => {
-      setIsBattling(true);
-      const res = await post("/battle/fight-go", { npcId, selectedCardIds });
-      return res.data?.data || res.data;
+    mutationFn: async ({npcId,selectedCardIds}:{npcId:string;selectedCardIds:number[]}) => {
+      const payload=JSON.stringify({npcId,selectedCardIds});
+      if(startRequest.current?.payload!==payload) startRequest.current={payload,key:crypto.randomUUID()};
+      const res=await post("/battle/arena/start",{npcId,selectedCardIds,key:startRequest.current.key});
+      return res.data.data as ArenaState;
     },
-    onSuccess: (data) => {
-      event("first_battle_completed", {}, true);
-      setIsBattling(false);
-      setIsTeamPreviewOpen(false);
-      setCurrentGoBattle(data);
-      setCurrentRoundIdx(0);
-      setCurrentEventIdx(0);
-      setIsAutoPlaying(true);
-      setIsGoBattleModalOpen(true);
-      if (data?.won) {
-        soundFx.playLegendaryFanfare();
-      } else {
-        soundFx.playCardFlip();
-      }
-      queryClient.invalidateQueries({ queryKey: ["battle-npcs"] });
-      queryClient.invalidateQueries({ queryKey: ["battle-history"] });
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-    onError: (err: any) => {
-      setIsBattling(false);
-      toast({
-        title: t("common.error") || "Erro",
-        description: err.response?.data?.toast || err.message,
-        variant: "destructive",
-      });
-    },
+    onMutate:()=>{setIsBattling(true);soundFx.playCardFlip();},
+    onSuccess:(state)=>{startRequest.current=null;setIsBattling(false);setIsTeamPreviewOpen(false);setCurrentGoBattle(state);setIsGoBattleModalOpen(true);},
+    onError:()=>{setIsBattling(false);queryClient.invalidateQueries({queryKey:["battle-arena",user?.id]});},
   });
 
   // Inicia desafio abrindo o Team Preview
   const handleOpenTeamPreview = (leader: GymLeaderItem) => {
+    if(currentGoBattle?.status==="active" && Date.parse(currentGoBattle.expiresAt)>Date.now()) { setIsGoBattleModalOpen(true); return; }
     if (!isDeckFull) {
       toast({
         title: "Deck Incompleto",
@@ -380,19 +369,19 @@ export default function BattlePage() {
     }
     setSelectedGymLeader(leader);
     // Pré-seleciona os 3 primeiros por padrão
-    const firstThreeIds = localDeck.slice(0, 3).map((s) => s!.cardId);
+    const firstThreeIds = [0, 1, 2];
     setSelectedGoPicks(firstThreeIds);
     setIsTeamPreviewOpen(true);
     soundFx.playCardFlip();
   };
 
   // Alterna seleção de picks no Team Preview (máx 3)
-  const handleToggleGoPick = (cardId: number) => {
-    if (selectedGoPicks.includes(cardId)) {
-      setSelectedGoPicks(selectedGoPicks.filter((id) => id !== cardId));
+  const handleToggleGoPick = (slotIndex: number) => {
+    if (selectedGoPicks.includes(slotIndex)) {
+      setSelectedGoPicks(selectedGoPicks.filter((id) => id !== slotIndex));
     } else {
       if (selectedGoPicks.length < 3) {
-        setSelectedGoPicks([...selectedGoPicks, cardId]);
+        setSelectedGoPicks([...selectedGoPicks, slotIndex]);
         soundFx.playCardFlip();
       } else {
         toast({
@@ -415,32 +404,9 @@ export default function BattlePage() {
     }
     fightNpcGoMutation.mutate({
       npcId: selectedGymLeader.id,
-      selectedCardIds: selectedGoPicks,
+      selectedCardIds: selectedGoPicks.map(slot=>localDeck[slot]!.cardId),
     });
   };
-
-  // Efeito de Auto-Play no Modal de Duelo Pokémon GO
-  useEffect(() => {
-    if (!isGoBattleModalOpen || !currentGoBattle || !isAutoPlaying) return;
-
-    const round = currentGoBattle.rounds?.[currentRoundIdx];
-    if (!round) return;
-
-    if (currentEventIdx < round.events.length) {
-      const timer = setTimeout(() => {
-        setCurrentEventIdx((prev) => prev + 1);
-      }, 350 / playbackSpeed);
-      return () => clearTimeout(timer);
-    } else if (currentRoundIdx < currentGoBattle.rounds.length - 1) {
-      const timer = setTimeout(() => {
-        setCurrentRoundIdx((prev) => prev + 1);
-        setCurrentEventIdx(0);
-      }, 600 / playbackSpeed);
-      return () => clearTimeout(timer);
-    } else {
-      setIsAutoPlaying(false);
-    }
-  }, [isGoBattleModalOpen, currentGoBattle, currentRoundIdx, currentEventIdx, isAutoPlaying, playbackSpeed]);
 
   // Manipulação de slots no Deck Builder
   const handleSlotClick = (slotIdx: number) => {
@@ -542,7 +508,7 @@ export default function BattlePage() {
               <span className="flex items-center justify-center size-8 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400">
                 <Swords className="size-4" />
               </span>
-              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex items-center gap-2"> <LocalizedText text={"Arena de Batalha Pokémon"} /> <Badge variant="outline" className="text-[10px] font-mono border-red-500/50 text-red-400 bg-red-500/10"> <LocalizedText text={"Modo Duelo GO"} /> </Badge>
+              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex flex-wrap items-center gap-2"> <LocalizedText text={"Arena de Batalha Pokémon"} /> <Badge variant="outline" className="text-[10px] font-mono border-red-500/50 text-red-400 bg-red-500/10"> <LocalizedText text={"Modo Duelo GO"} /> </Badge>
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed"> <LocalizedText text={"Monte seu elenco de 6 Pokémon, aplique o blefe tático escolhendo seus 3 combatentes, use escudos com sabedoria e derrote os Líderes de Ginásio!"} /> </p>
@@ -561,9 +527,11 @@ export default function BattlePage() {
       </div>
 
       {/* TABS PRINCIPAIS */}
+      <p className="mb-4 rounded-xl border bg-muted p-3 text-sm">{t("arena.rewardRules")}</p>
+      {currentGoBattle?.status==="active" && <Button className="mb-4" onClick={()=>setIsGoBattleModalOpen(true)}>{t("arena.resume")}</Button>}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full space-y-4">
-        <div className="flex items-center justify-between border-b border-border/80 pb-2">
-          <TabsList className="bg-secondary/80 border border-border p-1">
+        <div className="flex min-w-0 flex-wrap items-center justify-between border-b border-border/80 pb-2">
+          <TabsList className="h-auto flex-wrap justify-start bg-secondary/80 border border-border p-1">
             <TabsTrigger value="deck" className="text-xs sm:text-sm font-semibold gap-2">
               <Shield className="size-4 text-amber-500" />
               <span><LocalizedText text={"Montar Time (6 Pokémon)"} /></span>
@@ -583,12 +551,12 @@ export default function BattlePage() {
         <TabsContent value="deck" className="mt-0 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <div className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-border text-center">
+              <div className="px-3 py-1.5 rounded-lg bg-muted border border-border text-center">
                 <span className="text-[10px] uppercase font-mono text-muted-foreground block"><LocalizedText text={"Teto de PR"} /></span>
                 <span className={`text-sm font-bold font-mono ${totalPr > 20 ? "text-rose-500" : "text-amber-400"}`}>
                   {totalPr} <LocalizedText text={"/ 20 PR"} /> </span>
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-border text-center">
+              <div className="px-3 py-1.5 rounded-lg bg-muted border border-border text-center">
                 <span className="text-[10px] uppercase font-mono text-muted-foreground block"><LocalizedText text={"Poder Total (CP)"} /></span>
                 <span className="text-sm font-bold font-mono text-emerald-400">
                   {totalCp} <LocalizedText text={"CP"} /> </span>
@@ -626,8 +594,8 @@ export default function BattlePage() {
                 onClick={() => handleSlotClick(idx)}
                 className={`group relative aspect-[1/1.4] rounded-2xl border-2 p-2 flex flex-col justify-between transition-all cursor-pointer select-none overflow-hidden ${
                   slot
-                    ? "border-amber-500/60 bg-zinc-950/90 shadow-lg hover:border-amber-400"
-                    : "border-dashed border-border/80 bg-zinc-900/30 hover:bg-zinc-900/60 hover:border-border"
+                    ? "border-amber-500/60 bg-card/90 shadow-lg hover:border-amber-400"
+                    : "border-dashed border-border/80 bg-muted/30 hover:bg-muted/60 hover:border-border"
                 }`}
               >
                 {slot ? (
@@ -671,13 +639,13 @@ export default function BattlePage() {
             {(npcsData || []).map((leader: GymLeaderItem) => (
               <div
                 key={leader.id}
-                className="rounded-2xl border border-border/80 bg-zinc-950/90 overflow-hidden flex flex-col justify-between shadow-xl"
+                className="rounded-2xl border border-border/80 bg-card/90 overflow-hidden flex flex-col justify-between shadow-xl"
               >
                 <div className="p-5 space-y-4">
                   {/* Top Leader Info */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="size-14 rounded-2xl overflow-hidden border-2 border-amber-500/40 bg-zinc-900 shrink-0">
+                      <div className="size-14 rounded-2xl overflow-hidden border-2 border-amber-500/40 bg-muted shrink-0">
                         <img src={leader.avatar} alt={ui(leader.name)} className="w-full h-full object-cover" />
                       </div>
                       <div>
@@ -702,7 +670,7 @@ export default function BattlePage() {
                     <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold block"> <LocalizedText text={"Elenco do Ginásio (6 Pokémon):"} /> </span>
                     <div className="grid grid-cols-6 gap-1.5">
                       {leader.deckPreview?.map((card, i) => (
-                        <div key={i} className="aspect-[1/1.4] rounded-lg overflow-hidden border border-border/60 bg-zinc-900" title={ui(card.name)}>
+                        <div key={i} className="aspect-[1/1.4] rounded-lg overflow-hidden border border-border/60 bg-muted" title={ui(card.name)}>
                           <img src={card.image_url} alt={ui(card.name)} className="w-full h-full object-cover" />
                         </div>
                       ))}
@@ -711,7 +679,7 @@ export default function BattlePage() {
                 </div>
 
                 {/* Rodapé do Card do Líder */}
-                <div className="p-4 border-t border-border/60 bg-zinc-900/50 flex items-center justify-between gap-3">
+                <div className="p-4 border-t border-border/60 bg-muted/50 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-xs font-mono">
                     <span className="text-amber-400 font-bold flex items-center gap-1">
                       <Coins className="size-3.5" /> +{leader.rewardCoins.toLocaleString()}
@@ -741,7 +709,7 @@ export default function BattlePage() {
               <div className="text-center py-12 text-muted-foreground text-xs font-mono"> <LocalizedText text={"Nenhum combate registrado ainda. Desafie os Líderes de Ginásio para entrar no histórico!"} /> </div>
             ) : (
               historyData.map((h: any) => (
-                <div key={h.id} className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-zinc-900/60 font-mono text-xs">
+                <div key={h.id} className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/60 font-mono text-xs">
                   <div className="flex items-center gap-2">
                     <Badge variant={h.won ? "default" : "destructive"} className="text-[10px] font-bold">
                       {h.won ? ui("VITÓRIA") : ui("DERROTA")}
@@ -751,7 +719,7 @@ export default function BattlePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-amber-400 font-bold">+{h.rewardCoins.toLocaleString()} <LocalizedText text={"moedas"} /></span>
-                    <span className="text-purple-400 font-bold">+{h.rewardXp} <LocalizedText text={"XP"} /></span>
+                    <span className="text-purple-400 font-bold">+{h.rewardXp * 10} <LocalizedText text={"XP"} /></span>
                   </div>
                 </div>
               ))
@@ -762,7 +730,7 @@ export default function BattlePage() {
 
       {/* MODAL 1: COMO BATALHAR (TUTORIAL & REGRAS) */}
       <Dialog open={isHowToPlayOpen} onOpenChange={setIsHowToPlayOpen}>
-        <DialogContent className="sm:max-w-2xl bg-zinc-950 border-amber-500/40 text-foreground p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl bg-background border-amber-500/40 text-foreground p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-2">
             <div className="size-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1">
               <Info className="size-6" />
@@ -771,32 +739,8 @@ export default function BattlePage() {
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed"> <LocalizedText text={"Aprenda a blefar, escolher os counters certos e gerenciar seus escudos de proteção!"} /> </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-3 text-xs leading-relaxed text-muted-foreground">
-            {/* Card 1: Blefe 6 Leva 3 */}
-            <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-2">
-              <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-amber-400">
-                <Crosshair className="size-4" /> <LocalizedText text={"1. O Jogo Mental do Blefe (6 leva 3)"} /> </h4>
-              <p> <LocalizedText text={"Antes do duelo começar, você e o Líder de Ginásio mostram suas"} /> <strong><LocalizedText text={"6 cartas na tela de Team Preview"} /></strong><LocalizedText text={". Você deve escolher secretamente"} /> <strong><LocalizedText text={"3 Pokémon"} /></strong> <LocalizedText text={"e definir sua ordem estratégica:"} /> </p>
-              <ul className="list-disc pl-5 space-y-1 font-mono text-[11px] text-zinc-300">
-                <li><strong><LocalizedText text={"Lead (1º Pokémon):"} /></strong> <LocalizedText text={"Entra primeiro em campo. O segredo é adivinhar com qual tipo o adversário vai abrir!"} /></li>
-                <li><strong><LocalizedText text={"Safe Swap (2º Pokémon):"} /></strong> <LocalizedText text={"Opção neutra ou resistente caso seu Lead caia numa desvantagem de tipo."} /></li>
-                <li><strong><LocalizedText text={"Closer (3º Pokémon):"} /></strong> <LocalizedText text={"Seu trunfo com alto dano para fechar o duelo decisivo."} /></li>
-              </ul>
-            </div>
-
-            {/* Card 2: Gestão de Escudos */}
-            <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/5 space-y-2">
-              <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-blue-400">
-                <Shield className="size-4" /> <LocalizedText text={"2. Gestão e Blefe de Escudos (2 por Batalha)"} /> </h4>
-              <p> <LocalizedText text={"Cada treinador possui exatamente"} /> <strong><LocalizedText text={"2 Escudos de Proteção"} /></strong> <LocalizedText text={"por partida inteira. Quando o oponente dispara um"} /> <strong><LocalizedText text={"Ataque Carregado"} /></strong><LocalizedText text={", você deve decidir se gasta um escudo para bloquear 100% do dano ou se aguenta o impacto para salvar o escudo pro Pokémon final!"} /> </p>
-            </div>
-
-            {/* Card 3: Vantagens Elementais & Energia */}
-            <div className="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
-              <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-emerald-400">
-                <Zap className="size-4" /> <LocalizedText text={"3. Ataques Rápidos, Carregados & Fraquezas"} /> </h4>
-              <p> <LocalizedText text={"A cada turno, seu Pokémon desfere"} /> <strong><LocalizedText text={"Ataques Rápidos"} /></strong> <LocalizedText text={"que acumulam energia (0% a 100%). Ao atingir 100%, você libera o"} /> <strong><LocalizedText text={"Ataque Carregado"} /></strong> <LocalizedText text={"devastador! Golpes super efetivos causam até"} /> <strong><LocalizedText text={"2x mais dano"} /></strong> <LocalizedText text={"(ex: Fogo contra Planta, Água contra Fogo, Elétrico contra Água)."} /> </p>
-            </div>
+          <div className="space-y-4 py-3 text-sm leading-relaxed">
+            <p>{t("arena.instructions")}</p><p>{t("arena.swapHint")}</p><p>{t("arena.rewardRules")}</p>
           </div>
 
           <DialogFooter>
@@ -807,7 +751,7 @@ export default function BattlePage() {
 
       {/* MODAL 2: TELA DE BLEFE & TEAM PREVIEW (6 vs 6 -> ESCOLHER 3) */}
       <Dialog open={isTeamPreviewOpen} onOpenChange={setIsTeamPreviewOpen}>
-        <DialogContent className="sm:max-w-4xl bg-zinc-950 border-red-500/40 text-foreground p-6 sm:p-8 rounded-3xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl bg-background border-red-500/40 text-foreground p-6 sm:p-8 rounded-3xl max-h-[95vh] overflow-y-auto">
           <DialogHeader className="space-y-1">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="font-mono text-xs border-red-500/50 text-red-400 bg-red-500/10"> <LocalizedText text={"Fase de Blefe: Team Preview"} /> </Badge>
@@ -826,7 +770,7 @@ export default function BattlePage() {
                 <Eye className="size-3.5" /> <LocalizedText text={"Elenco de"} /> {ui(selectedGymLeader?.name)} <LocalizedText text={"(6 Pokémon Visíveis):"} /> </span>
               <div className="grid grid-cols-6 gap-2">
                 {selectedGymLeader?.deckPreview.map((card, i) => (
-                  <div key={i} className="aspect-[1/1.4] rounded-xl overflow-hidden border border-red-500/30 bg-zinc-900 shadow-md">
+                  <div key={i} className="aspect-[1/1.4] rounded-xl overflow-hidden border border-red-500/30 bg-muted shadow-md">
                     <img src={card.image_url} alt={ui(card.name)} className="w-full h-full object-cover" />
                   </div>
                 ))}
@@ -840,18 +784,18 @@ export default function BattlePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {localDeck.map((slot, i) => {
                   if (!slot) return null;
-                  const isSelected = selectedGoPicks.includes(slot.cardId);
-                  const pickIndex = selectedGoPicks.indexOf(slot.cardId);
+                  const isSelected = selectedGoPicks.includes(i);
+                  const pickIndex = selectedGoPicks.indexOf(i);
                   const roleLabel = pickIndex === 0 ? ui("1º (Lead)") : pickIndex === 1 ? ui("2º (Swap)") : pickIndex === 2 ? ui("3º (Closer)") : "";
 
                   return (
-                    <div
+                    <button type="button" aria-pressed={isSelected} aria-label={slot.card.name}
                       key={i}
-                      onClick={() => handleToggleGoPick(slot.cardId)}
+                      onClick={() => handleToggleGoPick(i)}
                       className={`relative aspect-[1/1.4] rounded-xl overflow-hidden border-2 cursor-pointer transition-all p-1 flex flex-col justify-between ${
                         isSelected
                           ? "border-amber-400 bg-amber-500/20 scale-[1.03] shadow-lg shadow-amber-500/20"
-                          : "border-border/60 bg-zinc-900 opacity-60 hover:opacity-100"
+                          : "border-border/60 bg-muted opacity-60 hover:opacity-100"
                       }`}
                     >
                       <div className="relative w-full flex-1 rounded-lg overflow-hidden">
@@ -870,7 +814,7 @@ export default function BattlePage() {
                           </span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -901,174 +845,11 @@ export default function BattlePage() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 3: ARENA DE DUELO ESTILO POKÉMON GO (LIVE MATCH) */}
-      <Dialog open={isGoBattleModalOpen} onOpenChange={setIsGoBattleModalOpen}>
-        <DialogContent className="sm:max-w-3xl bg-zinc-950 border-amber-500/40 text-foreground p-5 sm:p-7 rounded-3xl max-h-[92vh] overflow-y-auto">
-          {currentGoBattle && (
-            <div className="space-y-5">
-              {/* Placar Superior e Escudos */}
-              <div className="flex items-center justify-between p-3 rounded-2xl border border-border/80 bg-zinc-900/80 font-mono">
-                {/* Lado Jogador */}
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xs"> <LocalizedText text={"VOCÊ"} /> </div>
-                  <div>
-                    <span className="text-xs font-bold block"><LocalizedText text={"Placar:"} /> {currentGoBattle.playerScore}</span>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Shield className="size-3 text-blue-400" />
-                      <span className="text-[10px] text-blue-300"><LocalizedText text={"Escudos:"} /> {currentGoBattle.playerShieldsRemaining} / 2</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Terreno / Round */}
-                <div className="text-center">
-                  <Badge variant="outline" className="font-mono text-[10px] border-amber-500/40 text-amber-400"> <LocalizedText text={"Round"} /> {currentRoundIdx + 1} <LocalizedText text={"de 3"} /> </Badge>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">
-                    {ui(currentGoBattle.terrain.name)}
-                  </span>
-                </div>
-
-                {/* Lado Líder */}
-                <div className="flex items-center gap-2.5 text-right">
-                  <div>
-                    <span className="text-xs font-bold block">{ui(currentGoBattle.npc.name)} ({currentGoBattle.npcScore})</span>
-                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[10px] text-blue-300"><LocalizedText text={"Escudos:"} /> {currentGoBattle.npcShieldsRemaining} / 2</span>
-                      <Shield className="size-3 text-blue-400" />
-                    </div>
-                  </div>
-                  <div className="size-8 rounded-lg overflow-hidden border border-red-500/40 shrink-0">
-                    <img src={currentGoBattle.npc.avatar} alt={ui(currentGoBattle.npc.name)} className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Duelo Ativo (Round Atual) */}
-              {currentGoBattle.rounds?.[currentRoundIdx] && (
-                <div className="p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-950 space-y-4">
-                  {/* Cartas em Campo de Batalha */}
-                  <div className="grid grid-cols-2 gap-4 items-center">
-                    {/* Jogador Ativo */}
-                    <div className="space-y-2 text-center">
-                      <div className="aspect-[1/1.35] max-w-[130px] mx-auto rounded-xl overflow-hidden border-2 border-amber-400 shadow-xl shadow-amber-500/20">
-                        <TcgCardImage
-                          src={currentGoBattle.rounds[currentRoundIdx].playerCard.image_url}
-                          alt={ui(currentGoBattle.rounds[currentRoundIdx].playerCard.name)}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-foreground block truncate">
-                          {ui(currentGoBattle.rounds[currentRoundIdx].playerCard.name)}
-                        </span>
-                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
-                          <div className="bg-emerald-500 h-full transition-all duration-300 w-full" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* NPC Ativo */}
-                    <div className="space-y-2 text-center">
-                      <div className="aspect-[1/1.35] max-w-[130px] mx-auto rounded-xl overflow-hidden border-2 border-red-500 shadow-xl shadow-red-500/20">
-                        <img
-                          src={currentGoBattle.rounds[currentRoundIdx].npcCard.image_url}
-                          alt={ui(currentGoBattle.rounds[currentRoundIdx].npcCard.name)}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-foreground block truncate">
-                          {ui(currentGoBattle.rounds[currentRoundIdx].npcCard.name)}
-                        </span>
-                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
-                          <div className="bg-emerald-500 h-full transition-all duration-300 w-full" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Feed de Ações e Logs do Combate */}
-                  <div className="p-3 rounded-xl border border-border/80 bg-zinc-900/60 max-h-36 overflow-y-auto space-y-1.5 font-mono text-[11px]">
-                    {currentGoBattle.rounds[currentRoundIdx].events.slice(0, currentEventIdx + 1).map((ev: any, idx: number) => {
-                      const isPlayer = ev.actor === "player";
-                      return (
-                        <div key={idx} className={`flex items-center gap-1.5 ${isPlayer ? "text-amber-300" : "text-red-300"}`}>
-                          <span>{ui(isPlayer ? "⚡ Você:" : "💥 Oponente:")}</span>
-                          {ev.type === "fast_attack" && <span>{ev.moveName} (-{ev.damage} <LocalizedText text={"HP)"} /></span>}
-                          {ev.type === "charged_attack" && (
-                            <span className="font-bold"> <LocalizedText text={"🔥 ATAQUE CARREGADO"} /> {ev.moveName} (-{ev.damage} <LocalizedText text={"HP)!"} /> {ev.blockedByShield && ui("🛡️ ESCUDO ABSORVEU!")}
-                            </span>
-                          )}
-                          {ev.type === "shield_used" && (
-                            <span className="text-blue-400 font-bold"><LocalizedText text={"🛡️ ESCUDO DE PROTEÇÃO ATIVADO!"} /></span>
-                          )}
-                          {ev.type === "knockout" && (
-                            <span className="text-emerald-400 font-bold">🏆 {ev.actorName} <LocalizedText text={"VENCEU O ROUND!"} /></span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Resumo Final & Premiação */}
-              {isAutoPlaying && (
-                <div className="flex justify-center gap-2">
-                  <Button variant="outline" onClick={() => setPlaybackSpeed((speed) => speed === 1 ? 2 : 1)}>{ui("Velocidade")} {playbackSpeed}×</Button>
-                  <Button onClick={() => {
-                    const last = currentGoBattle.rounds.length - 1;
-                    setCurrentRoundIdx(last);
-                    setCurrentEventIdx(currentGoBattle.rounds[last].events.length);
-                    setIsAutoPlaying(false);
-                  }}>{ui("Pular animação")}</Button>
-                </div>
-              )}
-              {!isAutoPlaying && (
-                <div className="p-4 rounded-2xl border border-border/80 bg-zinc-900/80 text-center space-y-3">
-                  <Badge
-                    className={`text-xs font-mono font-bold px-4 py-1 uppercase ${
-                      currentGoBattle.won ? "bg-emerald-500 text-slate-950" : "bg-rose-500 text-white"
-                    }`}
-                  >
-                    {currentGoBattle.won ? ui("Vitória Épica!") : ui("Derrota!")}
-                  </Badge>
-                  <div className="flex items-center justify-center gap-4 font-mono text-sm">
-                    <span className="text-amber-400 font-bold">+{currentGoBattle.rewardCoins.toLocaleString()} <LocalizedText text={"Moedas"} /></span>
-                    <span className="text-purple-400 font-bold">+{currentGoBattle.rewardXp} <LocalizedText text={"XP"} /></span>
-                  </div>
-                </div>
-              )}
-
-              {/* Botões do Rodapé */}
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsGoBattleModalOpen(false)}
-                  className="rounded-xl text-xs"
-                > <LocalizedText text={"Fechar Arena"} /> </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (selectedGymLeader) {
-                      setIsGoBattleModalOpen(false);
-                      handleOpenTeamPreview(selectedGymLeader);
-                    }
-                  }}
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs"
-                >
-                  <RotateCcw className="size-3.5 mr-1.5" />
-                  <span><LocalizedText text={"Revanche"} /></span>
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {currentGoBattle && <BattleArena state={currentGoBattle} open={isGoBattleModalOpen} onOpenChange={setIsGoBattleModalOpen} onUpdate={updateArena}/>}
 
       {/* CARD PICKER MODAL (PARA MONTAR O TIME) */}
       <Dialog open={isCardPickerOpen} onOpenChange={setIsCardPickerOpen}>
-        <DialogContent className="sm:max-w-3xl bg-zinc-950 border-amber-500/40 text-foreground p-6 rounded-3xl max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-3xl bg-background border-amber-500/40 text-foreground p-6 rounded-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold font-syne text-foreground flex items-center gap-2">
               <Shield className="size-5 text-amber-500" /> <LocalizedText text={"Selecionar Pokémon para o Slot #"} />{selectedSlotIndex !== null ? selectedSlotIndex + 1 : ""}
@@ -1081,7 +862,7 @@ export default function BattlePage() {
               value={pickerSearch}
               onChange={(e) => setPickerSearch(e.target.value)}
               placeholder={ui("Buscar por nome do Pokémon...")}
-              className="h-8 text-xs rounded-xl bg-zinc-900 border-border"
+              className="h-8 text-xs rounded-xl bg-muted border-border"
             />
             <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto">
               <Button
@@ -1120,8 +901,8 @@ export default function BattlePage() {
                   onClick={() => !isDisabled && handleSelectCardForSlot(item)}
                   className={`aspect-[1/1.4] rounded-xl border-2 p-1.5 flex flex-col justify-between transition-all select-none ${
                     isDisabled
-                      ? "opacity-50 border-border bg-zinc-900/40 cursor-not-allowed"
-                      : "cursor-pointer hover:scale-[1.02] hover:border-amber-400 bg-zinc-900 border-border"
+                      ? "opacity-50 border-border bg-muted/40 cursor-not-allowed"
+                      : "cursor-pointer hover:scale-[1.02] hover:border-amber-400 bg-muted border-border"
                   }`}
                 >
                   <div className="relative w-full flex-1 rounded-lg overflow-hidden">

@@ -1,3 +1,4 @@
+import { battleReward } from "../lib/battle-rewards";
 import { lockUsers } from "../lib/economy";
 import { operation } from "../lib/operation";
 import { DomainError } from "../lib/domain-error";
@@ -164,19 +165,22 @@ export class BattleService {
    * Lista todos os Líderes de Ginásio disponíveis e o status de vitória do usuário
    */
   static async getGymLeaders(userId: number) {
-    const userVictories = await prisma.userBattleRecord.findMany({
+    const userVictories = await prisma.userBattleRecord.groupBy({
+      by: ["npcId"],
       where: {
         userId,
         won: true,
       },
-      select: { npcId: true },
+      _count: true,
     });
 
     const victoryCounts: Record<string, number> = {};
     for (const rec of userVictories) {
-      victoryCounts[rec.npcId] = (victoryCounts[rec.npcId] || 0) + 1;
+      victoryCounts[rec.npcId] = rec._count;
     }
 
+    const day = new Date(); day.setUTCHours(0, 0, 0, 0);
+    const paidToday = await prisma.userBattleRecord.groupBy({by:["npcId","rewardCoins"],where:{userId,won:true,createdAt:{gte:day},rewardCoins:{gt:0}},_count:true});
     const npcs = NPC_TRAINERS.map((trainer) => {
       const wins = victoryCounts[trainer.id] || 0;
       const preferredTerrain = BATTLE_TERRAINS.find(
@@ -192,8 +196,8 @@ export class BattleService {
         difficulty: trainer.difficulty,
         difficultyLabel: trainer.difficultyLabel,
         description: trainer.description,
-        rewardCoins: trainer.rewardCoins,
-        rewardXp: trainer.rewardXp,
+        rewardCoins: wins===0 ? trainer.rewardCoins : paidToday.filter(r=>r.npcId===trainer.id && r.rewardCoins<trainer.rewardCoins).reduce((sum,r)=>sum+r._count,0)<2 ? Math.floor(trainer.rewardCoins*0.1) : 0,
+        rewardXp: wins===0 ? Math.floor(trainer.rewardXp/10)*10 : 0,
         preferredTerrain,
         isDefeated: wins > 0,
         victoryCount: wins,
@@ -293,6 +297,7 @@ export class BattleService {
 
     const playerCards = deckSlots.map((d) => d.Card);
     const simulation = simulateBattle(playerCards, trainer);
+    Object.assign(simulation, await battleReward(tx, userId, trainer, simulation.won));
 
     await (async () => {
       await tx.userBattleRecord.create({
@@ -316,7 +321,7 @@ export class BattleService {
       });
     })();
 
-    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp * 10 });
 
     return { simulation, toastMessage };
     });
@@ -389,6 +394,7 @@ export class BattleService {
 
     // Simula o combate Pokémon GO
     const simulation = simulateGoBattle(playerPicks, trainer);
+    Object.assign(simulation, await battleReward(tx, userId, trainer, simulation.won));
 
     // Registra batalha e premiação
     await (async () => {
@@ -413,7 +419,7 @@ export class BattleService {
       });
     })();
 
-    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp * 10 });
 
     return { simulation, toastMessage };
     });
