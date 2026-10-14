@@ -88,3 +88,7 @@ O teste da API publicado anteriormente não detectou os valores locais nas vari�
 O callback Google publicado aponta para `tcg-alpha.vercel.app` e o client ID corresponde ao configurado na API. Isso confirma a configuração, mas não substitui o login de uma pessoa no Google. As variáveis do painel Vercel não foram alteradas diretamente nesta correção: o acesso ainda não está conectado.
 
 A validação no navegador publicado revelou outra configuração inválida: a chamada de resolução recebia `https://tcg-alpha.vercel.app` como API, ou seja, o próprio frontend. A presença de localhost no bundle inicial não comprovava qual valor estava sendo usado. O resolvedor agora exclui também os hosts conhecidos da web deste projeto. `useApi` rejeita respostas HTML/fora do envelope de negócio, impedindo que um 404 do frontend termine sem feedback.
+
+### Verificação web publicada em 14/10
+
+A PR #83 (`f952ed2` em main) passou 103 testes Bun, builds e dez cenários E2E no GitHub; Vercel Production confirmou a publicação. No navegador real de `tcg-alpha.vercel.app`, convidado entrou em `/home` e leu inventário com cinco pacotes e 500 moedas. A conta temporária foi removida. Callback Google aponta para a origem alpha e client ID confere com a API; login com identidade Google real permanece não verificado. O painel Vercel não está conectado nesta sessão, portanto as variáveis incorretas não foram alteradas diretamente; o código protege contra os domínios web conhecidos e localhost.

@@ -64,4 +64,6 @@ Em 14/10, banco real foi preparado com backup/restauração da aplicação em c�
 
 - [x] Investigar o endereço real informado pelo proprietário: `tcg-alpha.vercel.app`; liberar essa origem no Fly.
 - [x] Cobrir a regressão de produção apontando a API para localhost; compartilhar resolução entre convidado/cliente e troca Google no servidor.
-- [ ] Confirmar a correção no navegador da web publicada após deploy e validar Google com uma identidade real. Os testes locais/da API anteriores não comprovavam a configuração do frontend hospedado.
+- [x] Confirmar convidado no navegador em `tcg-alpha.vercel.app`: publicação `f952ed2`, entrada em `/home`, inventário com cinco pacotes e 500 moedas; conta de teste removida. 103 testes Bun e dez cenários E2E passaram no CI da PR #83.
+- [ ] Validar Google com uma identidade real. Callback da origem alpha e client ID compatível com a API foram conferidos; isso não comprova o consentimento e login completos.
+- [ ] Ajustar variáveis na Vercel quando houver acesso: `API_URL` e `NEXT_PUBLIC_API_URL` devem apontar para `https://poke-tcg-center.fly.dev`. A versão publicada rejeita os domínios conhecidos do frontend e usa esse backend como fallback.
