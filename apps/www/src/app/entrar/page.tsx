@@ -115,7 +115,7 @@ const CheckAuth = ({ referrer }: { referrer: string | null }) => {
                 } else {
                     toast({
                         title: "Erro ao conectar conta Google",
-                        description: "Tente novamente mais tarde",
+                        description: ui(response.data.toast || response.data.error || "Tente novamente mais tarde"),
                         variant: "destructive"
                     });
                 }

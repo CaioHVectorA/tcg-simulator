@@ -78,3 +78,11 @@ Banco e operação Fly foram preparados. Para ampliar o beta, validar Google/Res
 - O primeiro start revelou que a máquina parada ainda não havia recebido os segredos preparados; `secrets deploy` e novo start resolveram. O processo confirmou JWT de 64 caracteres e conexão ao banco. Nenhum segredo foi publicado.
 - `tcgsim.com` não respondeu à verificação. O endereço Vercel acima foi confirmado como site SimTCG e usado provisoriamente; o domínio definitivo ainda precisa de confirmação do proprietário. Resend não está configurado nesta API; entrega de recuperação e OAuth real ainda não foram certificados.
 - Evidência: https://github.com/CaioHVectorA/tcg-simulator/actions/runs/38590393430 e https://github.com/CaioHVectorA/tcg-simulator/actions/runs/38590969868.
+
+## Incidente de login da web — 14/10/2026
+
+O teste da API publicado anteriormente não detectou os valores locais nas variáveis do frontend Vercel. O bundle servido incluía `NEXT_PUBLIC_API_URL=http://localhost:8080`; isso direcionava o visitante ao próprio computador. A URL informada pelo proprietário foi `https://tcg-alpha.vercel.app/entrar`, diferente da origem provisória usada na primeira publicação. Essa origem foi adicionada ao CORS do Fly e o preflight respondeu corretamente.
+
+`resolveApiEndpoint` compartilha a seleção do backend entre o navegador, a troca Google e feedback. Em produção, valores locais/inválidos usam a API HTTPS publicada deste projeto; desenvolvimento continua usando o servidor local. Overrides HTTPS válidos são preservados. A configuração explícita recomendada no Vercel é `NEXT_PUBLIC_API_URL`/`API_URL=https://poke-tcg-center.fly.dev`, `NEXTAUTH_URL`/`NEXT_PUBLIC_SITE_URL=https://tcg-alpha.vercel.app`.
+
+O callback Google publicado aponta para `tcg-alpha.vercel.app` e o client ID corresponde ao configurado na API. Isso confirma a configuração, mas não substitui o login de uma pessoa no Google. As variáveis do painel Vercel não foram alteradas diretamente nesta correção: o acesso ainda não está conectado.
