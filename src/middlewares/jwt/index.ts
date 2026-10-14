@@ -17,16 +17,16 @@ export async function receiveUser(
   jwt: jwtDecorator
 ): Promise<User> {
   const data = await jwt.verify(token);
-  if (!data) throw new Error(AUTH_ERROR);
-  const { id } = data as { id: number };
+  if (!data || !Number.isSafeInteger(Number(data.id)) || Number(data.id) < 1) throw new Error(AUTH_ERROR);
+  const id = Number(data.id);
   const user = await prisma.user.findFirst({ where: { id } });
-  if (!user) throw new Error(AUTH_ERROR);
+  if (!user || Number(data.version || 0) !== user.authVersion) throw new Error(AUTH_ERROR);
   return user;
 }
 //@ts-ignore
 export const getUserInterceptor = async ({ headers, set, jwt }) => {
   const auth = headers["authorization"];
-  if (!auth || !auth.includes("Bearer")) {
+  if (!auth || !/^Bearer [^\s]+$/.test(auth)) {
     set.status = 401;
     return { user: null };
   }
@@ -43,7 +43,7 @@ export const getUserUserMiddleware = async (ctx: {
   user: User;
 }) => {
   const auth = ctx.headers["authorization"];
-  if (!auth || !auth.includes("Bearer")) {
+  if (!auth || !/^Bearer [^\s]+$/.test(auth)) {
     ctx.set.status = 401;
     return errorResponse(
       "Usuário não autenticado!",

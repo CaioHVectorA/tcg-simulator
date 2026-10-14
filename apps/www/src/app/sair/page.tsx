@@ -8,7 +8,8 @@ export default function Sair() {
 
     useEffect(() => {
         async function exit() {
-            await signOut()
+            await signOut({ redirect: false })
+            localStorage.removeItem("tcg_user_cache");
             deleteCookie('token');
             deleteCookie('next-auth.session-token');
             // router.push('/entrar');

@@ -74,6 +74,13 @@ export class WebSocketManager {
     }
   }
 
+  public disconnectUser(userId: number) {
+    const sockets = this.connections.get(userId);
+    if (!sockets) return;
+    for (const socket of sockets) socket.close(4001, "Session revoked");
+    this.connections.delete(userId);
+  }
+
   /**
    * Check if a specific user is currently connected
    */

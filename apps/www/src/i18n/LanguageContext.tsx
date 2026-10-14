@@ -6,6 +6,7 @@ import { en } from "./locales/en";
 import { es } from "./locales/es";
 import { jp } from "./locales/jp";
 import { api } from "@/lib/api";
+import { translateText } from "./text";
 
 export type Locale = "pt" | "en" | "es" | "jp";
 
@@ -27,6 +28,8 @@ const langCodeMap: Record<Locale, string> = {
 function getInitialLocale(): Locale {
   if (typeof window === "undefined") return "pt";
   try {
+    const queryLocale = new URLSearchParams(window.location.search).get("lang");
+    if (queryLocale && ["pt", "en", "es", "jp"].includes(queryLocale)) return queryLocale as Locale;
     // 1. Check cookie 'tcg_locale'
     const cookieMatch = document.cookie.match(/(?:^|;\s*)tcg_locale=([^;]+)/);
     if (cookieMatch && ["pt", "en", "es", "jp"].includes(cookieMatch[1])) {
@@ -83,72 +86,24 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode; initialLoca
 
   // Load and apply saved language on mount
   useEffect(() => {
-    const initial = initialLocale || getInitialLocale();
+    const initial = getInitialLocale();
     setLocaleState(initial);
     updateApiHeaders(initial);
   }, [initialLocale]);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("lang")) { url.searchParams.set("lang", newLocale); window.history.replaceState(null, "", url); }
+    }
     try {
       localStorage.setItem("tcg_locale", newLocale);
       updateApiHeaders(newLocale);
     } catch {}
   }, []);
 
-  // Dot-notation translation function (e.g. t("nav.store"))
-  const t = useCallback(
-    (path: string, params?: Record<string, string | number>): string => {
-      const dict = dictionaries[locale] || dictionaries.pt;
-      const fallbackDict = dictionaries.en; // fallback to English if key missing
-
-      const keys = path.split(".");
-      let result: any = dict;
-      for (const k of keys) {
-        result = result?.[k];
-        if (result === undefined) break;
-      }
-
-      // Fallback to English then Portuguese if not found
-      if (result === undefined) {
-        let fallbackResult: any = fallbackDict;
-        for (const k of keys) {
-          fallbackResult = fallbackResult?.[k];
-          if (fallbackResult === undefined) break;
-        }
-        if (fallbackResult === undefined) {
-          let ptFallback: any = dictionaries.pt;
-          for (const k of keys) {
-            ptFallback = ptFallback?.[k];
-            if (ptFallback === undefined) break;
-          }
-          result = ptFallback ?? path;
-        } else {
-          result = fallbackResult;
-        }
-      }
-
-      if (Array.isArray(result)) {
-        return result as any;
-      }
-
-      if (typeof result !== "string") {
-        return path;
-      }
-
-      // Parameter interpolation {current}, {total}, etc.
-      if (params) {
-        let interpolated = result;
-        for (const [key, value] of Object.entries(params)) {
-          interpolated = interpolated.replace(new RegExp(`\\{${key}\\}`, "g"), String(value));
-        }
-        return interpolated;
-      }
-
-      return result;
-    },
-    [locale]
-  );
+  const t = useCallback((path: string, params?: Record<string, string | number>) => translateText(path, locale, params), [locale]);
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale, t }}>

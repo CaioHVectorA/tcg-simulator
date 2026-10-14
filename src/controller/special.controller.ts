@@ -14,6 +14,7 @@ export const specialController = new Elysia({}).group("/special", (app) => {
     .post("/gengar/claim", async ({ user, prisma }) => {
       const userCard = await prisma.cards_user.findFirst({
         where: {
+          userId: user.id,
           Card: { card_id: GENGAR_CARD_ID },
         },
       });
@@ -29,11 +30,9 @@ export const specialController = new Elysia({}).group("/special", (app) => {
       if (!gengarCard) {
         return errorResponse("Card não encontrado!", "Card não encontrado!");
       }
-      const created = await prisma.cards_user.create({
-        data: {
-          userId: user.id,
-          cardId: gengarCard.id,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.transaction.create({ data: { user_id: user.id, idempotencyKey: `special_gengar_${user.id}`, status: "COMPLETED" } });
+        await tx.cards_user.create({ data: { userId: user.id, cardId: gengarCard.id } });
       });
       return sucessResponse(null, "Card resgatado com sucesso!");
     });

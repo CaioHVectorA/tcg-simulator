@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import {
@@ -47,6 +48,7 @@ export function ThematicLootboxDialog({
   onOpenChange,
   pack,
 }: ThematicLootboxDialogProps) {
+  const ui = useUiText();
   const { t } = useTranslation();
   const user = useUser();
   const userMoney = user?.money || 0;
@@ -97,20 +99,18 @@ export function ThematicLootboxDialog({
             <DialogHeader className="text-left">
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold font-mono mb-1 w-fit">
                 <Gift className="size-3.5" />
-                <span>Pacote Temático Personalizado</span>
+                <span><LocalizedText text={"Pacote Temático Personalizado"} /></span>
               </div>
               <DialogTitle className="text-xl sm:text-2xl font-bold font-syne text-foreground flex items-center gap-2">
-                <span>{pack.name}</span>
+                <span>{ui(pack.name)}</span>
               </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-                Configure seu investimento em ouro (até 1.000.000 / 1M). O valor determina o volume de cartas e chances míticas com proteção contra repetição!
-              </DialogDescription>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground"> <LocalizedText text={"Configure seu investimento em ouro (até 1.000.000 / 1M). O valor determina o volume de cartas e chances míticas com proteção contra repetição!"} /> </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 my-4">
               {/* Saldo Atual */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/60 border border-border">
-                <span className="text-xs text-muted-foreground">Seu Saldo Disponível:</span>
+                <span className="text-xs text-muted-foreground"><LocalizedText text={"Seu Saldo Disponível:"} /></span>
                 <div className="flex items-center gap-1 font-mono font-bold text-sm text-foreground">
                   <Coins className="size-4 text-amber-400" />
                   <span>{balanceTranslate(userMoney)}</span>
@@ -120,9 +120,7 @@ export function ThematicLootboxDialog({
               {/* Seletor de Valor em Ouro */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Investimento em Ouro (Teto: 1M):
-                  </label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground"> <LocalizedText text={"Investimento em Ouro (Teto: 1M):"} /> </label>
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30">
                     <Coins className="size-4 text-amber-400 shrink-0" />
                     <span className="font-mono font-black text-amber-400 text-base">
@@ -173,8 +171,7 @@ export function ThematicLootboxDialog({
                       type="button"
                       onClick={() => setGoldAmount(Math.min(1000000, userMoney))}
                       className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border border-amber-500/50 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all"
-                    >
-                      MAX ({userMoney >= 1000000 ? "1M" : balanceTranslate(userMoney)})
+                    > <LocalizedText text={"MAX ("} />{userMoney >= 1000000 ? "1M" : balanceTranslate(userMoney)})
                     </button>
                   )}
                 </div>
@@ -183,24 +180,24 @@ export function ThematicLootboxDialog({
               {/* Estatísticas Estimadas do Pacote */}
               <div className="grid grid-cols-2 gap-2.5 p-3.5 rounded-xl bg-card/60 border border-border/80 text-xs">
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground text-[11px]">Cartas no Pacote:</span>
+                  <span className="text-muted-foreground text-[11px]"><LocalizedText text={"Cartas no Pacote:"} /></span>
                   <div className="flex items-center gap-1 font-bold font-mono text-sm text-foreground">
                     <Sparkles className="size-3.5 text-amber-400" />
-                    <span>~{estimatedCards} cartas</span>
+                    <span>~{estimatedCards} <LocalizedText text={"cartas"} /></span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground text-[11px]">Multiplicador de Sorte:</span>
+                  <span className="text-muted-foreground text-[11px]"><LocalizedText text={"Multiplicador de Sorte:"} /></span>
                   <div className="flex items-center gap-1 font-bold font-mono text-sm text-purple-400">
                     <Zap className="size-3.5 text-purple-400" />
-                    <span>+{luckBonus}% Místicas</span>
+                    <span>+{luckBonus}<LocalizedText text={"% Místicas"} /></span>
                   </div>
                 </div>
 
                 <div className="col-span-2 pt-2 border-t border-border/50 flex items-center gap-2 text-emerald-400 text-[11px] font-medium">
                   <ShieldCheck className="size-4 shrink-0" />
-                  <span>Proteção ativa: algoritmo anti-duplicatas integrado no lote!</span>
+                  <span><LocalizedText text={"Proteção ativa: algoritmo anti-duplicatas integrado no lote!"} /></span>
                 </div>
               </div>
             </div>

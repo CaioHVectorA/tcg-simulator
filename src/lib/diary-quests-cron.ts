@@ -9,35 +9,19 @@ export function DiaryQuestsCron(): CronConfig {
       const candidates = await prisma.quest.findMany({
         where: { isDiary: true, isDiaryActive: false },
       });
-      await prisma.quest.updateMany({
-        where: { isDiaryActive: true, isDiary: true },
-        data: {
-          isDiaryActive: false,
-        },
-      });
-      console.log({ candidates: candidates.length });
-      for (let i = 0; i < 3; i++) {
-        const randomIndex = Math.floor(Math.random() * candidates.length);
-        const quest = candidates[randomIndex];
-        await prisma.quest.update({
-          where: { id: quest.id },
-          data: {
-            isDiaryActive: true,
-          },
-        });
+      // Sample without replacement; empty catalogs are valid and never produce undefined IDs.
+      const shuffled = [...candidates];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-      // console.log({
-      //   activeDiary: await prisma.quest.findMany({
-      //     where: { isDiaryActive: true },
-      //   }),
-      // });
-      console.table({
-        message: "Diary Quests updated",
-        length: (
-          await prisma.quest.findMany({ where: { isDiaryActive: true } })
-        ).length,
-        date: new Date().toLocaleString(),
+      const chosen = shuffled.slice(0, 3);
+      await prisma.$transaction(async (tx) => {
+        await tx.quest.updateMany({ where: { isDiary: true, isDiaryActive: true }, data: { isDiaryActive: false } });
+        if (chosen.length) await tx.quest.updateMany({ where: { id: { in: chosen.map((q) => q.id) } }, data: { isDiaryActive: true } });
+        await tx.questUser.deleteMany({ where: { Quest: { isDiary: true } } });
       });
+      console.info(JSON.stringify({ event: "daily_quests_rotated", count: chosen.length }));
     },
   };
 }

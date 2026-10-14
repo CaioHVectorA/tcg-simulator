@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { Sparkles, Layers } from "lucide-react";
 import { useTranslation } from "@/i18n/LanguageContext";
 
 export function PackageCard({ pack }: { pack: UserPackage }) {
+  const ui = useUiText();
   const { t } = useTranslation();
   const [isOpeningModalOpen, setIsOpeningModalOpen] = useState(false);
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
@@ -37,7 +39,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
       <Card className="relative overflow-hidden border-border/80 bg-card hover:border-amber-400/50 transition-all duration-300 shadow-md hover:shadow-xl font-syne group flex flex-col justify-between">
         <div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold truncate">{pack.name}</CardTitle>
+            <CardTitle className="text-lg font-bold truncate">{ui(pack.name)}</CardTitle>
           </CardHeader>
 
           <CardContent className="pb-3">
@@ -49,7 +51,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
               <div className="relative aspect-[1/1.4] rounded-xl overflow-hidden group-hover:scale-105 transition-transform duration-300">
                 <img
                   src={loadTcgImg(pack.image_url)}
-                  alt={pack.name}
+                  alt={ui(pack.name)}
                   className="w-full h-full object-contain rounded-xl"
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -87,8 +89,7 @@ export function PackageCard({ pack }: { pack: UserPackage }) {
 
         {/* Badge com Quantidade de Pacotes Disponíveis */}
         <div className="absolute top-2 right-2 bg-amber-500 text-slate-950 border-2 border-background shadow-lg rounded-full px-2.5 py-0.5 text-xs font-mono font-black flex items-center justify-center">
-          {pack.quantity}x
-        </div>
+          {pack.quantity}<LocalizedText text={"x"} /> </div>
       </Card>
 
       {/* Modal Seletor de Quantidade em Lote */}

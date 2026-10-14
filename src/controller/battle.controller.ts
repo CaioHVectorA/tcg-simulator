@@ -1,3 +1,4 @@
+import { publicError } from "../lib/public-error";
 import Elysia, { t } from "elysia";
 import { getUserUserMiddleware } from "../middlewares/jwt";
 import { jwt } from "../middlewares/jwt/jwt";
@@ -23,7 +24,7 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         return sucessResponse(deck, undefined, locale);
       } catch (error: any) {
         set.status = 500;
-        return errorResponse(error.message, "Erro ao carregar deck de batalha.", locale);
+        return errorResponse(publicError(error), "Erro ao carregar deck de batalha.", locale);
       }
     })
 
@@ -41,12 +42,12 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
           return sucessResponse(result, "Deck tático salvo com sucesso!", locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message, locale);
+          return errorResponse(publicError(error), publicError(error), locale);
         }
       },
       {
         body: t.Object({
-          cardIds: t.Array(t.Number()),
+          cardIds: t.Array(t.Integer({ minimum: 1 }), { minItems: 6, maxItems: 6 }),
         }),
       }
     )
@@ -62,7 +63,7 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         return sucessResponse(data, undefined, locale);
       } catch (error: any) {
         set.status = 500;
-        return errorResponse(error.message, "Erro ao listar NPCs de batalha.", locale);
+        return errorResponse(publicError(error), "Erro ao listar NPCs de batalha.", locale);
       }
     })
 
@@ -76,11 +77,11 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         const locale = getLocaleFromHeaders(headers);
         try {
           const { npcId } = body;
-          const { simulation, toastMessage } = await BattleService.fightNpc(user.id, npcId, locale);
+          const { simulation, toastMessage } = await BattleService.fightNpc(user.id, npcId, locale, headers["idempotency-key"]);
           return sucessResponse(simulation, toastMessage, locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message, locale);
+          return errorResponse(publicError(error), publicError(error), locale);
         }
       },
       {
@@ -104,18 +105,19 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
             user.id,
             npcId,
             selectedCardIds,
-            locale
+            locale,
+            headers["idempotency-key"]
           );
           return sucessResponse(simulation, toastMessage, locale);
         } catch (error: any) {
           set.status = 400;
-          return errorResponse(error.message, error.message, locale);
+          return errorResponse(publicError(error), publicError(error), locale);
         }
       },
       {
         body: t.Object({
           npcId: t.String(),
-          selectedCardIds: t.Array(t.Number()),
+          selectedCardIds: t.Array(t.Integer({ minimum: 1 }), { minItems: 3, maxItems: 3 }),
         }),
       }
     )
@@ -131,7 +133,7 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         return sucessResponse(data, undefined, locale);
       } catch (error: any) {
         set.status = 500;
-        return errorResponse(error.message, "Erro ao obter histórico de batalhas.", locale);
+        return errorResponse(publicError(error), "Erro ao obter histórico de batalhas.", locale);
       }
     })
 
@@ -146,7 +148,7 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         return sucessResponse(data, undefined, locale);
       } catch (error: any) {
         set.status = 400;
-        return errorResponse(error.message, error.message, locale);
+        return errorResponse(publicError(error), publicError(error), locale);
       }
     })
 
@@ -161,7 +163,7 @@ export const battleController = new Elysia({}).group("/battle", (app) => {
         return sucessResponse(data, undefined, locale);
       } catch (error: any) {
         set.status = 500;
-        return errorResponse(error.message, "Erro ao buscar cartas disponíveis.", locale);
+        return errorResponse(publicError(error), "Erro ao buscar cartas disponíveis.", locale);
       }
     });
 });

@@ -14,12 +14,20 @@ primary_region = 'gru'
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = 'off'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
   memory = '1024mb'
   cpu_kind = 'shared'
   cpus = 1
+
+# Single active instance until cron, cache and WebSocket coordination is externalized.
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/health/ready"

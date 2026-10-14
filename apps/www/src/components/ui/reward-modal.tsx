@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText } from "@/i18n/localized-text";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -48,7 +49,7 @@ export function RewardModal({
                 </DialogHeader>
 
                 {rewardAmount !== undefined && rewardAmount > 0 && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
@@ -58,17 +59,17 @@ export function RewardModal({
                         <span className="text-xl sm:text-2xl font-black text-amber-400">
                             +{balanceTranslate(rewardAmount)}
                         </span>
-                        <span className="text-xs text-muted-foreground font-semibold">moedas</span>
+                        <span className="text-xs text-muted-foreground font-semibold"><LocalizedText text={"moedas"} /></span>
                     </motion.div>
                 )}
 
                 <div className="mt-4">
-                    <Button 
+                    <Button
                         onClick={() => onOpenChange(false)}
                         className="w-full py-5 text-xs sm:text-sm font-extrabold gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-lg shadow-amber-400/20"
                     >
                         <CheckCircle2 className="size-4" />
-                        <span>Excelente!</span>
+                        <span><LocalizedText text={"Excelente!"} /></span>
                     </Button>
                 </div>
             </DialogContent>

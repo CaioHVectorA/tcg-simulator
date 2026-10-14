@@ -1,3 +1,4 @@
+import { DomainError } from "../lib/domain-error";
 import type { User } from "@prisma/client";
 import { prisma } from "../helpers/prisma.client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
@@ -26,7 +27,6 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
       return sucessResponse(referral);
     })
     .get("/my-referrals", async ({ prisma, user, set }) => {
-      console.log({ user });
       const protocol = await prisma.referrerProtocol.findFirst({
         where: { referrerCreatorId: user.id },
       });
@@ -46,7 +46,6 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
           referrerProtocolId: referral.referrerProtocolId,
           userId: referral.referred.id,
           username: referral.referred.username,
-          email: referral.referred.email,
           referredDate: referral.createdAt,
           referredRarity: referral.referred.User_Ranking?.total_rarity || 0,
           redeemed: referral.bountyRedeemed,
@@ -77,18 +76,10 @@ export const referralController = new Elysia({}).group("/referral", (app) => {
           set.status = 400;
           return errorResponse("Referido já resgatado");
         }
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            money: { increment: 2000 },
-            totalBudget: {
-              increment: 2000,
-            },
-          },
-        });
-        await prisma.referred.update({
-          where: { id: referred.id },
-          data: { bountyRedeemed: true },
+        await prisma.$transaction(async (tx) => {
+          const changed = await tx.referred.updateMany({ where: { id: referred.id, referrerProtocolId: protocol.id, bountyRedeemed: false }, data: { bountyRedeemed: true } });
+          if (changed.count !== 1) throw new DomainError("common.requestConflict", 409);
+          await tx.user.update({ where: { id: user.id }, data: { money: { increment: 2000 }, totalBudget: { increment: 2000 } } });
         });
         return sucessResponse(
           "Referido resgatado com sucesso",

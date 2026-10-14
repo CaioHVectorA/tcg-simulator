@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 import { useApi } from "@/hooks/use-api"
 import { Loader } from "@/components/loading-spinner"
 import { useQuery } from "@tanstack/react-query"
@@ -42,6 +43,7 @@ export function Social({
 }: {
     maxLg?: boolean
 }) {
+  const ui = useUiText();
     const { get } = useApi()
     const { data, isLoading, error } = useQuery<FriendshipData>({
         queryKey: ["friendship-data"],
@@ -59,22 +61,22 @@ export function Social({
     }
 
     if (error) {
-        return <div>Error loading social data</div>
+        return <div><LocalizedText text={"Error loading social data"} /></div>
     }
 
     if (!data) {
-        return <div>No data available</div>
+        return <div><LocalizedText text={"No data available"} /></div>
     }
     return (
         <div className="px-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-syne">Social</h1>
-                <p className="text-sm text-gray-500">Seu ID: #{id}</p>
+                <h1 className="text-3xl font-bold font-syne"><LocalizedText text={"Social"} /></h1>
+                <p className="text-sm text-gray-500"><LocalizedText text={"Seu ID: #"} />{id}</p>
             </div>
             <div className="flex items-center my-4">
                 <Input
                     type="text"
-                    placeholder="ID do amigo"
+                    placeholder={ui("ID do amigo")}
                     value={friendId}
                     onChange={(e) => setFriendId(e.target.value)}
                     className="mr-2"
@@ -82,13 +84,11 @@ export function Social({
                 <Button onClick={() => {
                     mutate({ action: FriendAction.SendRequest, id: Number(friendId) });
                     setFriendId('');
-                }}>
-                    Enviar Pedido
-                </Button>
+                }}> <LocalizedText text={"Enviar Pedido"} /> </Button>
             </div>
             <Accordion type="single" collapsible>
                 <AccordionItem value="online">
-                    <AccordionTrigger>Amigos Online ({data.online.length})</AccordionTrigger>
+                    <AccordionTrigger><LocalizedText text={"Amigos Online ("} />{data.online.length})</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.online.map((friend) => (
@@ -99,7 +99,7 @@ export function Social({
                 </AccordionItem>
 
                 <AccordionItem value="offline">
-                    <AccordionTrigger>Amigos Offline ({data.offline.length})</AccordionTrigger>
+                    <AccordionTrigger><LocalizedText text={"Amigos Offline ("} />{data.offline.length})</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.offline.map((friend) => (
@@ -110,7 +110,7 @@ export function Social({
                 </AccordionItem>
 
                 <AccordionItem value="received">
-                    <AccordionTrigger>Solicitações Recebidas ({data.received.length})</AccordionTrigger>
+                    <AccordionTrigger><LocalizedText text={"Solicitações Recebidas ("} />{data.received.length})</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.received.map((request) => (
@@ -119,10 +119,10 @@ export function Social({
                                     <div>
                                         <h2 className="text-lg font-semibold">{request.User.username}</h2>
 
-                                        <Button size={'icon'} onClick={() => mutate({ action: FriendAction.Accept, id: request.id })} className="bg-green-500 rounded-full text-white size-6 mr-1">
+                                        <Button size={"icon"} onClick={() => mutate({ action: FriendAction.Accept, id: request.id })} className="bg-green-500 rounded-full text-white size-6 mr-1">
                                             <Check />
                                         </Button>
-                                        <Button size={'icon'} variant="outline" onClick={() => mutate({ action: FriendAction.RemoveRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
+                                        <Button size={"icon"} variant="outline" onClick={() => mutate({ action: FriendAction.RemoveRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
                                             <X />
                                         </Button>
                                     </div>
@@ -133,7 +133,7 @@ export function Social({
                 </AccordionItem>
 
                 <AccordionItem value="sent">
-                    <AccordionTrigger>Solicitações Enviadas ({data.sent.length})</AccordionTrigger>
+                    <AccordionTrigger><LocalizedText text={"Solicitações Enviadas ("} />{data.sent.length})</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid grid-cols-1 gap-4">
                             {data.sent.map((request) => (
@@ -142,10 +142,10 @@ export function Social({
                                         <Avatar src={request.Friend.picture} username={request.Friend.username} />
                                         <div>
                                             <h2 className="text-lg font-semibold line-clamp-1">{request.Friend.username}</h2>
-                                            <p className="text-sm text-gray-500">Solicitação Enviada</p>
+                                            <p className="text-sm text-gray-500"><LocalizedText text={"Solicitação Enviada"} /></p>
                                         </div>
                                     </div>
-                                    <Button size={'icon'} variant="outline" onClick={() => mutate({ action: FriendAction.CancelRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
+                                    <Button size={"icon"} variant="outline" onClick={() => mutate({ action: FriendAction.CancelRequest, id: request.id })} className="bg-red-500 rounded-full text-white size-6">
                                         <X />
                                     </Button>
                                 </div>

@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ export type OfficialAlbum = {
 };
 
 export function AlbumView() {
+  const ui = useUiText();
   const { t } = useTranslation();
   const { get, post } = useApi();
   const qClient = useQueryClient();
@@ -174,9 +176,7 @@ export function AlbumView() {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <LoaderSimple className="size-10 text-amber-500 animate-spin" />
-        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-          Carregando Fichário & Conjuntos Oficiais...
-        </p>
+        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground"> <LocalizedText text={"Carregando Fichário & Conjuntos Oficiais..."} /> </p>
       </div>
     );
   }
@@ -192,34 +192,28 @@ export function AlbumView() {
               <span className="flex items-center justify-center size-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400">
                 <Book className="size-4" />
               </span>
-              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex items-center gap-2">
-                Fichário do Colecionador
-                <Badge variant="outline" className="text-[10px] font-mono border-amber-500/50 text-amber-400 bg-amber-500/10">
-                  Binder 3D
-                </Badge>
+              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex items-center gap-2"> <LocalizedText text={"Fichário do Colecionador"} /> <Badge variant="outline" className="text-[10px] font-mono border-amber-500/50 text-amber-400 bg-amber-500/10"> <LocalizedText text={"Binder 3D"} /> </Badge>
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-              Cole suas cartas nos conjuntos oficiais para eternizar suas conquistas no fichário e desbloquear recompensas gigantescas em moedas e prestígio!
-            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed"> <LocalizedText text={"Cole suas cartas nos conjuntos oficiais para eternizar suas conquistas no fichário e desbloquear recompensas gigantescas em moedas e prestígio!"} /> </p>
           </div>
 
           {/* Mini Painel de Estatísticas */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto shrink-0 font-mono text-center">
             <div className="rounded-xl border border-border/80 bg-zinc-900/80 p-2.5 sm:px-4">
-              <span className="text-[10px] uppercase text-muted-foreground block font-sans">Completados</span>
+              <span className="text-[10px] uppercase text-muted-foreground block font-sans"><LocalizedText text={"Completados"} /></span>
               <span className="text-sm sm:text-base font-bold text-emerald-400">
                 {claimedCount} <span className="text-xs text-muted-foreground">/ {totalAlbums}</span>
               </span>
             </div>
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 sm:px-4">
-              <span className="text-[10px] uppercase text-amber-400/80 block font-sans">Prontos</span>
+              <span className="text-[10px] uppercase text-amber-400/80 block font-sans"><LocalizedText text={"Prontos"} /></span>
               <span className="text-sm sm:text-base font-bold text-amber-300">
                 {claimableCount}
               </span>
             </div>
             <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-2.5 sm:px-4">
-              <span className="text-[10px] uppercase text-yellow-400/80 block font-sans">Ouro Coletado</span>
+              <span className="text-[10px] uppercase text-yellow-400/80 block font-sans"><LocalizedText text={"Ouro Coletado"} /></span>
               <span className="text-sm sm:text-base font-bold text-yellow-300">
                 +{balanceTranslate(totalGoldEarned)}
               </span>
@@ -239,9 +233,7 @@ export function AlbumView() {
             <TabsTrigger value="custom" className="text-xs sm:text-sm font-semibold gap-2">
               <Wrench className="size-4 text-purple-400" />
               <span>{t("albums.tabCustom")}</span>
-              <Badge variant="outline" className="text-[9px] font-mono border-purple-500/40 text-purple-400 py-0 px-1">
-                Comunidade
-              </Badge>
+              <Badge variant="outline" className="text-[9px] font-mono border-purple-500/40 text-purple-400 py-0 px-1"> <LocalizedText text={"Comunidade"} /> </Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -251,7 +243,7 @@ export function AlbumView() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nome do álbum, região ou Pokémon..."
+              placeholder={ui("Buscar por nome do álbum, região ou Pokémon...")}
               className="pl-9 h-9 text-xs rounded-xl bg-card border-border/80"
             />
             {searchQuery && (
@@ -270,15 +262,13 @@ export function AlbumView() {
           {/* Filtro de Status de Resgate */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-semibold text-muted-foreground mr-1 hidden sm:inline-flex items-center gap-1">
-              <Filter className="size-3" /> Status:
-            </span>
+              <Filter className="size-3" /> <LocalizedText text={"Status:"} /> </span>
             <Button
               size="sm"
               variant={statusFilter === "all" ? "default" : "outline"}
               onClick={() => setStatusFilter("all")}
               className="h-7 text-xs rounded-lg px-2.5"
-            >
-              Todos ({albums.length})
+            > <LocalizedText text={"Todos ("} />{albums.length})
             </Button>
             <Button
               size="sm"
@@ -291,7 +281,7 @@ export function AlbumView() {
               } ${statusFilter === "claimable" ? "!bg-amber-500 !text-slate-950 font-bold" : ""}`}
             >
               <Sparkles className="size-3" />
-              <span>Prontos para Colar</span>
+              <span><LocalizedText text={"Prontos para Colar"} /></span>
               {claimableCount > 0 && (
                 <Badge className="bg-amber-400 text-slate-950 text-[9px] px-1 py-0 font-bold ml-0.5">
                   {claimableCount}
@@ -303,16 +293,13 @@ export function AlbumView() {
               variant={statusFilter === "in_progress" ? "default" : "outline"}
               onClick={() => setStatusFilter("in_progress")}
               className="h-7 text-xs rounded-lg px-2.5"
-            >
-              Em Progresso
-            </Button>
+            > <LocalizedText text={"Em Progresso"} /> </Button>
             <Button
               size="sm"
               variant={statusFilter === "claimed" ? "default" : "outline"}
               onClick={() => setStatusFilter("claimed")}
               className="h-7 text-xs rounded-lg px-2.5"
-            >
-              Colados ({claimedCount})
+            > <LocalizedText text={"Colados ("} />{claimedCount})
             </Button>
           </div>
 
@@ -330,7 +317,7 @@ export function AlbumView() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {cat === "all" ? "Categorias: Todas" : cat}
+                  {cat === "all" ? ui("Categorias: Todas") : cat}
                 </button>
               ))}
             </div>
@@ -347,7 +334,7 @@ export function AlbumView() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {tier === "all" ? "Tiers: Todos" : tier}
+                  {tier === "all" ? ui("Tiers: Todos") : ui(tier)}
                 </button>
               ))}
             </div>
@@ -359,12 +346,8 @@ export function AlbumView() {
           {filteredAlbums.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-border bg-card/40">
               <FolderLock className="size-10 text-muted-foreground/50 mb-3" />
-              <h3 className="text-base font-bold font-syne mb-1">
-                Nenhum álbum corresponde aos filtros selecionados
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-md">
-                Tente limpar sua busca ou selecionar outros filtros para ver os conjuntos do fichário.
-              </p>
+              <h3 className="text-base font-bold font-syne mb-1"> <LocalizedText text={"Nenhum álbum corresponde aos filtros selecionados"} /> </h3>
+              <p className="text-xs text-muted-foreground max-w-md"> <LocalizedText text={"Tente limpar sua busca ou selecionar outros filtros para ver os conjuntos do fichário."} /> </p>
               <Button
                 size="sm"
                 variant="outline"
@@ -375,9 +358,7 @@ export function AlbumView() {
                   setTierFilter("all");
                 }}
                 className="mt-4 text-xs rounded-xl"
-              >
-                Limpar Todos os Filtros
-              </Button>
+              > <LocalizedText text={"Limpar Todos os Filtros"} /> </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
@@ -413,11 +394,10 @@ export function AlbumView() {
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-secondary border border-border text-muted-foreground">
-                              {album.category}
+                              {ui(album.category)}
                             </span>
                             <Badge variant="outline" className={`text-[10px] font-mono font-bold py-0.5 ${tierColor}`}>
-                              {album.tier === "Lendário" && <Crown className="size-3 mr-1 inline" />}
-                              Tier {album.tier}
+                              {album.tier === "Lendário" && <Crown className="size-3 mr-1 inline" />} <LocalizedText text={"Tier"} /> {ui(album.tier)}
                             </Badge>
                           </div>
 
@@ -431,18 +411,18 @@ export function AlbumView() {
                                 : "border-border text-muted-foreground"
                             }`}
                           >
-                            {album.isClaimed ? "✓ Colado no Fichário" : album.badge}
+                            {album.isClaimed ? ui("✓ Colado no Fichário") : album.badge}
                           </Badge>
                         </div>
 
                         <CardTitle className="text-base sm:text-lg font-bold font-syne text-foreground flex items-center justify-between">
-                          <span>{album.title}</span>
+                          <span>{ui(album.title)}</span>
                           <span className="text-xs font-mono font-normal text-muted-foreground">
                             {album.collectedCount}/{album.totalCount}
                           </span>
                         </CardTitle>
                         <CardDescription className="text-xs leading-relaxed mt-1 line-clamp-2">
-                          {album.description}
+                          {ui(album.description)}
                         </CardDescription>
                       </CardHeader>
 
@@ -462,7 +442,7 @@ export function AlbumView() {
                                 <>
                                   <TcgCardImage
                                     src={slot.card.image_url}
-                                    alt={slot.card.name}
+                                    alt={ui(slot.card.name)}
                                     lowQuality={true}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                   />
@@ -501,7 +481,7 @@ export function AlbumView() {
                         {/* BARRA DE PROGRESSO DO ÁLBUM */}
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
-                            <span>Progresso de Coleção</span>
+                            <span><LocalizedText text={"Progresso de Coleção"} /></span>
                             <span className="font-bold text-foreground">
                               {album.progressPercent}%
                             </span>
@@ -528,14 +508,13 @@ export function AlbumView() {
                           </div>
                           <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 font-mono font-bold text-xs">
                             <Trophy className="size-3.5" />
-                            <span>+{album.rewardXp} XP</span>
+                            <span>+{album.rewardXp} <LocalizedText text={"XP"} /></span>
                           </div>
                         </div>
 
                         {album.isClaimed ? (
                           <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 py-1 px-2 justify-center sm:justify-start">
-                            <CheckCircle2 className="size-4" /> Colado no Fichário
-                          </span>
+                            <CheckCircle2 className="size-4" /> <LocalizedText text={"Colado no Fichário"} /> </span>
                         ) : album.canClaim ? (
                           <Button
                             size="sm"
@@ -543,12 +522,10 @@ export function AlbumView() {
                             className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-4 h-8.5 rounded-xl shadow-lg shadow-amber-500/20 animate-pulse"
                           >
                             <Sparkles className="size-3.5 mr-1.5" />
-                            <span>Colar no Fichário</span>
+                            <span><LocalizedText text={"Colar no Fichário"} /></span>
                           </Button>
                         ) : (
-                          <Button variant="outline" disabled size="sm" className="text-xs text-muted-foreground h-8.5 rounded-xl">
-                            Faltam {album.totalCount - album.collectedCount} cartas
-                          </Button>
+                          <Button variant="outline" disabled size="sm" className="text-xs text-muted-foreground h-8.5 rounded-xl"> <LocalizedText text={"Faltam"} /> {album.totalCount - album.collectedCount} <LocalizedText text={"cartas"} /> </Button>
                         )}
                       </CardFooter>
                     </div>
@@ -565,15 +542,9 @@ export function AlbumView() {
             <div className="size-16 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
               <Wrench className="size-8 text-purple-400" />
             </div>
-            <Badge variant="outline" className="mb-2 font-mono text-[10px] text-purple-400 border-purple-500/40">
-              Roadmap & Comunidade
-            </Badge>
-            <h3 className="font-syne text-xl sm:text-2xl font-bold text-foreground mb-2">
-              Fichários Customizados da Comunidade
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-6">
-              Em breve você poderá montar seus próprios fichários temáticos, definir cartas raras exigidas, adicionar recompensas em moedas e publicar no mural global para outros treinadores completarem!
-            </p>
+            <Badge variant="outline" className="mb-2 font-mono text-[10px] text-purple-400 border-purple-500/40"> <LocalizedText text={"Roadmap & Comunidade"} /> </Badge>
+            <h3 className="font-syne text-xl sm:text-2xl font-bold text-foreground mb-2"> <LocalizedText text={"Fichários Customizados da Comunidade"} /> </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-6"> <LocalizedText text={"Em breve você poderá montar seus próprios fichários temáticos, definir cartas raras exigidas, adicionar recompensas em moedas e publicar no mural global para outros treinadores completarem!"} /> </p>
           </Card>
         </TabsContent>
       </Tabs>
@@ -585,20 +556,15 @@ export function AlbumView() {
             <div className="size-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1">
               <Sparkles className="size-6" />
             </div>
-            <DialogTitle className="text-lg font-bold font-syne text-foreground">
-              Colar Conjunto "{confirmClaimAlbum?.title}" no Fichário?
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              Ao confirmar, <strong className="text-amber-400">1 cópia de cada carta</strong> necessária será eternizada no seu Fichário (removida do seu inventário de trocas/batalhas) e você receberá as seguintes recompensas:
-            </DialogDescription>
+            <DialogTitle className="text-lg font-bold font-syne text-foreground"> <LocalizedText text={"Colar Conjunto \""} />{ui(confirmClaimAlbum?.title)}<LocalizedText text={"\" no Fichário?"} /> </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed"> <LocalizedText text={"Ao confirmar,"} /> <strong className="text-amber-400"><LocalizedText text={"1 cópia de cada carta"} /></strong> <LocalizedText text={"necessária será eternizada no seu Fichário (removida do seu inventário de trocas/batalhas) e você receberá as seguintes recompensas:"} /> </DialogDescription>
           </DialogHeader>
 
           {confirmClaimAlbum && (
             <div className="space-y-3 py-2">
               {/* Resumo das cartas que serão consumidas */}
               <div className="rounded-xl border border-border/60 bg-zinc-900/80 p-3 space-y-2">
-                <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground block font-bold">
-                  Cartas que serão coladas no Fichário ({confirmClaimAlbum.cardSlots.length}):
+                <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground block font-bold"> <LocalizedText text={"Cartas que serão coladas no Fichário ("} />{confirmClaimAlbum.cardSlots.length}):
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {confirmClaimAlbum.cardSlots.map((slot, i) => (
@@ -612,24 +578,21 @@ export function AlbumView() {
               {/* Recompensas a receber */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-center">
-                  <span className="text-[10px] uppercase font-mono text-amber-400/80 block">Moedas</span>
+                  <span className="text-[10px] uppercase font-mono text-amber-400/80 block"><LocalizedText text={"Moedas"} /></span>
                   <span className="text-base font-bold font-mono text-amber-300">
                     +{balanceTranslate(confirmClaimAlbum.rewardGold)}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-purple-500/30 bg-purple-500/10 text-center">
-                  <span className="text-[10px] uppercase font-mono text-purple-400/80 block">Experiência</span>
+                  <span className="text-[10px] uppercase font-mono text-purple-400/80 block"><LocalizedText text={"Experiência"} /></span>
                   <span className="text-base font-bold font-mono text-purple-300">
-                    +{confirmClaimAlbum.rewardXp} XP
-                  </span>
+                    +{confirmClaimAlbum.rewardXp} <LocalizedText text={"XP"} /> </span>
                 </div>
               </div>
 
               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-muted-foreground">
                 <Info className="size-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  As cartas coladas completam sua conquista para sempre no seu perfil de Treinador.
-                </span>
+                <span> <LocalizedText text={"As cartas coladas completam sua conquista para sempre no seu perfil de Treinador."} /> </span>
               </div>
             </div>
           )}
@@ -641,9 +604,7 @@ export function AlbumView() {
               disabled={isClaiming}
               onClick={() => setConfirmClaimAlbum(null)}
               className="text-xs rounded-xl"
-            >
-              Cancelar
-            </Button>
+            > <LocalizedText text={"Cancelar"} /> </Button>
             <Button
               size="sm"
               disabled={isClaiming}
@@ -653,12 +614,12 @@ export function AlbumView() {
               {isClaiming ? (
                 <>
                   <LoaderSimple className="size-3.5 animate-spin" />
-                  <span>Colando no Fichário...</span>
+                  <span><LocalizedText text={"Colando no Fichário..."} /></span>
                 </>
               ) : (
                 <>
                   <Sparkles className="size-3.5" />
-                  <span>Confirmar e Resgatar</span>
+                  <span><LocalizedText text={"Confirmar e Resgatar"} /></span>
                 </>
               )}
             </Button>
@@ -671,7 +632,7 @@ export function AlbumView() {
         open={rewardModalOpen}
         onOpenChange={setRewardModalOpen}
         iconType="general"
-        title="Conjunto Colado no Fichário!"
+        title={ui("Conjunto Colado no Fichário!")}
         description={claimedReward ? `${claimedReward.title} concluído com sucesso!` : ""}
         rewardAmount={claimedReward?.gold}
       />

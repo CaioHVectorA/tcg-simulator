@@ -1,3 +1,6 @@
+import { debit, consumePacks, positiveInteger } from "../lib/economy";
+import { DomainError } from "../lib/domain-error";
+import { operation } from "../lib/operation";
 import { prisma } from "../helpers/prisma.client";
 import {
   getByRarityCluster,
@@ -14,6 +17,7 @@ export interface UserInventoryPackage {
   tcg_id?: string;
   quantity: number;
   description: string;
+  cards_quantity: number;
 }
 
 export interface ThematicLootboxResult {
@@ -183,20 +187,7 @@ export class PackageService {
    * Obtém os pacotes no inventário do usuário.
    * Utiliza agregação única (groupBy) para evitar gargalos sequenciais no Supabase PgBouncer.
    */
-  static async getUserInventoryPackages(userId: number, userEmail?: string): Promise<UserInventoryPackage[]> {
-    const isAdmin = userEmail === "admin@gmail.com";
-    if (isAdmin) {
-      const allPkgs = await prisma.package.findMany({ orderBy: { id: "asc" } });
-      return allPkgs.map((p) => ({
-        name: p.name,
-        image_url: p.image_url,
-        id: p.id,
-        quantity: 9999,
-        tcg_id: p.tcg_id || undefined,
-        description: p.description || "",
-      }));
-    }
-
+  static async getUserInventoryPackages(userId: number): Promise<UserInventoryPackage[]> {
     // Agregação paralela direta no banco
     const counts = await prisma.packages_User.groupBy({
       by: ["packageId"],
@@ -223,253 +214,62 @@ export class PackageService {
       quantity: countMap.get(p.id) || 0,
       tcg_id: p.tcg_id || undefined,
       description: p.description || "",
+      cards_quantity: p.cards_quantity,
     }));
   }
 
   /**
    * Realiza a compra de um único pacote
    */
-  static async buyPackage(userId: number, packageId: number) {
-    if (packageId < 1) {
-      throw new Error("ID inválido!");
-    }
-
-    const pkg = await prisma.package.findFirst({
-      where: { id: packageId },
-    });
-    if (!pkg) {
-      throw new Error("Pacote não existente");
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user || user.money < pkg.price) {
-      throw new Error("Dinheiro insuficiente");
-    }
-
-    await prisma.$transaction([
-      prisma.packages_User.create({
-        data: {
-          userId,
-          packageId,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          money: { decrement: pkg.price },
-        },
-      }),
-    ]);
-
-    return { success: true };
+  static async buyPackage(userId: number, packageId: number, key?: string) {
+    return this.buyManyPackages(userId, [packageId], key);
   }
 
-  /**
-   * Realiza a compra de múltiplos pacotes em lote de forma atômica
-   */
-  static async buyManyPackages(userId: number, packagesId: number[]) {
-    if (!packagesId || packagesId.length === 0) {
-      throw new Error("Nenhum pacote selecionado!");
-    }
-
-    const uniqueIds = Array.from(new Set(packagesId));
-    const packages = await prisma.package.findMany({
-      where: { id: { in: uniqueIds } },
+  static async buyManyPackages(userId: number, packagesId: number[], key?: string) {
+    validateIds(packagesId);
+    return operation(prisma, userId, "buy-packages", packagesId, key, async (tx) => {
+      const packages = await tx.package.findMany({ where: { id: { in: [...new Set(packagesId)] } } });
+      if (packages.length !== new Set(packagesId).size) throw new DomainError("packages.invalidId");
+      const byId = new Map(packages.map((p) => [p.id, p]));
+      const total = packagesId.reduce((sum, id) => sum + byId.get(id)!.price, 0);
+      await debit(tx, userId, total);
+      await tx.packages_User.createMany({ data: packagesId.map((packageId) => ({ userId, packageId })) });
+      await tx.user_Purchase.createMany({ data: packagesId.map((package_id) => ({ user_id: userId, package_id })) });
+      return { success: true };
     });
-
-    if (packages.length !== uniqueIds.length) {
-      throw new Error("ID de pacote inválido!");
-    }
-
-    const quantities: Record<number, number> = {};
-    packagesId.forEach((id: number) => {
-      quantities[id] = (quantities[id] || 0) + 1;
-    });
-
-    const total = packages.reduce((acc, curr) => acc + curr.price * (quantities[curr.id] || 1), 0);
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user || user.money < total) {
-      throw new Error("Dinheiro insuficiente!");
-    }
-
-    const userPackages: Array<{ userId: number; packageId: number }> = [];
-    for (const [id, quantity] of Object.entries(quantities)) {
-      for (let i = 0; i < quantity; i++) {
-        userPackages.push({
-          userId,
-          packageId: Number(id),
-        });
-      }
-    }
-
-    await prisma.$transaction([
-      prisma.packages_User.createMany({ data: userPackages }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          money: { decrement: total },
-        },
-      }),
-    ]);
-
-    return { success: true };
   }
 
-  /**
-   * Abre um pacote individual do inventário do usuário
-   */
-  static async openSinglePackage(userId: number, packageId: number, userEmail?: string): Promise<Card[]> {
-    const isAdmin = userEmail === "admin@gmail.com";
-    let userPkg = await prisma.packages_User.findFirst({
-      where: { userId, packageId, opened: false },
-    });
-
-    if (!userPkg && isAdmin) {
-      userPkg = await prisma.packages_User.create({
-        data: { userId, packageId, opened: false },
-      });
-    }
-
-    if (!userPkg) {
-      throw new Error("Pacote não encontrado");
-    }
-
-    const packageToOpen = await prisma.package.findFirst({
-      where: { id: packageId },
-    });
-    if (!packageToOpen) {
-      throw new Error("Pacote não encontrado");
-    }
-
-    const preRolledCards = BoosterBufferService.getPreRolledPack(packageToOpen, prisma);
-    const cards = preRolledCards || (await OpenPackage(packageToOpen, prisma));
-    const rarityPointsGain = this.calculateRarityPointsGain(cards);
-
-    const txOps: any[] = [
-      prisma.cards_user.createMany({
-        data: cards.map((card) => ({ userId, cardId: card.id })),
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          rarityPoints: {
-            increment: rarityPointsGain,
-          },
-        },
-      }),
-    ];
-
-    if (!isAdmin) {
-      txOps.unshift(
-        prisma.packages_User.update({
-          where: { id: userPkg.id },
-          data: { opened: true },
-        })
-      );
-    }
-
-    await prisma.$transaction(txOps);
-    return this.sortCardsByRarityAscending(cards);
+  static async openSinglePackage(userId: number, packageId: number, key?: string): Promise<Card[]> {
+    return this.openBatchPackages(userId, [packageId], key);
   }
 
-  /**
-   * Abre múltiplos pacotes do inventário em lote
-   */
-  static async openBatchPackages(userId: number, packagesId: number[], userEmail?: string): Promise<Card[]> {
-    if (!packagesId || packagesId.length === 0) {
-      throw new Error("Nenhum pacote selecionado!");
-    }
-
-    const quantities: Record<number, number> = {};
-    packagesId.forEach((id: number) => {
-      quantities[id] = (quantities[id] || 0) + 1;
+  static async openBatchPackages(userId: number, packagesId: number[], key?: string): Promise<Card[]> {
+    validateIds(packagesId);
+    // Draw outside the write transaction: no database locks while warming the cache.
+    const packages = await prisma.package.findMany({ where: { id: { in: [...new Set(packagesId)] } } });
+    if (packages.length !== new Set(packagesId).size) throw new DomainError("packages.invalidId");
+    const byId = new Map(packages.map((p) => [p.id, p]));
+    const pools = new Map(await Promise.all(packages.map(async (pkg) => [pkg.id, await getByRarityCluster({ pkg, prisma })] as const)));
+    const cards = packagesId.flatMap((id) => {
+      const pkg = byId.get(id)!;
+      const buffered = BoosterBufferService.getPreRolledPack(pkg);
+      return buffered || Array.from({ length: pkg.cards_quantity }, () => getRandomCardFromPackage(pkg, pools.get(id)!)).filter((c): c is Card => c !== null);
     });
-
-    const packages = await prisma.package.findMany({
-      where: { id: { in: packagesId } },
+    const expectedCards = packagesId.reduce((sum, id) => sum + byId.get(id)!.cards_quantity, 0);
+    if (cards.length !== expectedCards) throw new DomainError("packages.emptyPool", 503);
+    return operation(prisma, userId, "open-packages", packagesId, key, async (tx) => {
+      const stock = await tx.packages_User.findMany({ where: { userId, opened: false, packageId: { in: packagesId } }, orderBy: { id: "asc" } });
+      const chosen: number[] = [];
+      for (const packageId of packagesId) {
+        const row = stock.find((p) => p.packageId === packageId && !chosen.includes(p.id));
+        if (!row) throw new DomainError("packages.insufficientStock");
+        chosen.push(row.id);
+      }
+      await consumePacks(tx, userId, chosen);
+      await tx.cards_user.createMany({ data: cards.map((card) => ({ userId, cardId: card.id })) });
+      await tx.user.update({ where: { id: userId }, data: { rarityPoints: { increment: this.calculateRarityPointsGain(cards) } } });
+      return this.sortCardsByRarityAscending(cards);
     });
-
-    const packagesUser = await prisma.packages_User.findMany({
-      where: {
-        userId,
-        packageId: { in: packagesId },
-        opened: false,
-      },
-    });
-
-    const isAdmin = userEmail === "admin@gmail.com";
-    if (!isAdmin) {
-      for (const [pkgIdStr, neededQty] of Object.entries(quantities)) {
-        const pkgId = Number(pkgIdStr);
-        const userCount = packagesUser.filter((p) => p.packageId === pkgId).length;
-        if (userCount < neededQty) {
-          throw new Error("Quantidade insuficiente de pacotes no inventário");
-        }
-      }
-    }
-
-    const allCards: Card[] = [];
-    const packagesToMarkOpened: number[] = [];
-    let rarityPointsGain = 0;
-
-    for (const package_ of packages) {
-      const cardsByRarity = await getByRarityCluster({ pkg: package_, prisma });
-      const countToOpen = quantities[package_.id] || 0;
-      const qtyPerPack = package_.cards_quantity || 5;
-
-      for (let i = 0; i < countToOpen; i++) {
-        for (let j = 0; j < qtyPerPack; j++) {
-          const card = getRandomCardFromPackage(package_, cardsByRarity);
-          if (card) {
-            rarityPointsGain += card.rarity || 1;
-            allCards.push(card);
-          }
-        }
-      }
-
-      if (!isAdmin) {
-        const pkgPkgIds = packagesUser
-          .filter((p) => p.packageId === package_.id)
-          .map((p) => p.id)
-          .slice(0, quantities[package_.id]);
-        packagesToMarkOpened.push(...pkgPkgIds);
-      }
-    }
-
-    const txOps: any[] = [
-      prisma.cards_user.createMany({
-        data: allCards.map((card) => ({ userId, cardId: card.id })),
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          rarityPoints: {
-            increment: rarityPointsGain,
-          },
-        },
-      }),
-    ];
-
-    if (!isAdmin && packagesToMarkOpened.length > 0) {
-      txOps.unshift(
-        prisma.packages_User.updateMany({
-          where: {
-            userId,
-            id: { in: packagesToMarkOpened },
-            opened: false,
-          },
-          data: { opened: true },
-        })
-      );
-    }
-
-    await prisma.$transaction(txOps);
-    return this.sortCardsByRarityAscending(allCards);
   }
 
   /**
@@ -478,9 +278,12 @@ export class PackageService {
   static async openThematicLootbox(
     userId: number,
     packageId: number,
-    goldAmount: number
+    goldAmount: number,
+    key?: string
   ): Promise<ThematicLootboxResult> {
-    if (!goldAmount || goldAmount < 500) {
+    positiveInteger(packageId, 2_147_483_647);
+    positiveInteger(goldAmount);
+    if (goldAmount < 500) {
       throw new Error("Valor mínimo de depósito é 500 moedas!");
     }
     if (goldAmount > 1000000) {
@@ -515,26 +318,18 @@ export class PackageService {
     const chosenCards = this.drawThematicLootboxCards(pool, cardsCount, weights);
     const rarityGain = this.calculateRarityPointsGain(chosenCards);
 
-    // Transação Atômica: Deduzir ouro, adicionar cartas e somar pontos de raridade
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          money: { decrement: goldAmount },
-          rarityPoints: { increment: rarityGain },
-        },
-      }),
-      prisma.cards_user.createMany({
-        data: chosenCards.map((c) => ({ userId, cardId: c.id })),
-      }),
-    ]);
-
-    const sortedCards = this.sortCardsByRarityAscending(chosenCards);
-    return {
-      cards: sortedCards,
-      cardsCount: sortedCards.length,
-      goldSpent: goldAmount,
-      packageName: pkg.name,
-    };
+    if (chosenCards.length !== cardsCount) throw new DomainError("packages.emptyPool", 503);
+    return operation(prisma, userId, "thematic-pack", { packageId, goldAmount }, key, async (tx) => {
+      await debit(tx, userId, goldAmount);
+      await tx.cards_user.createMany({ data: chosenCards.map((c) => ({ userId, cardId: c.id })) });
+      await tx.user.update({ where: { id: userId }, data: { rarityPoints: { increment: rarityGain } } });
+      const sortedCards = this.sortCardsByRarityAscending(chosenCards);
+      return { cards: sortedCards, cardsCount: sortedCards.length, goldSpent: goldAmount, packageName: pkg.name };
+    });
   }
+}
+
+function validateIds(ids: number[]) {
+  if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100) throw new DomainError("common.invalidQuantity");
+  for (const id of ids) positiveInteger(id, 2_147_483_647);
 }

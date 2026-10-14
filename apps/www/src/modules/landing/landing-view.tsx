@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -95,6 +96,7 @@ const SHOWCASE_CARDS = [
 ];
 
 export function LandingView({ isLoggedIn }: LandingViewProps) {
+  const ui = useUiText();
   const [activePack, setActivePack] = useState("Pacote lendário");
 
   return (
@@ -114,30 +116,24 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               </div>
             </div>
             <div>
-              <span className="font-syne font-bold text-lg sm:text-xl tracking-tight text-foreground block">
-                SimTCG
-              </span>
-              <span className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground block -mt-0.5">
-                Pokémon Simulator
-              </span>
+              <span className="font-syne font-bold text-lg sm:text-xl tracking-tight text-foreground block"> <LocalizedText text={"SimTCG"} /> </span>
+              <span className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground block -mt-0.5"> <LocalizedText text={"Pokémon Simulator"} /> </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <Button asChild className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans shadow-md shadow-amber-500/20">
-                <Link href="/home">
-                  Entrar no Jogo <ArrowRight className="size-4 ml-1.5" />
+                <Link href="/home"> <LocalizedText text={"Entrar no Jogo"} /> <ArrowRight className="size-4 ml-1.5" />
                 </Link>
               </Button>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">
                 <Button variant="ghost" asChild className="font-sans text-xs sm:text-sm font-semibold">
-                  <Link href="/entrar">Entrar</Link>
+                  <Link href="/entrar"><LocalizedText text={"Entrar"} /></Link>
                 </Button>
                 <Button asChild className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-sans text-xs sm:text-sm px-4 shadow-md shadow-amber-500/20">
-                  <Link href="/entrar">
-                    Jogar Agora <Sparkles className="size-3.5 ml-1.5" />
+                  <Link href="/entrar"> <LocalizedText text={"Jogar Agora"} /> <Sparkles className="size-3.5 ml-1.5" />
                   </Link>
                 </Button>
               </div>
@@ -153,11 +149,11 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
           <motion.div
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/80 backdrop-blur-xs text-xs font-semibold text-foreground mb-6 shadow-xs">
               <span className="size-2 rounded-full bg-amber-400 animate-ping" />
-              <span>Simulador Pokémon TCG</span>
+              <span><LocalizedText text={"Simulador Pokémon TCG"} /></span>
             </div>
           </motion.div>
 
@@ -165,31 +161,25 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
           <motion.h1
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25 }}
             className="font-syne text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight max-w-4xl text-foreground leading-[1.12]"
-          >
-            Abra Pacotes. <br className="hidden sm:inline" />
-            Colecione Lendárias. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">
-              Domine as Trocas.
-            </span>
+          > <LocalizedText text={"Abra Pacotes."} /> <br className="hidden sm:inline" /> <LocalizedText text={"Colecione Lendárias."} /> <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500"> <LocalizedText text={"Domine as Trocas."} /> </span>
           </motion.h1>
 
           {/* Subtítulo Legível */}
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25 }}
             className="font-sans text-sm sm:text-lg text-muted-foreground mt-6 max-w-2xl leading-relaxed"
-          >
-            Abra boosters, descubra cartas secretas e monte sua coleção completa com milhares de cartas oficiais do universo Pokémon.
-          </motion.p>
+          > <LocalizedText text={"Abra boosters, descubra cartas secretas e monte sua coleção completa com milhares de cartas oficiais do universo Pokémon."} /> </motion.p>
 
           {/* CTAs Táteis */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.25 }}
             className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-md justify-center"
           >
             <Button
@@ -200,7 +190,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
             >
               <Link href={isLoggedIn ? "/home" : "/entrar"}>
                 <Zap className="size-5 mr-2 fill-slate-950" />
-                {isLoggedIn ? "Acessar Simulador" : "Jogar Imediatamente (Grátis)"}
+                {isLoggedIn ? ui("Acessar Simulador") : ui("Jogar Imediatamente (Grátis)")}
               </Link>
             </Button>
 
@@ -211,9 +201,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               className="w-full sm:w-auto h-12 px-6 font-sans font-semibold text-sm sm:text-base border-border/80 hover:bg-secondary/60 rounded-xl hover:scale-105 active:scale-95 transition-all"
             >
               <Link href="/entrar">
-                <Sparkles className="size-4 mr-2 text-amber-500" />
-                Criar Coleção Grátis
-              </Link>
+                <Sparkles className="size-4 mr-2 text-amber-500" /> <LocalizedText text={"Criar Coleção Grátis"} /> </Link>
             </Button>
           </motion.div>
 
@@ -221,15 +209,13 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
+            transition={{ duration: 0.3 }}
             className="mt-14 sm:mt-20 w-full max-w-5xl relative"
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-card/40 border border-border/60 rounded-3xl p-6 sm:p-10 backdrop-blur-xl shadow-2xl shadow-black/30">
               {/* Coluna da Esquerda: Leque 3D de Cartas Raras */}
               <div className="lg:col-span-7 flex flex-col items-center">
-                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
-                  Cartas Oficiais TCGdex em Alta Resolução
-                </span>
+                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4"> <LocalizedText text={"Cartas Oficiais TCGdex em Alta Resolução"} /> </span>
 
                 <div className="relative h-72 sm:h-80 w-full max-w-md flex items-center justify-center">
                   {SHOWCASE_CARDS.map((card, idx) => (
@@ -246,7 +232,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                     >
                       <img
                         src={card.img}
-                        alt={card.name}
+                        alt={ui(card.name)}
                         className="w-full h-full object-cover rounded-2xl"
                       />
                       <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 backdrop-blur-xs border border-white/10 rounded-lg p-1.5 flex items-center justify-between">
@@ -264,9 +250,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
 
               {/* Coluna da Direita: Pacote Interativo com BoosterPackArt */}
               <div className="lg:col-span-5 flex flex-col items-center text-center p-4 border-t lg:border-t-0 lg:border-l border-border/40">
-                <span className="font-mono text-xs uppercase tracking-widest text-amber-400 mb-2 font-bold">
-                  Demonstração de Pacote Booster
-                </span>
+                <span className="font-mono text-xs uppercase tracking-widest text-amber-400 mb-2 font-bold"> <LocalizedText text={"Demonstração de Pacote Booster"} /> </span>
                 <h3 className="font-syne text-xl font-bold text-foreground mb-4">
                   {activePack}
                 </h3>
@@ -282,7 +266,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
 
                 {/* Seletor Rápido de Temas de Pacote */}
                 <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-                  {["Pacote simples", "Pacote raro", "Grande pacote", "Pacote lendário"].map((theme) => (
+                  {[ui("Pacote simples"), ui("Pacote raro"), ui("Grande pacote"), ui("Pacote lendário")].map((theme) => (
                     <button
                       key={theme}
                       onClick={() => {
@@ -307,15 +291,9 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
         {/* RECURSOS & FUNCIONALIDADES MODERNAS */}
         <section className="container mx-auto px-4 py-16 sm:py-24 border-t border-border/40">
           <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-16">
-            <Badge variant="outline" className="mb-3 font-mono text-xs text-primary border-primary/30">
-              Experiência Completa
-            </Badge>
-            <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              Tudo o que um Treinador Precisa
-            </h2>
-            <p className="text-muted-foreground font-sans text-sm sm:text-base mt-2">
-              Tudo o que você precisa para colecionar, abrir pacotes e interagir com outros treinadores.
-            </p>
+            <Badge variant="outline" className="mb-3 font-mono text-xs text-primary border-primary/30"> <LocalizedText text={"Experiência Completa"} /> </Badge>
+            <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight"> <LocalizedText text={"Tudo o que um Treinador Precisa"} /> </h2>
+            <p className="text-muted-foreground font-sans text-sm sm:text-base mt-2"> <LocalizedText text={"Tudo o que você precisa para colecionar, abrir pacotes e interagir com outros treinadores."} /> </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -337,7 +315,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                     </div>
 
                     <h3 className="font-syne text-lg font-bold text-foreground mb-2">
-                      {feat.title}
+                      {ui(feat.title)}
                     </h3>
                     <p className="font-sans text-xs sm:text-sm text-muted-foreground leading-relaxed">
                       {feat.desc}
@@ -354,12 +332,8 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
           <div className="rounded-3xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-sky-500/15 border border-amber-500/30 p-8 sm:p-12 text-center relative overflow-hidden backdrop-blur-md">
             <div className="max-w-2xl mx-auto">
               <span className="text-3xl sm:text-4xl mb-3 block">🎁</span>
-              <h2 className="font-syne text-2xl sm:text-4xl font-black text-foreground mb-3">
-                Comece sua jornada com Boosters Gratuitos
-              </h2>
-              <p className="font-sans text-xs sm:text-base text-muted-foreground mb-8">
-                Crie sua conta em menos de 1 minuto ou jogue diretamente como convidado para abrir pacotes e começar sua coleção lendária!
-              </p>
+              <h2 className="font-syne text-2xl sm:text-4xl font-black text-foreground mb-3"> <LocalizedText text={"Comece sua jornada com Boosters Gratuitos"} /> </h2>
+              <p className="font-sans text-xs sm:text-base text-muted-foreground mb-8"> <LocalizedText text={"Crie sua conta em menos de 1 minuto ou jogue diretamente como convidado para abrir pacotes e começar sua coleção lendária!"} /> </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
@@ -367,8 +341,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                   size="lg"
                   className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-syne rounded-xl shadow-lg shadow-amber-500/20"
                 >
-                  <Link href="/entrar">
-                    Jogar Agora Gratuitamente <ArrowRight className="size-4 ml-1.5" />
+                  <Link href="/entrar"> <LocalizedText text={"Jogar Agora Gratuitamente"} /> <ArrowRight className="size-4 ml-1.5" />
                   </Link>
                 </Button>
                 <Button
@@ -377,7 +350,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
                   size="lg"
                   className="w-full sm:w-auto h-12 px-6 font-syne font-semibold rounded-xl"
                 >
-                  <Link href="/entrar">Entrar sem Cadastro</Link>
+                  <Link href="/entrar"><LocalizedText text={"Entrar sem Cadastro"} /></Link>
                 </Button>
               </div>
             </div>
@@ -389,9 +362,9 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
       <footer className="border-t border-border/40 bg-card/40 py-8">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground font-sans">
           <div className="flex items-center gap-2">
-            <span className="font-syne font-bold text-foreground">SimTCG</span>
-            <span>• Pokémon TCG Simulator</span>
-            <span>• Feito por fãs e treinadores</span>
+            <span className="font-syne font-bold text-foreground"><LocalizedText text={"SimTCG"} /></span>
+            <span><LocalizedText text={"• Pokémon TCG Simulator"} /></span>
+            <span><LocalizedText text={"• Feito por fãs e treinadores"} /></span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -401,7 +374,7 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               className="hover:text-foreground transition-colors flex items-center gap-1.5"
             >
               <GitHubLogoIcon className="size-4" />
-              <span>Código Aberto no GitHub</span>
+              <span><LocalizedText text={"Código Aberto no GitHub"} /></span>
             </Link>
           </div>
         </div>

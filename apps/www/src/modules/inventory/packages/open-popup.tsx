@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,7 @@ export function OpenPackagePopup({
 
   return (
     <>
-      <Button className="w-full mt-4" onClick={() => setIsOpen(true)}>
-        Abrir
-      </Button>
+      <Button className="w-full mt-4" onClick={() => setIsOpen(true)}> <LocalizedText text={"Abrir"} /> </Button>
       <PackOpeningModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}

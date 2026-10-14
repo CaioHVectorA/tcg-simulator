@@ -1,3 +1,6 @@
+import { debit } from "../lib/economy";
+import { operation } from "../lib/operation";
+import type { Prisma } from "@prisma/client";
 import Elysia, { t } from "elysia";
 import { prisma } from "../helpers/prisma.client";
 import { errorResponse, sucessResponse } from "../lib/mount-response";
@@ -58,6 +61,10 @@ export const storeController = new Elysia({}).group("/store", (app) => {
       "/checkout",
       async ({ body, query, user, set }) => {
         const { items } = body;
+        if (items.reduce((sum, item) => sum + item.quantity, 0) > 100) {
+          set.status = 400;
+          return errorResponse("common.invalidQuantity", "common.invalidQuantity");
+        }
         const packageItems = items.filter((i) => i.type === "package");
         const cardItems = items.filter((i) => i.type === "card");
 
@@ -83,7 +90,7 @@ export const storeController = new Elysia({}).group("/store", (app) => {
         let rarityPointsGain = 0;
         const packagesToCreate: { packageId: number; userId: number }[] = [];
         const cardsToCreate: { cardId: number; userId: number }[] = [];
-        const purchasesToCreate: any[] = [];
+        const purchasesToCreate: Prisma.User_PurchaseCreateManyInput[] = [];
 
         for (const item of packageItems) {
           const pack = packageMap.get(item.id);
@@ -119,46 +126,26 @@ export const storeController = new Elysia({}).group("/store", (app) => {
           rarityPointsGain += promo.card.rarity * item.quantity;
         }
 
-        if (user.money < total) {
-          set.status = 400;
-          return errorResponse(
-            "Sem dinheiro suficiente",
-            "Você não tem moedas suficientes para comprar esses itens"
-          );
-        }
-
-        const txs: any[] = [
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              money: { decrement: total },
-              rarityPoints: { increment: rarityPointsGain },
-            },
-          }),
-        ];
-
-        if (purchasesToCreate.length > 0) {
-          txs.push(prisma.user_Purchase.createMany({ data: purchasesToCreate }));
-        }
-        if (packagesToCreate.length > 0) {
-          txs.push(prisma.packages_User.createMany({ data: packagesToCreate }));
-        }
-        if (cardsToCreate.length > 0) {
-          txs.push(prisma.cards_user.createMany({ data: cardsToCreate }));
-        }
-
-        await prisma.$transaction(txs);
+        await operation(prisma, user.id, "checkout", items, query.key, async (tx) => {
+          await debit(tx, user.id, total);
+          await tx.user.update({ where: { id: user.id }, data: { rarityPoints: { increment: rarityPointsGain } } });
+          if (purchasesToCreate.length) await tx.user_Purchase.createMany({ data: purchasesToCreate });
+          if (packagesToCreate.length) await tx.packages_User.createMany({ data: packagesToCreate });
+          if (cardsToCreate.length) await tx.cards_user.createMany({ data: cardsToCreate });
+          return { success: true };
+        });
         return sucessResponse(null, "Compra realizada com sucesso");
       },
       {
-        query: t.Object({ key: t.String() }),
+        query: t.Object({ key: t.String({ minLength: 8, maxLength: 100, pattern: "^[a-zA-Z0-9_-]+$" }) }),
         body: t.Object({
           items: t.Array(
             t.Object({
-              id: t.Number(),
-              quantity: t.Number(),
+              id: t.Integer({ minimum: 1 }),
+              quantity: t.Integer({ minimum: 1, maximum: 100 }),
               type: t.Union([t.Literal("package"), t.Literal("card")]),
-            })
+            }),
+            { minItems: 1, maxItems: 100 },
           ),
         }),
       }

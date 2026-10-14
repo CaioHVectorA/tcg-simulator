@@ -147,9 +147,12 @@ model UserLevelReward {
 
 model User {
   id                                               Int                @id @default(autoincrement())
-  username                                         String
+  username                                         String             @unique
   password                                         String
-  email                                            String
+  authVersion                                      Int                @default(0)
+  passwordResetTokens                              PasswordResetToken[]
+  googleSubject                                    String?            @unique
+  email                                            String             @unique
   createdAt                                        DateTime           @default(now())
   updatedAt                                        DateTime           @default(now()) @updatedAt
   money                                            Int                @default(500)
@@ -300,6 +303,8 @@ model Transaction {
   idempotencyKey String   @unique
   createdAt      DateTime @default(now())
   status         String
+  requestHash    String?
+  result         Json?
   user_id        Int
   error          String?
   User           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -453,4 +458,16 @@ model trade_requests {
   users_trade_requests_receiver_idTousers User     @relation("trade_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
   users_trade_requests_sender_idTousers   User     @relation("trade_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
   trades                                  Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    Int
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  User      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+  @@map("password_reset_tokens")
 }

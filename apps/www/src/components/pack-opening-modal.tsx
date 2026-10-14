@@ -1,4 +1,6 @@
 "use client";
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,6 +46,7 @@ const RARITY_COLORS: Record<number, { glow: string; text: string; label: string;
 
 // Componente para o Verso da Carta estilo Pokémon
 function PokemonCardBack() {
+  const ui = useUiText();
   return (
     <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 p-3 shadow-2xl border-4 border-amber-500/70 flex items-center justify-center relative overflow-hidden select-none">
       {/* Luz ambiente interna */}
@@ -62,9 +65,7 @@ function PokemonCardBack() {
         </div>
 
         {/* Texto do verso */}
-        <span className="font-syne font-black text-xs tracking-widest text-amber-400/90 uppercase mt-5 drop-shadow-md">
-          POKÉMON TCG
-        </span>
+        <span className="font-syne font-black text-xs tracking-widest text-amber-400/90 uppercase mt-5 drop-shadow-md"> <LocalizedText text={"POKÉMON TCG"} /> </span>
       </div>
     </div>
   );
@@ -77,6 +78,7 @@ export function PackOpeningModal({
   initialQuantity = 1,
   preloadedCards,
 }: PackOpeningModalProps) {
+  const ui = useUiText();
   const { post, loading } = useApi();
   const { t } = useTranslation();
   const qClient = useQueryClient();
@@ -91,12 +93,18 @@ export function PackOpeningModal({
   const [inspectCard, setInspectCard] = useState<CardModalData | null>(null);
   const [maxRarityCard, setMaxRarityCard] = useState<OpenedCard | null>(null);
   const [totalOpenedInSession, setTotalOpenedInSession] = useState(0);
+  const requestKey = useRef<string>();
+  const inFlight = useRef(false);
+  const session = useRef(0);
+  const [openError, setOpenError] = useState<string>();
   const [summaryCountdown, setSummaryCountdown] = useState(0);
   const summaryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Inicialização ao abrir ou fechar modal
   useEffect(() => {
+    session.current++;
     if (isOpen) {
+      setTotalOpenedInSession(0);
       if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
       if (preloadedCards && preloadedCards.length > 0) {
         preloadedCards.forEach((c) => {
@@ -107,6 +115,8 @@ export function PackOpeningModal({
         });
       }
     } else {
+      requestKey.current = undefined;
+      setOpenError(undefined);
       setCards([]);
       setCurrentCardIndex(0);
       setIsFlipped(false);
@@ -116,7 +126,11 @@ export function PackOpeningModal({
 
   // Ação de rasgar o pacote (mutação acontece estritamente na ação explícita do usuário)
   const handleTearPack = async () => {
-    if (phase !== "ready") return;
+    if (phase !== "ready" || inFlight.current) return;
+    inFlight.current = true;
+    const version = session.current;
+    setOpenError(undefined);
+    requestKey.current ||= crypto.randomUUID();
 
     soundFx.playPackTear();
     setPhase("tearing");
@@ -127,8 +141,12 @@ export function PackOpeningModal({
       if (preloadedCards && preloadedCards.length > 0) {
         cardsGetted = preloadedCards;
       } else {
-        const res = await post("/packages/open", { packageId: pack.id });
-        cardsGetted = res.data.data || res.data || [];
+        const res = await post("/packages/open", { packageId: pack.id }, requestKey.current);
+        if (!res.data?.ok) {
+          requestKey.current = undefined;
+          throw new Error(res.data?.toast || t("packages.errorOpeningPack"));
+        }
+        cardsGetted = res.data.data;
       }
 
       // Pré-carrega instantaneamente todas as imagens das cartas para visualização sem delay
@@ -144,22 +162,28 @@ export function PackOpeningModal({
       // Ordena rigorosamente do MENOR nível de raridade para o MAIOR (Tier 1 -> Tier 5) para suspense máximo!
       const orderedCards = [...cardsGetted].sort((a, b) => (a.rarity || 1) - (b.rarity || 1));
 
-      // Transição fluida de 350ms sem interrupções
-      setTimeout(() => {
+      if (version !== session.current) return;
+      {
         setCards(orderedCards);
         setCurrentCardIndex(0);
         setIsFlipped(false);
         setPhase("revealing");
         setTotalOpenedInSession((prev) => prev + 1);
+        event("pack_opened", { cards: orderedCards.length });
+        event("first_pack_opened", {}, true);
 
         // Atualiza cache de usuário e inventário
-        qClient.invalidateQueries({ queryKey: ["packages"] });
+
         qClient.invalidateQueries({ queryKey: ["user"] });
         qClient.invalidateQueries({ queryKey: ["cards"] });
-      }, 350);
+        requestKey.current = undefined;
+      }
     } catch (err) {
-      setPhase("ready");
-    }
+      if (version === session.current) {
+        setOpenError(err instanceof Error ? t(err.message) : t("common.networkError"));
+        setPhase("ready");
+      }
+    } finally { inFlight.current = false; }
   };
 
   // Ação de virar a carta atual
@@ -203,12 +227,19 @@ export function PackOpeningModal({
   };
 
   const handleOpenAnother = () => {
+    requestKey.current = undefined;
+    setOpenError(undefined);
     setCards([]);
     setCurrentCardIndex(0);
     setIsFlipped(false);
     setPhase("ready");
   };
 
+  const close = () => {
+    if (inFlight.current) return;
+    qClient.invalidateQueries({ queryKey: ["packages"] });
+    onClose();
+  };
   const currentCard = cards[currentCardIndex];
   const rarityConfig = currentCard ? RARITY_COLORS[currentCard.rarity || 1] : RARITY_COLORS[1];
 
@@ -220,12 +251,13 @@ export function PackOpeningModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && !inFlight.current && close()}>
         <DialogContent className="max-w-4xl w-[95vw] h-[90vh] max-h-[850px] p-0 border border-slate-800 bg-slate-950/95 backdrop-blur-2xl text-white font-syne overflow-hidden flex flex-col justify-between shadow-2xl">
           <DialogHeader className="sr-only">
-            <DialogTitle>Abertura de Pacote - {pack?.name}</DialogTitle>
+            <DialogTitle><LocalizedText text={"Abertura de Pacote -"} /> {ui(pack?.name)}</DialogTitle>
           </DialogHeader>
 
+          {openError && <p role="alert" className="p-3 text-center text-rose-300">{openError}</p>}
           {/* Iluminação Ambiente Dinâmica de Fundo */}
           <div
             className="absolute inset-0 pointer-events-none transition-all duration-700 -z-10"
@@ -243,17 +275,15 @@ export function PackOpeningModal({
           <div className="p-4 sm:p-6 flex items-center justify-between border-b border-white/10 z-10 bg-slate-900/40">
             <div className="flex items-center gap-3">
               <span className="text-xl sm:text-2xl font-black tracking-wide text-amber-400">
-                {pack.name}
+                {ui(pack.name)}
               </span>
               <Badge variant="outline" className="border-amber-500/30 text-amber-300 font-mono text-xs">
-                {pack.quantity} restantes
-              </Badge>
+                {Math.max(0, pack.quantity - totalOpenedInSession)} <LocalizedText text={"restantes"} /> </Badge>
             </div>
 
             {phase === "revealing" && (
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm font-semibold text-slate-300 font-mono">
-                  Carta {currentCardIndex + 1} de {cards.length}
+                <span className="text-xs sm:text-sm font-semibold text-slate-300 font-mono"> <LocalizedText text={"Carta"} /> {currentCardIndex + 1} <LocalizedText text={"de"} /> {cards.length}
                 </span>
                 <div className="flex gap-1">
                   {cards.map((_, idx) => (
@@ -276,14 +306,14 @@ export function PackOpeningModal({
           {/* Centro: Palco Principal */}
           <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
             {/* FASE 1: PACOTE PRONTO PARA RASGAR */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {phase === "ready" && (
                 <motion.div
                   key="ready"
                   initial={{ scale: 0.8, opacity: 0, y: 30 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 1.05, opacity: 0 }}
-                  transition={{ duration: 0.4 }}
+                  transition={{ duration: 0.2 }}
                   className="flex flex-col items-center gap-6 cursor-pointer group"
                   onClick={handleTearPack}
                 >
@@ -296,11 +326,11 @@ export function PackOpeningModal({
                     {isStandardPack ? (
                       <BoosterPackArt name={pack.name} cardsQuantity={pack.cards_quantity} className="w-full h-full" />
                     ) : (
-                      <BoosterPackArt 
-                        name={pack.name} 
-                        logoUrl={loadTcgImg(pack.image_url)} 
-                        cardsQuantity={pack.cards_quantity} 
-                        className="w-full h-full" 
+                      <BoosterPackArt
+                        name={pack.name}
+                        logoUrl={loadTcgImg(pack.image_url)}
+                        cardsQuantity={pack.cards_quantity}
+                        className="w-full h-full"
                       />
                     )}
 
@@ -309,9 +339,7 @@ export function PackOpeningModal({
 
                     {/* Linha pontilhada de rasgo */}
                     <div className="absolute top-12 left-0 right-0 border-t-2 border-dashed border-amber-300/80 flex items-center justify-end px-3">
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-amber-200 bg-slate-900/80 px-1.5 py-0.5 rounded">
-                        Rasgue aqui ✂️
-                      </span>
+                      <span className="text-[10px] uppercase font-mono tracking-widest text-amber-200 bg-slate-900/80 px-1.5 py-0.5 rounded"> <LocalizedText text={"Rasgue aqui ✂️"} /> </span>
                     </div>
                   </motion.div>
 
@@ -335,7 +363,7 @@ export function PackOpeningModal({
                   <motion.div
                     initial={{ y: 0, rotate: 0 }}
                     animate={{ y: -100, rotate: -20, opacity: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                     className="w-full h-16 rounded-t-2xl overflow-hidden border-4 border-b-0 border-amber-400 shadow-xl"
                   >
                     {isStandardPack ? (
@@ -344,11 +372,11 @@ export function PackOpeningModal({
                       </div>
                     ) : (
                       <div className="w-full h-72">
-                        <BoosterPackArt 
-                          name={pack.name} 
-                          logoUrl={loadTcgImg(pack.image_url)} 
-                          cardsQuantity={pack.cards_quantity} 
-                          className="w-full h-full" 
+                        <BoosterPackArt
+                          name={pack.name}
+                          logoUrl={loadTcgImg(pack.image_url)}
+                          cardsQuantity={pack.cards_quantity}
+                          className="w-full h-full"
                         />
                       </div>
                     )}
@@ -358,7 +386,7 @@ export function PackOpeningModal({
                   <motion.div
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: [0.5, 2.5], opacity: [0, 1, 0] }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.25 }}
                     className="absolute inset-0 bg-white rounded-full blur-2xl pointer-events-none"
                   />
 
@@ -374,7 +402,7 @@ export function PackOpeningModal({
                   <motion.div
                     initial={{ y: 0 }}
                     animate={{ y: 40, opacity: 0.9 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.25 }}
                     className="w-full flex-1 rounded-b-2xl overflow-hidden border-4 border-t-0 border-amber-400 shadow-2xl"
                   >
                     {isStandardPack ? (
@@ -384,7 +412,7 @@ export function PackOpeningModal({
                     ) : (
                       <img
                         src={loadTcgImg(pack.image_url)}
-                        alt={pack.name}
+                        alt={ui(pack.name)}
                         className="w-full h-72 object-cover -mt-16"
                       />
                     )}
@@ -397,7 +425,7 @@ export function PackOpeningModal({
                     className="absolute -bottom-8 flex items-center gap-2 bg-slate-900/90 border border-amber-400/50 text-amber-300 font-mono text-xs px-3.5 py-1 rounded-full shadow-xl"
                   >
                     <Sparkles className="size-3.5 text-amber-400 animate-spin" />
-                    <span>Liberando cartas do booster...</span>
+                    <span><LocalizedText text={"Liberando cartas do booster..."} /></span>
                   </motion.div>
                 </motion.div>
               )}
@@ -409,7 +437,7 @@ export function PackOpeningModal({
                   initial={{ scale: 0.7, y: 50, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
                   exit={{ scale: 0.8, x: 200, opacity: 0 }}
-                  transition={{ duration: 0.4 }}
+                  transition={{ duration: 0.2 }}
                   className="flex flex-col items-center gap-6"
                 >
                   {/* Card Container com rotação 3D */}
@@ -420,7 +448,7 @@ export function PackOpeningModal({
                   >
                     <motion.div
                       animate={{ rotateY: isFlipped ? 180 : 0 }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
                       style={{ transformStyle: "preserve-3d" }}
                       className="w-full h-full relative"
                     >
@@ -460,7 +488,7 @@ export function PackOpeningModal({
                       >
                         <TcgCardImage
                           src={currentCard.image_url}
-                          alt={currentCard.name}
+                          alt={ui(currentCard.name)}
                           className="w-full h-full object-cover rounded-2xl"
                         />
 
@@ -488,17 +516,17 @@ export function PackOpeningModal({
                       >
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className={`${rarityConfig.badge} font-mono text-xs px-3 py-0.5 rounded-full`}>
-                            {rarityConfig.label}
+                            {ui(t(`rarities.tier${currentCard?.rarity || 1}`))}
                           </Badge>
                           {currentCard.type && currentCard.type !== "none" && (
                             <Badge variant="outline" className="border-slate-600 font-mono text-xs text-slate-300">
-                              {currentCard.type.toUpperCase()}
+                              {ui(`types.${currentCard.type.toLowerCase()}`).toUpperCase()}
                             </Badge>
                           )}
                         </div>
 
                         <h3 className="text-xl sm:text-2xl font-black text-white">
-                          {currentCard.name}
+                          {ui(currentCard.name)}
                         </h3>
 
                         <Button
@@ -507,13 +535,10 @@ export function PackOpeningModal({
                           onClick={() => setInspectCard(currentCard)}
                           className="text-xs text-amber-300 hover:text-amber-200 hover:bg-white/10"
                         >
-                          <Eye className="size-3.5 mr-1" /> Inspecionar 3D com Foil
-                        </Button>
+                          <Eye className="size-3.5 mr-1" /> <LocalizedText text={"Inspecionar 3D com Foil"} /> </Button>
                       </motion.div>
                     ) : (
-                      <p className="text-sm text-slate-400 font-mono animate-pulse">
-                        Toque na carta ou use o botão para virar...
-                      </p>
+                      <p className="text-sm text-slate-400 font-mono animate-pulse"> <LocalizedText text={"Toque na carta ou use o botão para virar..."} /> </p>
                     )}
                   </div>
                 </motion.div>
@@ -531,35 +556,28 @@ export function PackOpeningModal({
                     <div className="inline-flex items-center justify-center p-3 bg-amber-500/20 text-amber-400 rounded-full mb-3 border border-amber-500/30">
                       <Trophy className="size-8" />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white">
-                      Pacote Aberto com Sucesso! 🎉
-                    </h2>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white"> <LocalizedText text={"Pacote Aberto com Sucesso! 🎉"} /> </h2>
                     <p className="text-sm text-slate-400 mt-1">
-                      {cards.length} novas cartas adicionadas ao seu inventário.
-                    </p>
+                      {cards.length} <LocalizedText text={"novas cartas adicionadas ao seu inventário."} /> </p>
                   </div>
 
                   {/* Badges de Destaque */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {legendariesCount > 0 && (
                       <Badge variant="outline" className="border-rose-500/40 bg-rose-500/10 text-rose-300 font-mono px-3 py-1">
-                        👑 {legendariesCount} Lendárias
-                      </Badge>
+                        👑 {legendariesCount} <LocalizedText text={"Lendárias"} /> </Badge>
                     )}
                     {mythicsCount > 0 && (
                       <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
-                        ✨ {mythicsCount} Místicas
-                      </Badge>
+                        ✨ {mythicsCount} <LocalizedText text={"Místicas"} /> </Badge>
                     )}
                     {epicsCount > 0 && (
                       <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
-                        💎 {epicsCount} Épicas
-                      </Badge>
+                        💎 {epicsCount} <LocalizedText text={"Épicas"} /> </Badge>
                     )}
                     {raresCount > 0 && (
                       <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
-                        ⭐ {raresCount} Raras
-                      </Badge>
+                        ⭐ {raresCount} <LocalizedText text={"Raras"} /> </Badge>
                     )}
                   </div>
 
@@ -573,13 +591,13 @@ export function PackOpeningModal({
                       >
                         <TcgCardImage
                           src={card.image_url}
-                          alt={card.name}
+                          alt={ui(card.name)}
                           className="w-full h-full object-cover rounded-xl"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
-                          <span className="text-xs font-bold text-white truncate">{card.name}</span>
+                          <span className="text-xs font-bold text-white truncate">{ui(card.name)}</span>
                           <span className="text-[10px] text-amber-300 font-mono">
-                            {RARITY_COLORS[card.rarity || 1]?.label}
+                            {ui(RARITY_COLORS[card.rarity || 1]?.label)}
                           </span>
                         </div>
                       </div>
@@ -644,11 +662,11 @@ export function PackOpeningModal({
                     asChild
                     className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
                   >
-                    <Link href="/colecao" onClick={onClose}>
+                    <Link href="/colecao" onClick={close}>
                       {t("nav.collection")}
                     </Link>
                   </Button>
-                  {pack.quantity > 1 && (
+                  {pack.quantity > totalOpenedInSession && (
                     <Button
                       onClick={() => {
                         if (summaryTimerRef.current) clearInterval(summaryTimerRef.current);
@@ -656,14 +674,13 @@ export function PackOpeningModal({
                       }}
                       className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
                     >
-                      <RotateCcw className="size-3.5 mr-1.5" /> {t("store.openAnotherBooster")} ({pack.quantity - 1}x)
-                    </Button>
+                      <RotateCcw className="size-3.5 mr-1.5" /> {t("store.openAnotherBooster")} ({pack.quantity - totalOpenedInSession}<LocalizedText text={"x)"} /> </Button>
                   )}
                 </div>
               </div>
             ) : (
               <div className="w-full flex justify-end">
-                <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">
+                <Button variant="ghost" onClick={close} className="text-slate-400 hover:text-white">
                   {t("common.close")}
                 </Button>
               </div>

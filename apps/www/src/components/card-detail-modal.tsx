@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import {
@@ -45,6 +46,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 // Verso da Carta estilo Pokémon Oficial
 function PokemonCardBack() {
+  const ui = useUiText();
   return (
     <div className="w-full aspect-[2.5/3.5] rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 p-3 shadow-2xl border-4 border-amber-500/70 flex items-center justify-center relative overflow-hidden select-none">
       <div className="absolute inset-0 opacity-25 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent pointer-events-none" />
@@ -55,9 +57,7 @@ function PokemonCardBack() {
             <div className="size-4 rounded-full bg-slate-200 border border-slate-400 animate-pulse" />
           </div>
         </div>
-        <span className="font-syne font-black text-[11px] tracking-widest text-amber-400/90 uppercase mt-4 drop-shadow-md">
-          POKÉMON TCG
-        </span>
+        <span className="font-syne font-black text-[11px] tracking-widest text-amber-400/90 uppercase mt-4 drop-shadow-md"> <LocalizedText text={"POKÉMON TCG"} /> </span>
       </div>
     </div>
   );
@@ -68,6 +68,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const ui = useUiText();
   const { t } = useTranslation();
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [isHovered, setIsHovered] = useState(false);
@@ -111,7 +112,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl bg-card/95 border-border backdrop-blur-2xl font-syne p-6 sm:p-8 shadow-2xl rounded-2xl">
         <DialogHeader className="sr-only">
-          <DialogTitle>{card.name}</DialogTitle>
+          <DialogTitle>{ui(card.name)}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -139,7 +140,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 <div className="relative">
                   <TcgCardImage
                     src={card.image_url}
-                    alt={card.name}
+                    alt={ui(card.name)}
                     className="w-full aspect-[2.5/3.5] object-cover rounded-2xl border-2 border-white/15"
                   />
 
@@ -185,11 +186,10 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 className="h-8 text-xs font-semibold gap-1.5 rounded-full px-3"
               >
                 <Rotate3d className="size-3.5 text-amber-500" />
-                <span>{isFlipped ? "Ver Frente" : "Ver Verso"}</span>
+                <span>{isFlipped ? ui("Ver Frente") : ui("Ver Verso")}</span>
               </Button>
               <Badge variant="secondary" className="text-[10px] font-mono gap-1 text-muted-foreground">
-                <Compass className="size-3" /> Mova o mouse para girar em 3D
-              </Badge>
+                <Compass className="size-3" /> <LocalizedText text={"Mova o mouse para girar em 3D"} /> </Badge>
             </div>
           </div>
 
@@ -198,21 +198,21 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Badge variant="outline" className={`${rarityInfo.color} font-mono text-xs px-2.5 py-0.5 rounded-full`}>
-                  {rarityInfo.stars} {rarityInfo.label}
+                  {rarityInfo.stars} {ui(rarityInfo.label)}
                 </Badge>
                 {card.type && card.type !== "none" && (
                   <Badge variant="outline" className={`${typeStyle} font-mono text-xs px-2.5 py-0.5 rounded-full`}>
-                    {card.type.toUpperCase()}
+                    {ui(`types.${card.type.toLowerCase()}`).toUpperCase()}
                   </Badge>
                 )}
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                {card.name}
+                {ui(card.name)}
               </h2>
               {card.card_id && (
                 <p className="text-xs text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
-                  <Tag className="size-3" /> ID: {card.card_id}
+                  <Tag className="size-3" /> <LocalizedText text={"ID:"} /> {card.card_id}
                 </p>
               )}
             </div>
@@ -230,7 +230,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 <Sparkles className="size-5 text-amber-400" />
                 <div>
                   <span className="text-[11px] text-muted-foreground block font-sans">{t("common.rarity")}</span>
-                  <span className="text-lg font-bold font-mono">Tier {card.rarity}</span>
+                  <span className="text-lg font-bold font-mono"><LocalizedText text={"Tier"} /> {card.rarity}</span>
                 </div>
               </div>
             </div>

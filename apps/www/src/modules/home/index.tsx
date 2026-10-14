@@ -1,4 +1,5 @@
 'use client'
+import { useUiText } from "@/i18n/localized-text";
 
 import * as React from 'react'
 import Link from 'next/link'
@@ -47,6 +48,7 @@ type HomeData = {
 }
 
 export function HomePage() {
+  const ui = useUiText();
   const { t } = useTranslation()
   const { get } = useApi()
   const { refresh } = useRouter()
@@ -192,7 +194,7 @@ export function HomePage() {
                 <TcgCardImage
                   className="w-full h-full object-cover"
                   src={data.topCards[0]}
-                  alt="Top Card 1"
+                  alt={ui("Top Card 1")}
                 />
               </motion.div>
             )}
@@ -208,7 +210,7 @@ export function HomePage() {
                 <TcgCardImage
                   className="w-full h-full object-cover"
                   src={data.topCards[1]}
-                  alt="Top Card 2"
+                  alt={ui("Top Card 2")}
                 />
               </motion.div>
             ) : data.topCards[0] ? null : null}
@@ -224,7 +226,7 @@ export function HomePage() {
                 <TcgCardImage
                   className="w-full h-full object-cover"
                   src={data.topCards[2]}
-                  alt="Top Card 3"
+                  alt={ui("Top Card 3")}
                 />
               </motion.div>
             )}

@@ -1,4 +1,5 @@
 "use client";
+import { useUiText } from "@/i18n/localized-text";
 
 import React from "react";
 import { useTranslation, Locale } from "@/i18n/LanguageContext";
@@ -20,6 +21,7 @@ const LOCALES: { value: Locale; flag: string; label: string; shortLabel: string 
 ];
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+  const ui = useUiText();
   const { locale, setLocale } = useTranslation();
 
   const handleSelect = (newLocale: Locale) => {
@@ -37,7 +39,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
           variant="ghost"
           size={compact ? "icon" : "sm"}
           className="h-9 px-2.5 rounded-xl border border-border/60 hover:bg-accent flex items-center gap-1.5 text-xs font-mono font-bold"
-          title="Alterar Idioma / Change Language / Cambiar Idioma"
+          title={ui("Alterar Idioma / Change Language / Cambiar Idioma")}
         >
           <span className="text-sm select-none">{current.flag}</span>
           {!compact && (
@@ -56,7 +58,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
           >
             <div className="flex items-center gap-2">
               <span className="text-base">{loc.flag}</span>
-              <span className="text-xs font-medium">{loc.label}</span>
+              <span className="text-xs font-medium">{ui(loc.label)}</span>
             </div>
             {locale === loc.value && <Check className="size-3.5 text-primary stroke-[3]" />}
           </DropdownMenuItem>

@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState } from "react";
 import {
@@ -32,6 +33,7 @@ export function CheckoutDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const ui = useUiText();
   const { t } = useTranslation();
   const { kart, checkout, loading } = useKart();
   const user = useUser();
@@ -66,13 +68,9 @@ export function CheckoutDialog({
             <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <ShieldCheck className="size-4" />
             </div>
-            <DialogTitle className="text-lg sm:text-xl font-black text-foreground">
-              Revisão de Compra
-            </DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-black text-foreground"> <LocalizedText text={"Revisão de Compra"} /> </DialogTitle>
           </div>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Confira seus itens e saldo antes de transferir para seu inventário.
-          </DialogDescription>
+          <DialogDescription className="text-xs text-muted-foreground"> <LocalizedText text={"Confira seus itens e saldo antes de transferir para seu inventário."} /> </DialogDescription>
         </DialogHeader>
 
         {/* Lista de Itens & Resumo */}
@@ -94,10 +92,10 @@ export function CheckoutDialog({
                   </div>
                   <div className="min-w-0">
                     <h5 className="font-bold text-foreground truncate max-w-[170px]">
-                      {item.name}
+                      {ui(item.name)}
                     </h5>
                     <span className="text-[10px] text-muted-foreground">
-                      {item.quantity}x {balanceTranslate(item.price)}
+                      {item.quantity}<LocalizedText text={"x"} /> {balanceTranslate(item.price)}
                     </span>
                   </div>
                 </div>
@@ -112,7 +110,7 @@ export function CheckoutDialog({
           {/* Balanço e Saldo */}
           <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Seu Saldo Atual:</span>
+              <span><LocalizedText text={"Seu Saldo Atual:"} /></span>
               <span className="font-mono font-bold text-foreground flex items-center gap-1">
                 <Coins className="size-3 text-amber-400" />
                 {balanceTranslate(userBalance)}
@@ -120,7 +118,7 @@ export function CheckoutDialog({
             </div>
 
             <div className="flex items-center justify-between text-sm font-black border-t border-border pt-2 text-foreground">
-              <span>Total a Pagar ({totalItems} itens):</span>
+              <span><LocalizedText text={"Total a Pagar ("} />{totalItems} <LocalizedText text={"itens):"} /></span>
               <span className="font-mono text-amber-500 flex items-center gap-1">
                 <Coins className="size-4 fill-amber-500/20" />
                 {balanceTranslate(totalCoins)}
@@ -131,12 +129,12 @@ export function CheckoutDialog({
               {hasEnoughCoins ? (
                 <div className="flex items-center gap-1 text-emerald-500 font-bold">
                   <CheckCircle2 className="size-3.5" />
-                  <span>Saldo suficiente para esta compra.</span>
+                  <span><LocalizedText text={"Saldo suficiente para esta compra."} /></span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-rose-500 font-bold">
                   <AlertCircle className="size-3.5" />
-                  <span>Saldo insuficiente. Faltam {balanceTranslate(totalCoins - userBalance)}.</span>
+                  <span><LocalizedText text={"Saldo insuficiente. Faltam"} /> {balanceTranslate(totalCoins - userBalance)}.</span>
                 </div>
               )}
             </div>
@@ -160,7 +158,7 @@ export function CheckoutDialog({
               {isSubmitting || loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Processando...</span>
+                  <span><LocalizedText text={"Processando..."} /></span>
                 </>
               ) : (
                 <>

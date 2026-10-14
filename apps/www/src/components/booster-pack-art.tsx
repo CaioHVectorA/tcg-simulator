@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React from "react";
 import { Sparkles } from "lucide-react";
@@ -415,6 +416,7 @@ export function BoosterPackArt({
   showCrimp = true,
   logoUrl,
 }: BoosterPackArtProps) {
+  const ui = useUiText();
   const theme = getTheme(name);
   const [logoFailed, setLogoFailed] = React.useState(false);
 
@@ -445,7 +447,7 @@ export function BoosterPackArt({
         <div className="w-full">
           {logoUrl && !logoFailed ? null : (
             <h3 className="font-syne font-black text-sm sm:text-base md:text-lg text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] line-clamp-2">
-              {name}
+              {ui(name)}
             </h3>
           )}
         </div>
@@ -462,7 +464,7 @@ export function BoosterPackArt({
             <div className="relative w-full max-h-24 sm:max-h-28 flex items-center justify-center py-2 group-hover:scale-105 transition-transform duration-300">
               <img
                 src={logoUrl}
-                alt={name}
+                alt={ui(name)}
                 onError={() => setLogoFailed(true)}
                 className="max-h-20 sm:max-h-24 w-auto max-w-[88%] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]"
               />
@@ -496,7 +498,7 @@ export function BoosterPackArt({
               {theme.ballType === "master" && (
                 <>
                   <div className="w-full h-1/2 bg-gradient-to-b from-purple-800 to-indigo-900 relative border-b-2 border-slate-950 flex items-center justify-center">
-                    <span className="text-white font-black font-syne text-xs z-10 drop-shadow">M</span>
+                    <span className="text-white font-black font-syne text-xs z-10 drop-shadow"><LocalizedText text={"M"} /></span>
                     <div className="absolute top-1 left-1.5 size-2.5 bg-pink-500 rounded-full" />
                     <div className="absolute top-1 right-1.5 size-2.5 bg-pink-500 rounded-full" />
                   </div>
@@ -564,12 +566,9 @@ export function BoosterPackArt({
         <div className="w-full flex items-center justify-between text-left mt-auto pt-1">
           {cardsQuantity ? (
             <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[9px] sm:text-[10px] shadow-sm ${theme.badgeBg}`}>
-              {cardsQuantity} CARTAS
-            </span>
+              {cardsQuantity} <LocalizedText text={"CARTAS"} /> </span>
           ) : (
-            <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[9px] sm:text-[10px] shadow-sm ${theme.badgeBg}`}>
-              BOOSTER
-            </span>
+            <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[9px] sm:text-[10px] shadow-sm ${theme.badgeBg}`}> <LocalizedText text={"BOOSTER"} /> </span>
           )}
         </div>
       </div>

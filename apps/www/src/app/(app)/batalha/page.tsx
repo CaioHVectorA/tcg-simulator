@@ -1,4 +1,6 @@
 "use client";
+import { event } from "@/lib/telemetry";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -123,6 +125,7 @@ const RARITY_STYLE: Record<number, { color: string; border: string; bg: string }
 };
 
 export default function BattlePage() {
+  const ui = useUiText();
   const { t } = useTranslation();
   const { get, post } = useApi();
   const { toast } = useToast();
@@ -153,6 +156,7 @@ export default function BattlePage() {
   const [currentGoBattle, setCurrentGoBattle] = useState<any | null>(null);
   const [currentRoundIdx, setCurrentRoundIdx] = useState(0);
   const [currentEventIdx, setCurrentEventIdx] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isBattling, setIsBattling] = useState(false);
 
@@ -179,7 +183,7 @@ export default function BattlePage() {
     queryKey: ["battle-npcs"],
     queryFn: async () => {
       const res = await get("/battle/npcs");
-      return res.data?.data || res.data;
+      return res.data.data.npcs;
     },
   });
 
@@ -188,7 +192,7 @@ export default function BattlePage() {
     queryKey: ["battle-history"],
     queryFn: async () => {
       const res = await get("/battle/history");
-      return res.data?.data || res.data;
+      return res.data.data.history;
     },
   });
 
@@ -336,6 +340,7 @@ export default function BattlePage() {
       return res.data?.data || res.data;
     },
     onSuccess: (data) => {
+      event("first_battle_completed", {}, true);
       setIsBattling(false);
       setIsTeamPreviewOpen(false);
       setCurrentGoBattle(data);
@@ -424,18 +429,18 @@ export default function BattlePage() {
     if (currentEventIdx < round.events.length) {
       const timer = setTimeout(() => {
         setCurrentEventIdx((prev) => prev + 1);
-      }, 700);
+      }, 350 / playbackSpeed);
       return () => clearTimeout(timer);
     } else if (currentRoundIdx < currentGoBattle.rounds.length - 1) {
       const timer = setTimeout(() => {
         setCurrentRoundIdx((prev) => prev + 1);
         setCurrentEventIdx(0);
-      }, 1200);
+      }, 600 / playbackSpeed);
       return () => clearTimeout(timer);
     } else {
       setIsAutoPlaying(false);
     }
-  }, [isGoBattleModalOpen, currentGoBattle, currentRoundIdx, currentEventIdx, isAutoPlaying]);
+  }, [isGoBattleModalOpen, currentGoBattle, currentRoundIdx, currentEventIdx, isAutoPlaying, playbackSpeed]);
 
   // Manipulação de slots no Deck Builder
   const handleSlotClick = (slotIdx: number) => {
@@ -537,16 +542,10 @@ export default function BattlePage() {
               <span className="flex items-center justify-center size-8 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400">
                 <Swords className="size-4" />
               </span>
-              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex items-center gap-2">
-                Arena de Batalha Pokémon
-                <Badge variant="outline" className="text-[10px] font-mono border-red-500/50 text-red-400 bg-red-500/10">
-                  Modo Duelo GO
-                </Badge>
+              <h2 className="text-xl sm:text-2xl font-bold font-syne text-foreground tracking-tight flex items-center gap-2"> <LocalizedText text={"Arena de Batalha Pokémon"} /> <Badge variant="outline" className="text-[10px] font-mono border-red-500/50 text-red-400 bg-red-500/10"> <LocalizedText text={"Modo Duelo GO"} /> </Badge>
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-              Monte seu elenco de 6 Pokémon, aplique o blefe tático escolhendo seus 3 combatentes, use escudos com sabedoria e derrote os Líderes de Ginásio!
-            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed"> <LocalizedText text={"Monte seu elenco de 6 Pokémon, aplique o blefe tático escolhendo seus 3 combatentes, use escudos com sabedoria e derrote os Líderes de Ginásio!"} /> </p>
           </div>
 
           {/* BOTÃO (i) COMO BATALHAR */}
@@ -556,7 +555,7 @@ export default function BattlePage() {
             className="rounded-xl border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs gap-2 shrink-0 h-10 shadow-lg shadow-amber-500/10"
           >
             <Info className="size-4 text-amber-400 animate-pulse" />
-            <span>Como Batalhar (Tutorial & Regras)</span>
+            <span><LocalizedText text={"Como Batalhar (Tutorial & Regras)"} /></span>
           </Button>
         </div>
       </div>
@@ -567,15 +566,15 @@ export default function BattlePage() {
           <TabsList className="bg-secondary/80 border border-border p-1">
             <TabsTrigger value="deck" className="text-xs sm:text-sm font-semibold gap-2">
               <Shield className="size-4 text-amber-500" />
-              <span>Montar Time (6 Pokémon)</span>
+              <span><LocalizedText text={"Montar Time (6 Pokémon)"} /></span>
             </TabsTrigger>
             <TabsTrigger value="gyms" className="text-xs sm:text-sm font-semibold gap-2">
               <Swords className="size-4 text-red-500" />
-              <span>Desafiar Ginásios ({npcsData?.length || 5})</span>
+              <span><LocalizedText text={"Desafiar Ginásios ("} />{npcsData?.length || 5})</span>
             </TabsTrigger>
             <TabsTrigger value="history" className="text-xs sm:text-sm font-semibold gap-2">
               <History className="size-4 text-purple-400" />
-              <span>Histórico</span>
+              <span><LocalizedText text={"Histórico"} /></span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -585,16 +584,14 @@ export default function BattlePage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-border text-center">
-                <span className="text-[10px] uppercase font-mono text-muted-foreground block">Teto de PR</span>
+                <span className="text-[10px] uppercase font-mono text-muted-foreground block"><LocalizedText text={"Teto de PR"} /></span>
                 <span className={`text-sm font-bold font-mono ${totalPr > 20 ? "text-rose-500" : "text-amber-400"}`}>
-                  {totalPr} / 20 PR
-                </span>
+                  {totalPr} <LocalizedText text={"/ 20 PR"} /> </span>
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-border text-center">
-                <span className="text-[10px] uppercase font-mono text-muted-foreground block">Poder Total (CP)</span>
+                <span className="text-[10px] uppercase font-mono text-muted-foreground block"><LocalizedText text={"Poder Total (CP)"} /></span>
                 <span className="text-sm font-bold font-mono text-emerald-400">
-                  {totalCp} CP
-                </span>
+                  {totalCp} <LocalizedText text={"CP"} /> </span>
               </div>
             </div>
 
@@ -607,7 +604,7 @@ export default function BattlePage() {
                 className="rounded-xl text-xs font-semibold gap-1.5 flex-1 sm:flex-initial border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
               >
                 <Sparkles className="size-3.5" />
-                <span>Auto Recomendar</span>
+                <span><LocalizedText text={"Auto Recomendar"} /></span>
               </Button>
               <Button
                 size="sm"
@@ -616,7 +613,7 @@ export default function BattlePage() {
                 className="rounded-xl text-xs font-bold gap-1.5 flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
               >
                 <Check className="size-3.5 stroke-[3]" />
-                <span>Salvar Time</span>
+                <span><LocalizedText text={"Salvar Time"} /></span>
               </Button>
             </div>
           </div>
@@ -636,7 +633,7 @@ export default function BattlePage() {
                 {slot ? (
                   <>
                     <div className="relative w-full flex-1 rounded-xl overflow-hidden mb-1.5">
-                      <TcgCardImage src={slot.card.image_url} alt={slot.card.name} />
+                      <TcgCardImage src={slot.card.image_url} alt={ui(slot.card.name)} />
                       <button
                         onClick={(e) => handleClearSlot(idx, e)}
                         className="absolute top-1 right-1 size-6 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
@@ -644,14 +641,13 @@ export default function BattlePage() {
                         <Trash2 className="size-3.5" />
                       </button>
                       <div className="absolute top-1 left-1 bg-black/80 rounded px-1 text-[9px] font-mono font-bold text-amber-400">
-                        {slot.recruitPoints} PR
-                      </div>
+                        {slot.recruitPoints} <LocalizedText text={"PR"} /> </div>
                     </div>
                     <div className="text-left w-full">
-                      <p className="text-xs font-bold text-foreground truncate">{slot.card.name}</p>
+                      <p className="text-xs font-bold text-foreground truncate">{ui(slot.card.name)}</p>
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
-                        <span>HP {slot.card.hp}</span>
-                        <span className="text-amber-400 font-bold">{getCardCombatPowerNumber(slot)} CP</span>
+                        <span><LocalizedText text={"HP"} /> {slot.card.hp}</span>
+                        <span className="text-amber-400 font-bold">{getCardCombatPowerNumber(slot)} <LocalizedText text={"CP"} /></span>
                       </div>
                     </div>
                   </>
@@ -660,8 +656,7 @@ export default function BattlePage() {
                     <div className="size-10 rounded-full bg-secondary/80 border border-border flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
                       <Plus className="size-5" />
                     </div>
-                    <span className="text-[11px] font-mono text-muted-foreground font-semibold">
-                      Slot #{idx + 1}
+                    <span className="text-[11px] font-mono text-muted-foreground font-semibold"> <LocalizedText text={"Slot #"} />{idx + 1}
                     </span>
                   </div>
                 )}
@@ -683,14 +678,14 @@ export default function BattlePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="size-14 rounded-2xl overflow-hidden border-2 border-amber-500/40 bg-zinc-900 shrink-0">
-                        <img src={leader.avatar} alt={leader.name} className="w-full h-full object-cover" />
+                        <img src={leader.avatar} alt={ui(leader.name)} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold font-syne text-lg text-foreground">{leader.name}</span>
+                          <span className="font-bold font-syne text-lg text-foreground">{ui(leader.name)}</span>
                           <span className="text-xs">{leader.badge}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground font-mono">{leader.title}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{ui(leader.title)}</p>
                         <Badge variant="outline" className="mt-1 text-[9px] font-mono border-border text-muted-foreground">
                           {leader.difficultyLabel}
                         </Badge>
@@ -699,18 +694,16 @@ export default function BattlePage() {
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {leader.description}
+                    {ui(leader.description)}
                   </p>
 
                   {/* Elenco de 6 Pokémon do Líder (Team Preview) */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold block">
-                      Elenco do Ginásio (6 Pokémon):
-                    </span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold block"> <LocalizedText text={"Elenco do Ginásio (6 Pokémon):"} /> </span>
                     <div className="grid grid-cols-6 gap-1.5">
                       {leader.deckPreview?.map((card, i) => (
-                        <div key={i} className="aspect-[1/1.4] rounded-lg overflow-hidden border border-border/60 bg-zinc-900" title={card.name}>
-                          <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                        <div key={i} className="aspect-[1/1.4] rounded-lg overflow-hidden border border-border/60 bg-zinc-900" title={ui(card.name)}>
+                          <img src={card.image_url} alt={ui(card.name)} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -724,8 +717,7 @@ export default function BattlePage() {
                       <Coins className="size-3.5" /> +{leader.rewardCoins.toLocaleString()}
                     </span>
                     <span className="text-purple-400 font-bold flex items-center gap-1">
-                      <Zap className="size-3.5" /> +{leader.rewardXp} XP
-                    </span>
+                      <Zap className="size-3.5" /> +{leader.rewardXp} <LocalizedText text={"XP"} /> </span>
                   </div>
 
                   <Button
@@ -734,7 +726,7 @@ export default function BattlePage() {
                     className="rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs px-4 h-9 shadow-md shadow-red-500/20"
                   >
                     <Swords className="size-3.5 mr-1.5" />
-                    <span>Desafiar</span>
+                    <span><LocalizedText text={"Desafiar"} /></span>
                   </Button>
                 </div>
               </div>
@@ -746,22 +738,20 @@ export default function BattlePage() {
         <TabsContent value="history" className="mt-0">
           <div className="rounded-2xl border border-border/80 bg-card/60 p-4 space-y-3">
             {(!historyData || historyData.length === 0) ? (
-              <div className="text-center py-12 text-muted-foreground text-xs font-mono">
-                Nenhum combate registrado ainda. Desafie os Líderes de Ginásio para entrar no histórico!
-              </div>
+              <div className="text-center py-12 text-muted-foreground text-xs font-mono"> <LocalizedText text={"Nenhum combate registrado ainda. Desafie os Líderes de Ginásio para entrar no histórico!"} /> </div>
             ) : (
               historyData.map((h: any) => (
                 <div key={h.id} className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-zinc-900/60 font-mono text-xs">
                   <div className="flex items-center gap-2">
                     <Badge variant={h.won ? "default" : "destructive"} className="text-[10px] font-bold">
-                      {h.won ? "VITÓRIA" : "DERROTA"}
+                      {h.won ? ui("VITÓRIA") : ui("DERROTA")}
                     </Badge>
                     <span className="font-bold text-foreground">{h.npcName}</span>
-                    <span className="text-muted-foreground text-[10px]">({h.playerScore} x {h.opponentScore})</span>
+                    <span className="text-muted-foreground text-[10px]">({h.playerScore} <LocalizedText text={"x"} /> {h.opponentScore})</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-amber-400 font-bold">+{h.rewardCoins.toLocaleString()} moedas</span>
-                    <span className="text-purple-400 font-bold">+{h.rewardXp} XP</span>
+                    <span className="text-amber-400 font-bold">+{h.rewardCoins.toLocaleString()} <LocalizedText text={"moedas"} /></span>
+                    <span className="text-purple-400 font-bold">+{h.rewardXp} <LocalizedText text={"XP"} /></span>
                   </div>
                 </div>
               ))
@@ -777,55 +767,40 @@ export default function BattlePage() {
             <div className="size-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1">
               <Info className="size-6" />
             </div>
-            <DialogTitle className="text-xl font-bold font-syne text-foreground flex items-center gap-2">
-              Manual do Treinador: Modo Duelo Pokémon GO
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              Aprenda a blefar, escolher os counters certos e gerenciar seus escudos de proteção!
-            </DialogDescription>
+            <DialogTitle className="text-xl font-bold font-syne text-foreground flex items-center gap-2"> <LocalizedText text={"Manual do Treinador: Modo Duelo Pokémon GO"} /> </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed"> <LocalizedText text={"Aprenda a blefar, escolher os counters certos e gerenciar seus escudos de proteção!"} /> </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-3 text-xs leading-relaxed text-muted-foreground">
             {/* Card 1: Blefe 6 Leva 3 */}
             <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-2">
               <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-amber-400">
-                <Crosshair className="size-4" /> 1. O Jogo Mental do Blefe (6 leva 3)
-              </h4>
-              <p>
-                Antes do duelo começar, você e o Líder de Ginásio mostram suas <strong>6 cartas na tela de Team Preview</strong>. Você deve escolher secretamente <strong>3 Pokémon</strong> e definir sua ordem estratégica:
-              </p>
+                <Crosshair className="size-4" /> <LocalizedText text={"1. O Jogo Mental do Blefe (6 leva 3)"} /> </h4>
+              <p> <LocalizedText text={"Antes do duelo começar, você e o Líder de Ginásio mostram suas"} /> <strong><LocalizedText text={"6 cartas na tela de Team Preview"} /></strong><LocalizedText text={". Você deve escolher secretamente"} /> <strong><LocalizedText text={"3 Pokémon"} /></strong> <LocalizedText text={"e definir sua ordem estratégica:"} /> </p>
               <ul className="list-disc pl-5 space-y-1 font-mono text-[11px] text-zinc-300">
-                <li><strong>Lead (1º Pokémon):</strong> Entra primeiro em campo. O segredo é adivinhar com qual tipo o adversário vai abrir!</li>
-                <li><strong>Safe Swap (2º Pokémon):</strong> Opção neutra ou resistente caso seu Lead caia numa desvantagem de tipo.</li>
-                <li><strong>Closer (3º Pokémon):</strong> Seu trunfo com alto dano para fechar o duelo decisivo.</li>
+                <li><strong><LocalizedText text={"Lead (1º Pokémon):"} /></strong> <LocalizedText text={"Entra primeiro em campo. O segredo é adivinhar com qual tipo o adversário vai abrir!"} /></li>
+                <li><strong><LocalizedText text={"Safe Swap (2º Pokémon):"} /></strong> <LocalizedText text={"Opção neutra ou resistente caso seu Lead caia numa desvantagem de tipo."} /></li>
+                <li><strong><LocalizedText text={"Closer (3º Pokémon):"} /></strong> <LocalizedText text={"Seu trunfo com alto dano para fechar o duelo decisivo."} /></li>
               </ul>
             </div>
 
             {/* Card 2: Gestão de Escudos */}
             <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/5 space-y-2">
               <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-blue-400">
-                <Shield className="size-4" /> 2. Gestão e Blefe de Escudos (2 por Batalha)
-              </h4>
-              <p>
-                Cada treinador possui exatamente <strong>2 Escudos de Proteção</strong> por partida inteira. Quando o oponente dispara um <strong>Ataque Carregado</strong>, você deve decidir se gasta um escudo para bloquear 100% do dano ou se aguenta o impacto para salvar o escudo pro Pokémon final!
-              </p>
+                <Shield className="size-4" /> <LocalizedText text={"2. Gestão e Blefe de Escudos (2 por Batalha)"} /> </h4>
+              <p> <LocalizedText text={"Cada treinador possui exatamente"} /> <strong><LocalizedText text={"2 Escudos de Proteção"} /></strong> <LocalizedText text={"por partida inteira. Quando o oponente dispara um"} /> <strong><LocalizedText text={"Ataque Carregado"} /></strong><LocalizedText text={", você deve decidir se gasta um escudo para bloquear 100% do dano ou se aguenta o impacto para salvar o escudo pro Pokémon final!"} /> </p>
             </div>
 
             {/* Card 3: Vantagens Elementais & Energia */}
             <div className="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
               <h4 className="font-bold text-foreground text-sm flex items-center gap-2 text-emerald-400">
-                <Zap className="size-4" /> 3. Ataques Rápidos, Carregados & Fraquezas
-              </h4>
-              <p>
-                A cada turno, seu Pokémon desfere <strong>Ataques Rápidos</strong> que acumulam energia (0% a 100%). Ao atingir 100%, você libera o <strong>Ataque Carregado</strong> devastador! Golpes super efetivos causam até <strong>2x mais dano</strong> (ex: Fogo contra Planta, Água contra Fogo, Elétrico contra Água).
-              </p>
+                <Zap className="size-4" /> <LocalizedText text={"3. Ataques Rápidos, Carregados & Fraquezas"} /> </h4>
+              <p> <LocalizedText text={"A cada turno, seu Pokémon desfere"} /> <strong><LocalizedText text={"Ataques Rápidos"} /></strong> <LocalizedText text={"que acumulam energia (0% a 100%). Ao atingir 100%, você libera o"} /> <strong><LocalizedText text={"Ataque Carregado"} /></strong> <LocalizedText text={"devastador! Golpes super efetivos causam até"} /> <strong><LocalizedText text={"2x mais dano"} /></strong> <LocalizedText text={"(ex: Fogo contra Planta, Água contra Fogo, Elétrico contra Água)."} /> </p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button onClick={() => setIsHowToPlayOpen(false)} className="rounded-xl bg-amber-500 text-slate-950 font-bold text-xs">
-              Entendido, Mestre!
-            </Button>
+            <Button onClick={() => setIsHowToPlayOpen(false)} className="rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"> <LocalizedText text={"Entendido, Mestre!"} /> </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -835,31 +810,24 @@ export default function BattlePage() {
         <DialogContent className="sm:max-w-4xl bg-zinc-950 border-red-500/40 text-foreground p-6 sm:p-8 rounded-3xl max-h-[95vh] overflow-y-auto">
           <DialogHeader className="space-y-1">
             <div className="flex items-center justify-between">
-              <Badge variant="outline" className="font-mono text-xs border-red-500/50 text-red-400 bg-red-500/10">
-                Fase de Blefe: Team Preview
-              </Badge>
-              <span className="text-xs font-mono text-muted-foreground">
-                Selecionados: <strong className="text-amber-400">{selectedGoPicks.length}/3</strong>
+              <Badge variant="outline" className="font-mono text-xs border-red-500/50 text-red-400 bg-red-500/10"> <LocalizedText text={"Fase de Blefe: Team Preview"} /> </Badge>
+              <span className="text-xs font-mono text-muted-foreground"> <LocalizedText text={"Selecionados:"} /> <strong className="text-amber-400">{selectedGoPicks.length}/3</strong>
               </span>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl font-bold font-syne text-foreground">
-              Desafio contra {selectedGymLeader?.name} ({selectedGymLeader?.badge})
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-syne text-foreground"> <LocalizedText text={"Desafio contra"} /> {ui(selectedGymLeader?.name)} ({selectedGymLeader?.badge})
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Analise o elenco de 6 do Líder de Ginásio e selecione <strong>3 Pokémon</strong> da sua equipe para entrar no duelo!
-            </DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground"> <LocalizedText text={"Analise o elenco de 6 do Líder de Ginásio e selecione"} /> <strong><LocalizedText text={"3 Pokémon"} /></strong> <LocalizedText text={"da sua equipe para entrar no duelo!"} /> </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             {/* Elenco do Líder */}
             <div className="space-y-2 p-4 rounded-2xl border border-red-500/30 bg-red-500/5">
               <span className="text-xs font-mono uppercase tracking-wider text-red-400 font-bold block flex items-center gap-1.5">
-                <Eye className="size-3.5" /> Elenco de {selectedGymLeader?.name} (6 Pokémon Visíveis):
-              </span>
+                <Eye className="size-3.5" /> <LocalizedText text={"Elenco de"} /> {ui(selectedGymLeader?.name)} <LocalizedText text={"(6 Pokémon Visíveis):"} /> </span>
               <div className="grid grid-cols-6 gap-2">
                 {selectedGymLeader?.deckPreview.map((card, i) => (
                   <div key={i} className="aspect-[1/1.4] rounded-xl overflow-hidden border border-red-500/30 bg-zinc-900 shadow-md">
-                    <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                    <img src={card.image_url} alt={ui(card.name)} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -868,14 +836,13 @@ export default function BattlePage() {
             {/* Seleção do Jogador (Escolha seus 3) */}
             <div className="space-y-2 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">
               <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold block flex items-center gap-1.5">
-                <Crosshair className="size-3.5" /> Escolha os 3 Pokémon que você levará para a Arena:
-              </span>
+                <Crosshair className="size-3.5" /> <LocalizedText text={"Escolha os 3 Pokémon que você levará para a Arena:"} /> </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {localDeck.map((slot, i) => {
                   if (!slot) return null;
                   const isSelected = selectedGoPicks.includes(slot.cardId);
                   const pickIndex = selectedGoPicks.indexOf(slot.cardId);
-                  const roleLabel = pickIndex === 0 ? "1º (Lead)" : pickIndex === 1 ? "2º (Swap)" : pickIndex === 2 ? "3º (Closer)" : "";
+                  const roleLabel = pickIndex === 0 ? ui("1º (Lead)") : pickIndex === 1 ? ui("2º (Swap)") : pickIndex === 2 ? ui("3º (Closer)") : "";
 
                   return (
                     <div
@@ -888,7 +855,7 @@ export default function BattlePage() {
                       }`}
                     >
                       <div className="relative w-full flex-1 rounded-lg overflow-hidden">
-                        <TcgCardImage src={slot.card.image_url} alt={slot.card.name} />
+                        <TcgCardImage src={slot.card.image_url} alt={ui(slot.card.name)} />
                         {isSelected && (
                           <div className="absolute top-1 right-1 size-5 rounded-full bg-amber-400 text-slate-950 font-mono font-black text-xs flex items-center justify-center shadow-md">
                             {pickIndex + 1}
@@ -896,7 +863,7 @@ export default function BattlePage() {
                         )}
                       </div>
                       <div className="text-center pt-1">
-                        <p className="text-[10px] font-bold text-foreground truncate">{slot.card.name}</p>
+                        <p className="text-[10px] font-bold text-foreground truncate">{ui(slot.card.name)}</p>
                         {isSelected && (
                           <span className="text-[9px] font-mono font-bold text-amber-300 block">
                             {roleLabel}
@@ -911,9 +878,7 @@ export default function BattlePage() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setIsTeamPreviewOpen(false)} className="rounded-xl text-xs">
-              Cancelar
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsTeamPreviewOpen(false)} className="rounded-xl text-xs"> <LocalizedText text={"Cancelar"} /> </Button>
             <Button
               size="sm"
               disabled={selectedGoPicks.length !== 3 || isBattling}
@@ -923,12 +888,12 @@ export default function BattlePage() {
               {isBattling ? (
                 <>
                   <Loader2 className="size-3.5 mr-1.5 animate-spin" />
-                  <span>Iniciando Combate...</span>
+                  <span><LocalizedText text={"Iniciando Combate..."} /></span>
                 </>
               ) : (
                 <>
                   <Swords className="size-3.5 mr-1.5" />
-                  <span>Entrar no Duelo (3 vs 3)</span>
+                  <span><LocalizedText text={"Entrar no Duelo (3 vs 3)"} /></span>
                 </>
               )}
             </Button>
@@ -945,39 +910,35 @@ export default function BattlePage() {
               <div className="flex items-center justify-between p-3 rounded-2xl border border-border/80 bg-zinc-900/80 font-mono">
                 {/* Lado Jogador */}
                 <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xs">
-                    VOCÊ
-                  </div>
+                  <div className="size-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xs"> <LocalizedText text={"VOCÊ"} /> </div>
                   <div>
-                    <span className="text-xs font-bold block">Placar: {currentGoBattle.playerScore}</span>
+                    <span className="text-xs font-bold block"><LocalizedText text={"Placar:"} /> {currentGoBattle.playerScore}</span>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Shield className="size-3 text-blue-400" />
-                      <span className="text-[10px] text-blue-300">Escudos: {currentGoBattle.playerShieldsRemaining} / 2</span>
+                      <span className="text-[10px] text-blue-300"><LocalizedText text={"Escudos:"} /> {currentGoBattle.playerShieldsRemaining} / 2</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Terreno / Round */}
                 <div className="text-center">
-                  <Badge variant="outline" className="font-mono text-[10px] border-amber-500/40 text-amber-400">
-                    Round {currentRoundIdx + 1} de 3
-                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px] border-amber-500/40 text-amber-400"> <LocalizedText text={"Round"} /> {currentRoundIdx + 1} <LocalizedText text={"de 3"} /> </Badge>
                   <span className="text-[10px] text-muted-foreground block mt-0.5">
-                    {currentGoBattle.terrain.name}
+                    {ui(currentGoBattle.terrain.name)}
                   </span>
                 </div>
 
                 {/* Lado Líder */}
                 <div className="flex items-center gap-2.5 text-right">
                   <div>
-                    <span className="text-xs font-bold block">{currentGoBattle.npc.name} ({currentGoBattle.npcScore})</span>
+                    <span className="text-xs font-bold block">{ui(currentGoBattle.npc.name)} ({currentGoBattle.npcScore})</span>
                     <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[10px] text-blue-300">Escudos: {currentGoBattle.npcShieldsRemaining} / 2</span>
+                      <span className="text-[10px] text-blue-300"><LocalizedText text={"Escudos:"} /> {currentGoBattle.npcShieldsRemaining} / 2</span>
                       <Shield className="size-3 text-blue-400" />
                     </div>
                   </div>
                   <div className="size-8 rounded-lg overflow-hidden border border-red-500/40 shrink-0">
-                    <img src={currentGoBattle.npc.avatar} alt={currentGoBattle.npc.name} className="w-full h-full object-cover" />
+                    <img src={currentGoBattle.npc.avatar} alt={ui(currentGoBattle.npc.name)} className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -992,12 +953,12 @@ export default function BattlePage() {
                       <div className="aspect-[1/1.35] max-w-[130px] mx-auto rounded-xl overflow-hidden border-2 border-amber-400 shadow-xl shadow-amber-500/20">
                         <TcgCardImage
                           src={currentGoBattle.rounds[currentRoundIdx].playerCard.image_url}
-                          alt={currentGoBattle.rounds[currentRoundIdx].playerCard.name}
+                          alt={ui(currentGoBattle.rounds[currentRoundIdx].playerCard.name)}
                         />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-foreground block truncate">
-                          {currentGoBattle.rounds[currentRoundIdx].playerCard.name}
+                          {ui(currentGoBattle.rounds[currentRoundIdx].playerCard.name)}
                         </span>
                         <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
                           <div className="bg-emerald-500 h-full transition-all duration-300 w-full" />
@@ -1010,13 +971,13 @@ export default function BattlePage() {
                       <div className="aspect-[1/1.35] max-w-[130px] mx-auto rounded-xl overflow-hidden border-2 border-red-500 shadow-xl shadow-red-500/20">
                         <img
                           src={currentGoBattle.rounds[currentRoundIdx].npcCard.image_url}
-                          alt={currentGoBattle.rounds[currentRoundIdx].npcCard.name}
+                          alt={ui(currentGoBattle.rounds[currentRoundIdx].npcCard.name)}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-foreground block truncate">
-                          {currentGoBattle.rounds[currentRoundIdx].npcCard.name}
+                          {ui(currentGoBattle.rounds[currentRoundIdx].npcCard.name)}
                         </span>
                         <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mt-1">
                           <div className="bg-emerald-500 h-full transition-all duration-300 w-full" />
@@ -1031,18 +992,17 @@ export default function BattlePage() {
                       const isPlayer = ev.actor === "player";
                       return (
                         <div key={idx} className={`flex items-center gap-1.5 ${isPlayer ? "text-amber-300" : "text-red-300"}`}>
-                          <span>{isPlayer ? "⚡ Você:" : "💥 Oponente:"}</span>
-                          {ev.type === "fast_attack" && <span>{ev.moveName} (-{ev.damage} HP)</span>}
+                          <span>{ui(isPlayer ? "⚡ Você:" : "💥 Oponente:")}</span>
+                          {ev.type === "fast_attack" && <span>{ev.moveName} (-{ev.damage} <LocalizedText text={"HP)"} /></span>}
                           {ev.type === "charged_attack" && (
-                            <span className="font-bold">
-                              🔥 ATAQUE CARREGADO {ev.moveName} (-{ev.damage} HP)! {ev.blockedByShield && "🛡️ ESCUDO ABSORVEU!"}
+                            <span className="font-bold"> <LocalizedText text={"🔥 ATAQUE CARREGADO"} /> {ev.moveName} (-{ev.damage} <LocalizedText text={"HP)!"} /> {ev.blockedByShield && ui("🛡️ ESCUDO ABSORVEU!")}
                             </span>
                           )}
                           {ev.type === "shield_used" && (
-                            <span className="text-blue-400 font-bold">🛡️ ESCUDO DE PROTEÇÃO ATIVADO!</span>
+                            <span className="text-blue-400 font-bold"><LocalizedText text={"🛡️ ESCUDO DE PROTEÇÃO ATIVADO!"} /></span>
                           )}
                           {ev.type === "knockout" && (
-                            <span className="text-emerald-400 font-bold">🏆 {ev.actorName} VENCEU O ROUND!</span>
+                            <span className="text-emerald-400 font-bold">🏆 {ev.actorName} <LocalizedText text={"VENCEU O ROUND!"} /></span>
                           )}
                         </div>
                       );
@@ -1052,6 +1012,17 @@ export default function BattlePage() {
               )}
 
               {/* Resumo Final & Premiação */}
+              {isAutoPlaying && (
+                <div className="flex justify-center gap-2">
+                  <Button variant="outline" onClick={() => setPlaybackSpeed((speed) => speed === 1 ? 2 : 1)}>{ui("Velocidade")} {playbackSpeed}×</Button>
+                  <Button onClick={() => {
+                    const last = currentGoBattle.rounds.length - 1;
+                    setCurrentRoundIdx(last);
+                    setCurrentEventIdx(currentGoBattle.rounds[last].events.length);
+                    setIsAutoPlaying(false);
+                  }}>{ui("Pular animação")}</Button>
+                </div>
+              )}
               {!isAutoPlaying && (
                 <div className="p-4 rounded-2xl border border-border/80 bg-zinc-900/80 text-center space-y-3">
                   <Badge
@@ -1059,11 +1030,11 @@ export default function BattlePage() {
                       currentGoBattle.won ? "bg-emerald-500 text-slate-950" : "bg-rose-500 text-white"
                     }`}
                   >
-                    {currentGoBattle.won ? "Vitória Épica!" : "Derrota!"}
+                    {currentGoBattle.won ? ui("Vitória Épica!") : ui("Derrota!")}
                   </Badge>
                   <div className="flex items-center justify-center gap-4 font-mono text-sm">
-                    <span className="text-amber-400 font-bold">+{currentGoBattle.rewardCoins.toLocaleString()} Moedas</span>
-                    <span className="text-purple-400 font-bold">+{currentGoBattle.rewardXp} XP</span>
+                    <span className="text-amber-400 font-bold">+{currentGoBattle.rewardCoins.toLocaleString()} <LocalizedText text={"Moedas"} /></span>
+                    <span className="text-purple-400 font-bold">+{currentGoBattle.rewardXp} <LocalizedText text={"XP"} /></span>
                   </div>
                 </div>
               )}
@@ -1075,9 +1046,7 @@ export default function BattlePage() {
                   size="sm"
                   onClick={() => setIsGoBattleModalOpen(false)}
                   className="rounded-xl text-xs"
-                >
-                  Fechar Arena
-                </Button>
+                > <LocalizedText text={"Fechar Arena"} /> </Button>
                 <Button
                   size="sm"
                   onClick={() => {
@@ -1089,7 +1058,7 @@ export default function BattlePage() {
                   className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs"
                 >
                   <RotateCcw className="size-3.5 mr-1.5" />
-                  <span>Revanche</span>
+                  <span><LocalizedText text={"Revanche"} /></span>
                 </Button>
               </DialogFooter>
             </div>
@@ -1102,8 +1071,7 @@ export default function BattlePage() {
         <DialogContent className="sm:max-w-3xl bg-zinc-950 border-amber-500/40 text-foreground p-6 rounded-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold font-syne text-foreground flex items-center gap-2">
-              <Shield className="size-5 text-amber-500" />
-              Selecionar Pokémon para o Slot #{selectedSlotIndex !== null ? selectedSlotIndex + 1 : ""}
+              <Shield className="size-5 text-amber-500" /> <LocalizedText text={"Selecionar Pokémon para o Slot #"} />{selectedSlotIndex !== null ? selectedSlotIndex + 1 : ""}
             </DialogTitle>
           </DialogHeader>
 
@@ -1112,7 +1080,7 @@ export default function BattlePage() {
             <Input
               value={pickerSearch}
               onChange={(e) => setPickerSearch(e.target.value)}
-              placeholder="Buscar por nome do Pokémon..."
+              placeholder={ui("Buscar por nome do Pokémon...")}
               className="h-8 text-xs rounded-xl bg-zinc-900 border-border"
             />
             <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto">
@@ -1121,9 +1089,7 @@ export default function BattlePage() {
                 variant={pickerRarity === "all" ? "default" : "outline"}
                 onClick={() => setPickerRarity("all")}
                 className="h-7 text-xs px-2 rounded-lg"
-              >
-                Todas
-              </Button>
+              > <LocalizedText text={"Todas"} /> </Button>
               {[1, 2, 3, 4, 5].map((r) => (
                 <Button
                   key={r}
@@ -1131,8 +1097,7 @@ export default function BattlePage() {
                   variant={pickerRarity === r ? "default" : "outline"}
                   onClick={() => setPickerRarity(r)}
                   className="h-7 text-xs px-2 rounded-lg font-mono"
-                >
-                  T{r}
+                > <LocalizedText text={"T"} />{r}
                 </Button>
               ))}
             </div>
@@ -1160,16 +1125,15 @@ export default function BattlePage() {
                   }`}
                 >
                   <div className="relative w-full flex-1 rounded-lg overflow-hidden">
-                    <TcgCardImage src={item.card.image_url} alt={item.card.name} />
+                    <TcgCardImage src={item.card.image_url} alt={ui(item.card.name)} />
                     <div className="absolute top-1 left-1 bg-black/80 rounded px-1 text-[8px] font-mono font-bold text-amber-400">
-                      {item.recruitPoints} PR
-                    </div>
+                      {item.recruitPoints} <LocalizedText text={"PR"} /> </div>
                   </div>
                   <div className="pt-1">
-                    <p className="text-[10px] font-bold text-foreground truncate">{item.card.name}</p>
+                    <p className="text-[10px] font-bold text-foreground truncate">{ui(item.card.name)}</p>
                     <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono">
-                      <span>HP {item.card.hp}</span>
-                      <span className="text-amber-400 font-bold">{item.combatPower} CP</span>
+                      <span><LocalizedText text={"HP"} /> {item.card.hp}</span>
+                      <span className="text-amber-400 font-bold">{item.combatPower} <LocalizedText text={"CP"} /></span>
                     </div>
                   </div>
                 </div>

@@ -1,3 +1,5 @@
+import { consumeCards, lockUsers } from "../lib/economy";
+import { DomainError } from "../lib/domain-error";
 import { Elysia, t } from "elysia";
 import { jwt } from "../middlewares/jwt/jwt";
 import { getUserUserMiddleware } from "../middlewares/jwt";
@@ -487,13 +489,11 @@ export const albumController = new Elysia({}).group("/albums", (app) => {
 
       // 3. Transação atômica: queima/consome as cartas, limpa trocas/favoritos se não sobrarem cópias, credita moedas e XP
       await prisma.$transaction(async (tx) => {
-        // Remove as cópias coladas no álbum
-        await tx.cards_user.deleteMany({
-          where: {
-            id: { in: cardsUserIdsToConsume },
-            userId: user.id,
-          },
-        });
+        await lockUsers(tx, [user.id]);
+        const reserved = await tx.tradeMarkedCard.count({ where: { userId: user.id, cardId: { in: cardIdsConsumed } } });
+        const offered = await tx.trade_Card.count({ where: { card_id: { in: cardIdsConsumed }, Trade: { userTrades: { some: { user_id: user.id, is_sender: true }, none: { is_sender: false } } } } });
+        if (reserved || offered) throw new DomainError("battle.notAllCardsOwnedOrTrade");
+        await consumeCards(tx, user.id, cardsUserIdsToConsume);
 
         // Checa se o usuário ainda possui cópias remanescentes para limpar decks ou trocas
         const remainingCards = await tx.cards_user.findMany({

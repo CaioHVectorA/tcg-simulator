@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -28,6 +29,7 @@ export function MaxRarityCelebration({
   isOpen,
   onClose,
 }: MaxRarityCelebrationProps) {
+  const ui = useUiText();
   const [inspectOpen, setInspectOpen] = useState(false);
 
   // Motion values para tilt 3D suave com física de mola sem re-renderizar o React
@@ -132,7 +134,7 @@ export function MaxRarityCelebration({
           >
             <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest shadow-[0_0_30px_rgba(244,63,94,0.8)] uppercase animate-pulse">
               <Flame className="size-4 fill-white" />
-              <span>✨ GOD PULL! MÁXIMA RARIDADE ✨</span>
+              <span><LocalizedText text={"✨ GOD PULL! MÁXIMA RARIDADE ✨"} /></span>
               <Flame className="size-4 fill-white" />
             </div>
 
@@ -171,7 +173,7 @@ export function MaxRarityCelebration({
             <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-amber-300 shadow-[0_0_60px_rgba(234,179,8,0.9)] bg-slate-900">
               <img
                 src={cardImg}
-                alt={card.name}
+                alt={ui(card.name)}
                 className="w-full h-full object-cover rounded-xl"
               />
 
@@ -199,16 +201,13 @@ export function MaxRarityCelebration({
             className="flex flex-col items-center gap-1.5 mb-6"
           >
             <h2 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-300 drop-shadow-[0_2px_12px_rgba(234,179,8,0.7)]">
-              {card.name}
+              {ui(card.name)}
             </h2>
             <div className="flex items-center gap-2">
-              <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/60 font-mono text-xs px-3">
-                RARIDADE LENDÁRIA ★★★★★
-              </Badge>
+              <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/60 font-mono text-xs px-3"> <LocalizedText text={"RARIDADE LENDÁRIA ★★★★★"} /> </Badge>
               {card.hp && (
                 <Badge variant="outline" className="border-amber-400/40 text-amber-300 font-mono text-xs">
-                  {card.hp} HP
-                </Badge>
+                  {card.hp} <LocalizedText text={"HP"} /> </Badge>
               )}
             </div>
           </motion.div>
@@ -226,16 +225,14 @@ export function MaxRarityCelebration({
               onClick={() => setInspectOpen(true)}
               className="rounded-2xl border-white/20 hover:bg-white/10 text-white font-bold h-12 px-6 gap-2 text-sm"
             >
-              <Eye className="size-4" />
-              Inspecionar Carta
-            </Button>
+              <Eye className="size-4" /> <LocalizedText text={"Inspecionar Carta"} /> </Button>
 
             <Button
               size="lg"
               onClick={onClose}
               className="rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold h-12 px-8 gap-2 text-sm shadow-[0_0_25px_rgba(234,179,8,0.5)]"
             >
-              <span>Continuar</span>
+              <span><LocalizedText text={"Continuar"} /></span>
               <ArrowRight className="size-4" />
             </Button>
           </motion.div>

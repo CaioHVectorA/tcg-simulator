@@ -1,6 +1,8 @@
 "use client";
+import { useUiText } from "@/i18n/localized-text";
+import { LocalizedText } from "@/i18n/localized-text";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { loadTcgImg } from "@/lib/load-tcg-img";
 
 interface TcgCardImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -17,7 +19,9 @@ export function TcgCardImage({
   className = "w-full h-full object-cover",
   ...props
 }: TcgCardImageProps) {
+  const ui = useUiText();
   const [hasError, setHasError] = useState(!src);
+  useEffect(() => setHasError(!src), [src]);
   const resolvedSrc = src ? loadTcgImg(src, lowQuality) : "";
 
   if (hasError || !resolvedSrc) {
@@ -38,17 +42,19 @@ export function TcgCardImage({
         </div>
 
         <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 line-clamp-2 px-1">
-          {alt || "TCG Card"}
+          {alt || ui("TCG Card")}
         </span>
-        <span className="text-[9px] font-mono text-amber-400/70 mt-1 uppercase tracking-wider">
-          TCG Simulator
-        </span>
+        <span className="text-[9px] font-mono text-amber-400/70 mt-1 uppercase tracking-wider"> <LocalizedText text={"TCG Simulator"} /> </span>
       </div>
     );
   }
 
   return (
     <img
+      loading="lazy"
+      decoding="async"
+      width={600}
+      height={825}
       src={resolvedSrc}
       alt={alt}
       onError={() => setHasError(true)}

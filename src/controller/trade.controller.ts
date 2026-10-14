@@ -1,3 +1,6 @@
+import { beginTrade, transferCards, transferMoney } from "../lib/trade-transfer";
+import { debit, lockUsers } from "../lib/economy";
+import { DomainError } from "../lib/domain-error";
 import Elysia, { t } from "elysia";
 import { getUserUserMiddleware } from "../middlewares/jwt";
 import { prisma } from "../helpers/prisma.client";
@@ -194,8 +197,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           return errorResponse("ID inválido", "ID inválido");
         }
 
-        const trade = await prisma.trade.findUnique({
-          where: { id },
+        const trade = await prisma.trade.findFirst({
+          where: { id, OR: [{ public: true }, { userTrades: { some: { user_id: user.id } } }, { trade_requests: { receiver_id: user.id } }] },
           include: {
             cards: {
               include: { Card: true },
@@ -333,10 +336,10 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         // Executar transação atômica de criação da troca e débito da taxa
         const newTrade = await prisma.$transaction(async (tx) => {
           // Debitar taxa de publicação
-          await tx.user.update({
-            where: { id: user.id },
-            data: { money: { decrement: fee } },
-          });
+          await lockUsers(tx, [user.id]);
+          const marked = await tx.tradeMarkedCard.count({ where: { userId: user.id, cardId: { in: sender_cards } } });
+          if (marked !== new Set(sender_cards).size) throw new DomainError("battle.notAllCardsOwnedOrTrade");
+          await debit(tx, user.id, fee);
 
           const trade = await tx.trade.create({
             data: {
@@ -403,15 +406,15 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         body: t.Object({
           name: t.String({ minLength: 3 }),
           description: t.Optional(t.String()),
-          sender_cards: t.Array(t.Number()),
-          receiver_cards: t.Optional(t.Array(t.Number())),
-          moneySending: t.Optional(t.Number()),
-          moneyReceiving: t.Optional(t.Number()),
+          sender_cards: t.Array(t.Integer({ minimum: 1 }), { maxItems: 100 }),
+          receiver_cards: t.Optional(t.Array(t.Integer({ minimum: 1 }), { maxItems: 100 })),
+          moneySending: t.Optional(t.Integer({ minimum: 0, maximum: 1000000000 })),
+          moneyReceiving: t.Optional(t.Integer({ minimum: 0, maximum: 1000000000 })),
           acceptOffers: t.Optional(t.Boolean()),
           minRarity: t.Optional(t.Number()),
           maxRarity: t.Optional(t.Number()),
           public: t.Optional(t.Boolean()),
-          durationDays: t.Optional(t.Number()),
+          durationDays: t.Optional(t.Integer({ minimum: 1, maximum: 30 })),
         }),
         detail: { tags: ["Trade"], description: "Cria uma nova oferta de troca" },
         response: baseResponse,
@@ -428,8 +431,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           return errorResponse("ID inválido", "ID inválido");
         }
 
-        const trade = await prisma.trade.findUnique({
-          where: { id },
+        const trade = await prisma.trade.findFirst({
+          where: { id, OR: [{ public: true }, { trade_requests: { receiver_id: user.id, revoked: false } }] },
           include: {
             cards: { include: { Card: true } },
             userTrades: true,
@@ -508,60 +511,11 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
 
         // Executar a troca atômica via Prisma Transaction
         await prisma.$transaction(async (tx) => {
-          // Transferir uma instância de cada carta ofertada do criador para o aceitante
-          for (const oc of offeredCards) {
-            const cardRow = await tx.cards_user.findFirst({
-              where: { userId: creatorTrade.user_id, cardId: oc.card_id },
-            });
-            if (cardRow) {
-              await tx.cards_user.update({
-                where: { id: cardRow.id },
-                data: { userId: user.id },
-              });
-            }
-          }
-
-          // Transferir uma instância de cada carta solicitada do aceitante para o criador
-          for (const rc of requestedCards) {
-            const cardRow = await tx.cards_user.findFirst({
-              where: { userId: user.id, cardId: rc.card_id },
-            });
-            if (cardRow) {
-              await tx.cards_user.update({
-                where: { id: cardRow.id },
-                data: { userId: creatorTrade.user_id },
-              });
-            }
-          }
-
-          // Transferências de dinheiro
-          if (trade.moneySending > 0) {
-            await tx.user.update({
-              where: { id: creatorTrade.user_id },
-              data: { money: { decrement: trade.moneySending } },
-            });
-            await tx.user.update({
-              where: { id: user.id },
-              data: {
-                money: { increment: trade.moneySending },
-                totalBudget: { increment: trade.moneySending },
-              },
-            });
-          }
-
-          if (trade.moneyReceiving > 0) {
-            await tx.user.update({
-              where: { id: user.id },
-              data: { money: { decrement: trade.moneyReceiving } },
-            });
-            await tx.user.update({
-              where: { id: creatorTrade.user_id },
-              data: {
-                money: { increment: trade.moneyReceiving },
-                totalBudget: { increment: trade.moneyReceiving },
-              },
-            });
-          }
+          await beginTrade(tx, trade.id, [creatorTrade.user_id, user.id]);
+          await transferCards(tx, creatorTrade.user_id, user.id, offeredCards.map((c) => c.card_id));
+          await transferCards(tx, user.id, creatorTrade.user_id, requestedCards.map((c) => c.card_id));
+          await transferMoney(tx, creatorTrade.user_id, user.id, trade.moneySending);
+          await transferMoney(tx, user.id, creatorTrade.user_id, trade.moneyReceiving);
 
           // Registrar aceitante em User_Trade
           await tx.user_Trade.create({
@@ -608,8 +562,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
         const id = Number(params.id);
         const { card_ids = [], money = 0 } = body as { card_ids: number[]; money?: number };
 
-        const trade = await prisma.trade.findUnique({
-          where: { id },
+        const trade = await prisma.trade.findFirst({
+          where: { id, OR: [{ public: true }, { trade_requests: { receiver_id: user.id, revoked: false } }] },
           include: { userTrades: true },
         });
 
@@ -691,8 +645,8 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
       },
       {
         body: t.Object({
-          card_ids: t.Array(t.Number()),
-          money: t.Optional(t.Number()),
+          card_ids: t.Array(t.Integer({ minimum: 1 }), { maxItems: 100 }),
+          money: t.Optional(t.Integer({ minimum: 0, maximum: 1000000000 })),
         }),
         detail: { tags: ["Trade"], description: "Envia uma contraproposta para uma troca" },
         response: baseResponse,
@@ -743,46 +697,10 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
 
         // Executar swap atômico da proposta
         await prisma.$transaction(async (tx) => {
-          // Transferir cartas do criador para o proponente
-          for (const oc of offeredCards) {
-            const cardRow = await tx.cards_user.findFirst({
-              where: { userId: user.id, cardId: oc.card_id },
-            });
-            if (cardRow) {
-              await tx.cards_user.update({
-                where: { id: cardRow.id },
-                data: { userId: offer.user_id },
-              });
-            }
-          }
-
-          // Transferir cartas da contraproposta para o criador
-          for (const cc of counterCards) {
-            const cardRow = await tx.cards_user.findFirst({
-              where: { userId: offer.user_id, cardId: cc.card_id },
-            });
-            if (cardRow) {
-              await tx.cards_user.update({
-                where: { id: cardRow.id },
-                data: { userId: user.id },
-              });
-            }
-          }
-
-          // Transferência de dinheiro da proposta
-          if (offer.money > 0) {
-            await tx.user.update({
-              where: { id: offer.user_id },
-              data: { money: { decrement: offer.money } },
-            });
-            await tx.user.update({
-              where: { id: user.id },
-              data: {
-                money: { increment: offer.money },
-                totalBudget: { increment: offer.money },
-              },
-            });
-          }
+          await beginTrade(tx, trade.id, [user.id, offer.user_id]);
+          await transferCards(tx, user.id, offer.user_id, offeredCards.map((c) => c.card_id));
+          await transferCards(tx, offer.user_id, user.id, counterCards.map((c) => c.card_id));
+          await transferMoney(tx, offer.user_id, user.id, offer.money);
 
           // Registrar aceitante em User_Trade
           await tx.user_Trade.create({
@@ -847,7 +765,10 @@ export const tradeController = new Elysia({}).group("/trades", (app) => {
           return errorResponse("Esta troca já foi concluída e não pode ser cancelada");
         }
 
-        await prisma.trade.delete({ where: { id } });
+        await prisma.$transaction(async (tx) => {
+          await beginTrade(tx, id, [user.id]);
+          await tx.trade.deleteMany({ where: { id, userTrades: { some: { user_id: user.id, is_sender: true }, none: { is_sender: false } } } });
+        });
         return sucessResponse(null, "Troca cancelada com sucesso!");
       },
       {

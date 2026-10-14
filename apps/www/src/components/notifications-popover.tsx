@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/i18n/localized-text";
 
 import React from "react";
 import {
@@ -81,16 +82,16 @@ export const NotificationsPopover: React.FC = () => {
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
-          <span className="sr-only">Notificações</span>
+          <span className="sr-only"><LocalizedText text={"Notificações"} /></span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 sm:w-96 p-0 font-syne bg-card/95 border-border backdrop-blur-xl shadow-2xl">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <h4 className="font-bold text-base">Notificações</h4>
+            <h4 className="font-bold text-base"><LocalizedText text={"Notificações"} /></h4>
             {unreadCount > 0 && (
               <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full font-mono">
-                {unreadCount} nova{unreadCount > 1 ? "s" : ""}
+                {unreadCount} <LocalizedText text={"nova"} />{unreadCount > 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -101,8 +102,7 @@ export const NotificationsPopover: React.FC = () => {
               onClick={() => markAllRead()}
               className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
             >
-              <CheckCheck className="size-3.5 mr-1" /> Ler todas
-            </Button>
+              <CheckCheck className="size-3.5 mr-1" /> <LocalizedText text={"Ler todas"} /> </Button>
           )}
         </div>
 
@@ -110,8 +110,8 @@ export const NotificationsPopover: React.FC = () => {
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bell className="size-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm font-semibold">Tudo tranquilo por aqui!</p>
-              <p className="text-xs mt-1">Nenhuma notificação recente.</p>
+              <p className="text-sm font-semibold"><LocalizedText text={"Tudo tranquilo por aqui!"} /></p>
+              <p className="text-xs mt-1"><LocalizedText text={"Nenhuma notificação recente."} /></p>
             </div>
           ) : (
             notifications.map((n) => (

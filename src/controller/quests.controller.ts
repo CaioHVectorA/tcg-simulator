@@ -1,3 +1,5 @@
+import { claimQuests } from "../services/quest-reward.service";
+import { positiveInteger } from "../lib/economy";
 import Elysia from "elysia";
 import { prisma } from "../helpers/prisma.client";
 import { Prisma, type User } from "@prisma/client";
@@ -147,6 +149,7 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
               quest_id: q.id,
             })),
             include: { Quest: true },
+            skipDuplicates: true,
           });
           questsUser = questsUser.concat(newStandard);
         }
@@ -156,35 +159,17 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
           (quest) => quest.Quest.isDiary && quest.Quest.isDiaryActive
         );
 
-        // Se não houver exatamente 3 missões diárias, sincroniza
-        if (diaryUser.length !== 3) {
-          await prisma.questUser.deleteMany({
-            where: {
-              user_id: user.id,
-              Quest: { isDiary: true },
-            },
+        const activeDiary = await prisma.quest.findMany({ where: { isDiary: true, isDiaryActive: true }, orderBy: { id: "asc" }, take: 3 });
+        const assigned = new Set(diaryUser.map((q) => q.quest_id));
+        const missing = activeDiary.filter((q) => !assigned.has(q.id));
+        if (missing.length) {
+          const created = await prisma.questUser.createManyAndReturn({
+            data: missing.map((quest) => ({ user_id: user.id, quest_id: quest.id })),
+            include: { Quest: true }, skipDuplicates: true,
           });
-
-          // Obtém as três missões diárias ativas
-          const diaryQuests = await prisma.quest.findMany({
-            where: { isDiary: true, isDiaryActive: true },
-            orderBy: { id: "asc" },
-            take: 3,
-          });
-
-          // Reatribui as três missões diárias ao usuário
-          const userDiaryMissions = await prisma.questUser.createManyAndReturn({
-            data: diaryQuests.map((quest) => ({
-              user_id: user.id,
-              quest_id: quest.id,
-            })),
-            include: { Quest: true },
-          });
-
-          questsUser = questsUser
-            .filter((q) => !q.Quest.isDiary)
-            .concat(userDiaryMissions);
+          questsUser = questsUser.concat(created);
         }
+        questsUser = questsUser.filter((q) => !q.Quest.isDiary || activeDiary.some((d) => d.id === q.quest_id));
 
         // Nomes de missões que migraram para o sistema de Álbuns
         const EXCLUDED_QUEST_NAMES = [
@@ -250,168 +235,15 @@ export const questsController = new Elysia({}).group("/quests", (app) => {
         return sucessResponse(questsResponse);
       })
       .patch("/get-reward/:id", async ({ user, params }) => {
-        // Get the quest for the user
-        const questUser = await prisma.questUser.findFirst({
-          where: { user_id: user.id, quest_id: Number(params.id) },
-          include: { Quest: true },
-        });
-
-        if (!questUser) {
-          return errorResponse("Quest não encontrada para o usuário.");
-        }
-
-        const cacheKey = `quest-${user.id}-${questUser.quest_id}`;
-        let isMissionComplete = false;
-        if (questsCache.has(cacheKey)) {
-          const [cachedQuest, lastUpdate] = questsCache.get(cacheKey) || [];
-          if (cachedQuest && cachedQuest.completed && new Date().getTime() - lastUpdate.getTime() < 60000) {
-            isMissionComplete = true;
-          }
-        }
-
-        if (!isMissionComplete) {
-          const query = runQuery(
-            questUser.Quest.queryCheck,
-            questUser.Quest.levelGoals[questUser.currentLevel],
-            user.id
-          );
-          const [queryRes] = (await prisma.$queryRaw(Prisma.sql([query]))) as {
-            mission_complete: boolean;
-            progress: number | bigint;
-          }[];
-          isMissionComplete = Boolean(queryRes?.mission_complete);
-        }
-
-        if (!isMissionComplete) {
-          return errorResponse("A missão ainda não foi completada.");
-        }
-
-        const reward = questUser.Quest.levelRewards[questUser.currentLevel];
-        const hasNextLevel = questUser.currentLevel < questUser.Quest.levelGoals.length - 1;
-
-        // Atualização atômica via transação Prisma
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              money: { increment: reward },
-              totalBudget: { increment: reward },
-            },
-          }),
-          hasNextLevel
-            ? prisma.questUser.update({
-                where: { id: questUser.id },
-                data: { currentLevel: { increment: 1 } },
-              })
-            : prisma.questUser.update({
-                where: { id: questUser.id },
-                data: { completed: true },
-              }),
-        ]);
-
-        questsCache.delete(`quest-${user.id}-${questUser.quest_id}`);
-        return sucessResponse(null, "Recompensa recebida com sucesso!");
+        positiveInteger(Number(params.id), 2147483647);
+        const result = await claimQuests(user.id, Number(params.id));
+        questsCache.delete(`quest-${user.id}-${params.id}`);
+        return sucessResponse(result, "quests.rewardClaimed");
       })
       .post("/claim-all", async ({ user }) => {
-        const questsUser = await prisma.questUser.findMany({
-          where: { user_id: user.id, completed: false },
-          include: { Quest: true },
-        });
-
-        let totalReward = 0;
-        let claimedCount = 0;
-        const transactionOps: any[] = [];
-        const cacheKeysToDelete: string[] = [];
-
-        const candidateQuests = questsUser.filter(
-          (qu) => qu.Quest.levelGoals[qu.currentLevel] !== undefined
-        );
-
-        const evaluations = await Promise.all(
-          candidateQuests.map(async (qu) => {
-            const cacheKey = `quest-${user.id}-${qu.quest_id}`;
-            if (questsCache.has(cacheKey)) {
-              //@ts-ignore
-              const [cachedQuest, lastUpdate] = questsCache.get(cacheKey);
-              if (
-                new Date().getTime() - lastUpdate.getTime() < 30000 &&
-                !cachedQuest.completed
-              ) {
-                return { qu, mission_complete: false };
-              }
-            }
-
-            const query = runQuery(
-              qu.Quest.queryCheck,
-              qu.Quest.levelGoals[qu.currentLevel],
-              user.id
-            );
-
-            try {
-              const [queryRes] = (await prisma.$queryRaw(
-                Prisma.sql([query])
-              )) as {
-                mission_complete: boolean;
-                progress: number | bigint;
-              }[];
-              return { qu, mission_complete: Boolean(queryRes?.mission_complete) };
-            } catch (err) {
-              console.error(`Error checking quest ${qu.Quest.name}:`, err);
-              return { qu, mission_complete: false };
-            }
-          })
-        );
-
-        for (const { qu, mission_complete } of evaluations) {
-          if (mission_complete) {
-            const reward = qu.Quest.levelRewards[qu.currentLevel] || 0;
-            totalReward += reward;
-            claimedCount++;
-            const hasNextLevel = qu.currentLevel < qu.Quest.levelGoals.length - 1;
-
-            if (hasNextLevel) {
-              transactionOps.push(
-                prisma.questUser.update({
-                  where: { id: qu.id },
-                  data: { currentLevel: { increment: 1 } },
-                })
-              );
-            } else {
-              transactionOps.push(
-                prisma.questUser.update({
-                  where: { id: qu.id },
-                  data: { completed: true },
-                })
-              );
-            }
-            cacheKeysToDelete.push(`quest-${user.id}-${qu.quest_id}`);
-          }
-        }
-
-        if (claimedCount === 0 || totalReward === 0) {
-          return errorResponse("Nenhuma recompensa pronta para ser coletada.");
-        }
-
-        transactionOps.push(
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              money: { increment: totalReward },
-              totalBudget: { increment: totalReward },
-            },
-          })
-        );
-
-        await prisma.$transaction(transactionOps);
-
-        for (const key of cacheKeysToDelete) {
-          questsCache.delete(key);
-        }
-
-        return sucessResponse(
-          { totalClaimed: totalReward, count: claimedCount },
-          `Você coletou ${totalReward} moedas de ${claimedCount} missões!`
-        );
+        const result = await claimQuests(user.id);
+        for (const key of questsCache.keys()) if (key.startsWith(`quest-${user.id}-`)) questsCache.delete(key);
+        return sucessResponse(result, "quests.allClaimed");
       })
   );
 });

@@ -435,6 +435,7 @@ export const en = {
     flipCard: "Flip Card",
     nextCard: "Next Card",
     viewSummary: "View Summary",
+    cards: "Cards",
   },
   albums: {
     title: "Official Albums & Rewards",

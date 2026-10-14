@@ -1,4 +1,5 @@
 'use client'
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -41,6 +42,7 @@ import { useTranslation } from '@/i18n/LanguageContext'
 import { LanguageSwitcher } from './language-switcher'
 
 export function HeaderMenu() {
+  const ui = useUiText();
     const pathname = usePathname()
     const { t } = useTranslation()
     const [isOpen, setIsOpen] = React.useState(false)
@@ -71,21 +73,21 @@ export function HeaderMenu() {
         <header className="sticky font-syne top-0 z-[60] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between pl-4">
                 <Link href="/home" className="flex items-center mr-6">
-                    <img src="/wallpaper.jpg" alt="TCG Logo" className="w-8 h-8 rounded-full object-cover mr-2" />
-                    <span className="font-bold">Pokémon TCG Simulator</span>
+                    <img src="/wallpaper.jpg" alt={ui("TCG Logo")} className="w-8 h-8 rounded-full object-cover mr-2" />
+                    <span className="font-bold text-foreground">SimTCG</span>
                 </Link>
 
                 {/* Desktop Navigation */}
-                <NavigationMenu className="hidden md:flex">
+                <NavigationMenu className="hidden 2xl:flex">
                     <NavigationMenuList>
                         {menuItems.map((item) => (
                             <NavigationMenuItem key={item.name}>
-                                <Link href={item.href} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()} active={pathname === item.href}>
+                                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()} active={pathname === item.href}>
+                                    <Link href={item.href}>
                                         <item.icon className="w-4 h-4 mr-2" />
-                                        {item.name}
-                                    </NavigationMenuLink>
-                                </Link>
+                                        {ui(item.name)}
+                                    </Link>
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                         ))}
                     </NavigationMenuList>
@@ -94,14 +96,14 @@ export function HeaderMenu() {
                 {/* Mobile Navigation */}
                 <Sheet open={isOpen} onOpenChange={setIsOpen}>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden">
+                        <Button variant="ghost" size="icon" className="2xl:hidden">
                             <Menu className="h-5 w-5" />
-                            <span className="sr-only">Esconder Menu</span>
+                            <span className="sr-only"><LocalizedText text={"Menu"} /></span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="right" className=' !z-[9999]'>
+                    <SheetContent side="right" className=' !z-[100]'>
                         <SheetHeader className=' flex flex-col items-center'>
-                            <SheetTitle className=' sr-only'>Menu</SheetTitle>
+                            <SheetTitle className=' sr-only'><LocalizedText text={"Menu"} /></SheetTitle>
                             <Avatar username={username} src={picture} />
                             <h3 className=' text-2xl font-syne'>{username || "Treinador"}</h3>
                             <div className=' flex gap-1 items-center'>
@@ -135,7 +137,7 @@ export function HeaderMenu() {
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <item.icon className="w-4 h-4 mr-2" />
-                                    {item.name}
+                                    {ui(item.name)}
                                 </Link>
                             ))}
                             <Link href="/social" className="flex items-center py-2 px-4 rounded-md hover:bg-accent" onClick={() => setIsOpen(false)}>
@@ -155,7 +157,7 @@ export function HeaderMenu() {
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <item.icon className="w-4 h-4 mr-2" />
-                                    {item.name}
+                                    {ui(item.name)}
                                 </Link>
                             ))}
                         </nav>
@@ -184,7 +186,7 @@ export function HeaderMenu() {
                                         <DropdownMenuItem asChild>
                                             <Link href={item.href}>
                                                 <item.icon className="mr-2 h-4 w-4" />
-                                                <span>{item.name}</span>
+                                                <span>{ui(item.name)}</span>
                                             </Link>
                                         </DropdownMenuItem>
                                         {index === profileItems.length - 2 && <DropdownMenuSeparator />}

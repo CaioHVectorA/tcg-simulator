@@ -1,6 +1,6 @@
 # AGENTS.md — Guia de trabalho
 
-Atualizado em 13/10/2026. Repositório: `CaioHVectorA/tcg-simulator`.
+Atualizado em 14/10/2026. Repositório: `CaioHVectorA/tcg-simulator`.
 
 ## Como usar a documentação
 
@@ -14,7 +14,7 @@ Atualizado em 13/10/2026. Repositório: `CaioHVectorA/tcg-simulator`.
 
 SimTCG é uma experiência de colecionismo Pokémon com moedas virtuais, abertura de pacotes, missões, álbuns, trocas, social e batalhas próprias contra NPCs. Não implemente regras oficiais de TCG ou pagamentos reais por inferência.
 
-- API: `src/index.ts`, Bun, Elysia, Prisma 6 e PostgreSQL/Supabase.
+- API: `src/index.ts` inicializa; `src/app.ts` compõe o app sem abrir porta ao importar. Bun 1.3.5, Elysia, Prisma 6 e PostgreSQL/Supabase.
 - Web: `apps/www`, Next.js 15 App Router, React 19 RC conforme manifests, Tailwind, Radix, TanStack Query v5 e Framer Motion. Confira versões resolvidas no lockfile.
 - Dados: `prisma/schema.prisma`, migrations e seeds; ferramentas em `widgets/`.
 - `apps/mobile` foi descontinuado e removido; não restaurar.
@@ -39,7 +39,7 @@ bun run build
 cd apps/www && bun run build
 ```
 
-`bun run build` na raiz gera o bundle da API; não constrói o frontend. Verifique o resultado, pois `widgets/build.ts` atualmente apenas imprime falhas. Seeds e comandos Prisma que escrevem no banco exigem conhecer o ambiente alvo. Não execute `bun seed`, `prisma db push`, resets ou scripts de benchmark contra produção durante uma revisão. Em produção, use migrations revisadas e backup; `db push` serve somente para desenvolvimento controlado.
+`bun run build` na raiz gera o bundle da API; não constrói o frontend. O script retorna falha ao não conseguir compilar. Seeds e comandos Prisma que escrevem no banco exigem conhecer o ambiente alvo. Não execute `bun seed`, `prisma db push`, resets ou scripts de benchmark contra produção durante uma revisão. Em produção, use migrations revisadas e backup; `db push` serve somente para desenvolvimento controlado.
 
 ## Regras de negócio que devem permanecer
 
@@ -87,3 +87,12 @@ cd apps/www && bun run build
 - Executar `bun test` e build web; validar build API quando afetado. Falhas devem ser explicitadas.
 - Mudanças visuais: claro/escuro e mobile verificados ou limitação relatada.
 - Deploy, migration e publicação não são consequência automática de editar documentação. Nunca subir `main` apenas para sincronizar, pois push dispara deploy.
+
+## Verificação da release
+
+- Integração usa `TCG_TEST_DATABASE_URL` somente em localhost com nome `*_test`; sem essa variável, os testes de integração são ignorados. Não apresentar uma execução sem banco como cobertura de integração.
+- `bun run test:e2e` sobe API 8089 e web 3009 com dados locais. Rodar antes do build web, pois o servidor dev e o build compartilham `.next`.
+- i18n mantém catálogos existentes e `shared/i18n/`. Traduzir conteúdo de sistema, preservando texto dos usuários e valores/IDs usados em filtros e regras. Testar paridade e o fluxo no navegador.
+- Economia usa `operation`, locks ordenados de participantes e chave de idempotência. A chave do cliente deve sobreviver a falhas de resposta incerta; nunca reutilizá-la com payload diferente.
+- JWT inclui `authVersion`; recuperação incrementa a versão e desconecta sockets. Não expor esse campo em DTOs públicos.
+- O banco existente tem drift conhecido; seguir `docs/release/2026-10-14.md`. Nunca executar automaticamente a migração completa ou o patch de schema existente em produção.

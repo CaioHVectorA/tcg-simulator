@@ -25,15 +25,17 @@ export class BoosterBufferService {
       console.log("[BoosterBuffer] 🚀 Inicializando buffer de aberturas pré-geradas...");
       const packages = await prismaClient.package.findMany();
 
-      for (const pkg of packages) {
-        this.buffer.set(pkg.id, []);
-        this.replenishBuffer(pkg, prismaClient).catch((err) =>
-          console.error(`[BoosterBuffer] Erro ao carregar buffer do pacote ${pkg.id}:`, err)
-        );
+      // Warm a bounded batch, sharing the already loaded card cache.
+      for (let offset = 0; offset < packages.length; offset += 4) {
+        await Promise.all(packages.slice(offset, offset + 4).map(async (pkg) => {
+          this.buffer.set(pkg.id, []);
+          await this.replenishBuffer(pkg, prismaClient);
+        }));
       }
       console.log(`[BoosterBuffer] 📦 Buffer registrado para ${packages.length} pacotes.`);
     } catch (err) {
-      console.error("[BoosterBuffer] Falha ao inicializar buffer:", err);
+      this.isInitialized = false;
+      console.error("[BoosterBuffer] Initialization failed");
     }
   }
 
@@ -98,7 +100,7 @@ export class BoosterBufferService {
           }
         }
 
-        if (packCards.length > 0) {
+        if (packCards.length === count) {
           queue.push(packCards);
         }
       }

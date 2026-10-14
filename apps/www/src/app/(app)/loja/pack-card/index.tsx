@@ -1,4 +1,7 @@
 "use client"
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -7,7 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { loadTcgImg } from "@/lib/load-tcg-img"
 import { TcgCardImage } from "@/components/tcg-card-image"
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { useApi } from "@/hooks/use-api"
 import { useQueryClient } from "@tanstack/react-query"
@@ -44,6 +47,7 @@ type CardType = {
 }
 
 function BuyPack({ pack }: { pack: Package }) {
+  const ui = useUiText();
     const [quantity, setQuantity] = useState(1)
     const { addItem } = useKart()
 
@@ -60,9 +64,7 @@ function BuyPack({ pack }: { pack: Package }) {
     return (
         <div className="flex flex-col gap-3 py-2 font-syne">
             <div className="flex flex-col gap-1.5">
-                <Label htmlFor="quantity" className="text-xs font-semibold text-muted-foreground">
-                    Quantidade de pacotes:
-                </Label>
+                <Label htmlFor="quantity" className="text-xs font-semibold text-muted-foreground"> <LocalizedText text={"Quantidade de pacotes:"} /> </Label>
                 <NumberQuantityInput
                     initialValue={quantity}
                     min={1}
@@ -73,7 +75,7 @@ function BuyPack({ pack }: { pack: Package }) {
             </div>
 
             <div className="p-2.5 rounded-xl bg-secondary border border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium">Total:</span>
+                <span className="text-xs text-muted-foreground font-medium"><LocalizedText text={"Total:"} /></span>
                 <div className="flex items-center gap-1 font-bold text-foreground text-base sm:text-lg">
                     <Coins className="size-4 text-amber-500 fill-amber-500/20" />
                     <span>{balanceTranslate(pack.price * quantity)}</span>
@@ -87,7 +89,7 @@ function BuyPack({ pack }: { pack: Package }) {
                     disabled={quantity <= 0}
                 >
                     <ShoppingCart className="size-4" />
-                    <span>Adicionar ao Carrinho</span>
+                    <span><LocalizedText text={"Adicionar ao Carrinho"} /></span>
                 </Button>
             </SheetClose>
         </div>
@@ -148,11 +150,15 @@ export function PackCard({ pack, withDialog = false }: {
     pack: Package,
     withDialog?: boolean
 }) {
+  const ui = useUiText();
     const { t } = useTranslation()
     const [cards, setCards] = useState<CardType[]>([])
     const { get, post, loading, data } = useApi<{ cards: CardType[], pages: number, currentPage: number }>({ cache: true })
     const { post: buyPost, loading: buyLoading } = useApi()
     const qClient = useQueryClient()
+    const { toast } = useToast()
+    const purchaseKey = useRef<string | null>(null)
+    const purchaseInFlight = useRef(false)
     const [hasMore, setHasMore] = useState(true)
     const [lootboxOpen, setLootboxOpen] = useState(false)
     const [buyAndOpenModalOpen, setBuyAndOpenModalOpen] = useState(false)
@@ -162,8 +168,10 @@ export function PackCard({ pack, withDialog = false }: {
     const isStandardPack = !pack.tcg_id
 
     const handleBuyAndOpen = async () => {
+        if (purchaseInFlight.current) return;
+        purchaseInFlight.current = true;
         try {
-            const key = generateUUID();
+            const key = purchaseKey.current ||= generateUUID();
             const res = await buyPost("/store/checkout?key=" + key, {
                 items: [{ type: 'package', id: pack.id, name: pack.name, price: pack.price, quantity: 1 }]
             });
@@ -172,7 +180,7 @@ export function PackCard({ pack, withDialog = false }: {
                 qClient.invalidateQueries({ queryKey: ["packages"] });
                 // Create a UserPackage to pass to the opening modal
                 const userPack: UserPackage = {
-                    id: res.data?.data?.packageUserIds?.[0] ?? pack.id,
+                    id: pack.id,
                     name: pack.name,
                     image_url: pack.image_url,
                     tcg_id: pack.tcg_id,
@@ -182,10 +190,12 @@ export function PackCard({ pack, withDialog = false }: {
                 };
                 setBuyAndOpenPack(userPack);
                 setBuyAndOpenModalOpen(true);
+                purchaseKey.current = null;
             }
         } catch (err) {
-            console.error("Buy and open error:", err);
-        }
+            if (axios.isAxiosError(err) && err.response && err.response.status < 500) purchaseKey.current = null;
+            toast({ title: t("common.error"), description: axios.isAxiosError(err) ? err.response?.data?.toast || t("common.error") : t("common.error"), variant: "destructive" });
+        } finally { purchaseInFlight.current = false; }
     };
 
     const next = async () => {
@@ -216,7 +226,7 @@ export function PackCard({ pack, withDialog = false }: {
                                     <button
                                         type="button"
                                         className="size-7 rounded-full bg-black/65 hover:bg-black/90 backdrop-blur-md border border-white/20 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-all duration-150 shadow-md hover:scale-110 active:scale-95 cursor-pointer"
-                                        title="Informações e Detalhes"
+                                        title={ui("Informações e Detalhes")}
                                         aria-label={`Informações sobre ${pack.name}`}
                                     >
                                         <Info className="size-3.5" />
@@ -229,11 +239,10 @@ export function PackCard({ pack, withDialog = false }: {
                                 >
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between border-b border-border/60 pb-1.5 gap-2">
-                                            <span className="font-bold text-sm text-foreground truncate">{pack.name}</span>
+                                            <span className="font-bold text-sm text-foreground truncate">{ui(pack.name)}</span>
                                             {pack.cards_quantity ? (
                                                 <Badge variant="outline" className="text-[10px] font-mono py-0 px-1.5 border-primary/40 text-primary shrink-0">
-                                                    {pack.cards_quantity} cartas
-                                                </Badge>
+                                                    {pack.cards_quantity} <LocalizedText text={"cartas"} /> </Badge>
                                             ) : null}
                                         </div>
                                         <p className="text-muted-foreground text-xs leading-relaxed font-sans">
@@ -241,16 +250,13 @@ export function PackCard({ pack, withDialog = false }: {
                                         </p>
                                         {isStandardPack && (
                                             <div className="flex items-center justify-between pt-1 text-[11px] font-mono text-amber-500 font-bold border-t border-border/40">
-                                                <span className="text-muted-foreground font-sans text-[10px]">Custo:</span>
+                                                <span className="text-muted-foreground font-sans text-[10px]"><LocalizedText text={"Custo:"} /></span>
                                                 <span className="flex items-center gap-1">
-                                                    <Coins className="size-3" /> {balanceTranslate(pack.price)} moedas
-                                                </span>
+                                                    <Coins className="size-3" /> {balanceTranslate(pack.price)} <LocalizedText text={"moedas"} /> </span>
                                             </div>
                                         )}
                                         {isThematic && (
-                                            <div className="pt-1 text-[10px] text-purple-400 font-sans italic border-t border-border/40">
-                                                Depósito personalizado até 100.000 moedas com proteção anti-duplicatas!
-                                            </div>
+                                            <div className="pt-1 text-[10px] text-purple-400 font-sans italic border-t border-border/40"> <LocalizedText text={"Depósito personalizado até 100.000 moedas com proteção anti-duplicatas!"} /> </div>
                                         )}
                                     </div>
                                 </PopoverContent>
@@ -263,14 +269,14 @@ export function PackCard({ pack, withDialog = false }: {
                             </div>
                         ) : (
                             <div className="w-full h-full relative flex items-center justify-center">
-                                <BoosterPackArt 
-                                    name={pack.name} 
-                                    logoUrl={loadTcgImg(pack.image_url)} 
-                                    showCrimp={true} 
+                                <BoosterPackArt
+                                    name={pack.name}
+                                    logoUrl={loadTcgImg(pack.image_url)}
+                                    showCrimp={true}
                                 />
                                 <div className="absolute top-2 left-2 bg-purple-950/90 border border-purple-500/50 text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-md z-20 backdrop-blur-xs">
                                     <Sparkles className="size-3 text-purple-400" />
-                                    <span>Personalizado</span>
+                                    <span><LocalizedText text={"Personalizado"} /></span>
                                 </div>
                             </div>
                         )}
@@ -278,18 +284,17 @@ export function PackCard({ pack, withDialog = false }: {
 
                     <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-1 mb-1.5">
-                            <h3 className="font-bold text-xs sm:text-sm text-foreground truncate" title={pack.name}>
-                                {pack.name}
+                            <h3 className="font-bold text-xs sm:text-sm text-foreground truncate" title={ui(pack.name)}>
+                                {ui(pack.name)}
                             </h3>
                             {pack.cards_quantity && (
                                 <span className="text-[10px] text-muted-foreground font-mono shrink-0">
-                                    {pack.cards_quantity} cartas
-                                </span>
+                                    {pack.cards_quantity} <LocalizedText text={"cartas"} /> </span>
                             )}
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground font-medium">
-                                {isThematic ? "A partir de" : "Preço"}
+                                {isThematic ? ui("A partir de") : ui("Preço")}
                             </span>
                             <div className="flex items-center gap-1 font-mono font-bold text-foreground text-xs sm:text-sm">
                                 <Coins className="size-3.5 text-amber-500 fill-amber-500/20 shrink-0" />
@@ -308,7 +313,7 @@ export function PackCard({ pack, withDialog = false }: {
                                 size="sm"
                             >
                                 <Sparkles className="size-3.5 shrink-0" />
-                                <span>{t("store.customOpen") || "Personalizar & Abrir"}</span>
+                                <span>{t("store.customOpen") || ui("Personalizar & Abrir")}</span>
                             </Button>
                             <ThematicLootboxDialog
                                 open={lootboxOpen}
@@ -330,7 +335,7 @@ export function PackCard({ pack, withDialog = false }: {
                                         <SheetHeader>
                                             <SheetTitle className="font-bold text-base sm:text-lg flex items-center gap-2 text-foreground">
                                                 <PackageIcon className="size-4 sm:size-5 text-primary" />
-                                                <span className="truncate">{t("store.buy")} {pack.name}</span>
+                                                <span className="truncate">{t("store.buy")} {ui(pack.name)}</span>
                                             </SheetTitle>
                                             <SheetDescription className="text-xs">
                                                 {t("store.chooseQuantity")}
@@ -380,21 +385,19 @@ export function PackCard({ pack, withDialog = false }: {
                                     variant="outline"
                                     size="sm"
                                     className="border-border font-semibold text-[11px] sm:text-xs h-8 sm:h-9 px-2 sm:px-3 shrink-0"
-                                    title="Ver Cartas"
+                                    title={ui("Ver Cartas")}
                                 >
                                     <Eye className="size-3.5 shrink-0 sm:mr-1" />
-                                    <span className="hidden sm:inline">Cartas</span>
+                                    <span className="hidden sm:inline"><LocalizedText text={"Cartas"} /></span>
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="w-[92vw] sm:max-w-3xl max-h-[85vh] flex flex-col font-syne bg-background border-border text-foreground p-4 sm:p-6 rounded-2xl">
                                 <DialogHeader>
                                     <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
                                         <Sparkles className="size-4 sm:size-5 text-amber-500 shrink-0" />
-                                        <span className="truncate">Cartas em {pack.name}</span>
+                                        <span className="truncate"><LocalizedText text={"Cartas em"} /> {ui(pack.name)}</span>
                                     </DialogTitle>
-                                    <DialogDescription className="text-xs">
-                                        Lista de cartas disponíveis neste booster pack.
-                                    </DialogDescription>
+                                    <DialogDescription className="text-xs"> <LocalizedText text={"Lista de cartas disponíveis neste booster pack."} /> </DialogDescription>
                                 </DialogHeader>
 
                                 <div className="flex-1 overflow-y-auto pr-1">
@@ -413,7 +416,7 @@ export function PackCard({ pack, withDialog = false }: {
                                                 >
                                                     <TcgCardImage
                                                         src={card.image_url}
-                                                        alt={card.name}
+                                                        alt={ui(card.name)}
                                                         className="w-full h-full object-contain"
                                                     />
                                                 </div>

@@ -43,7 +43,9 @@ export async function runRankingSync() {
       }),
     ]);
 
-    await Promise.all(updatePromises);
+    for (let offset = 0; offset < updatePromises.length; offset += 8) {
+      await Promise.all(updatePromises.slice(offset, offset + 8));
+    }
     console.log(`[RankingCron] Ranking atualizado com sucesso (3x/dia)! Horário: ${new Date().toISOString()}`);
   } catch (err) {
     console.error("[RankingCron] Erro ao sincronizar ranking:", err);

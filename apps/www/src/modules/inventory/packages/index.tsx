@@ -12,19 +12,18 @@ import { useTranslation } from "@/i18n/LanguageContext";
 export function InventoryPage({
   data: initialData,
 }: {
-  data: UserPackage[];
-}) {
+  data?: UserPackage[];
+} = {}) {
   const { t } = useTranslation();
   const { get } = useApi();
-  const { data = [] } = useQuery<UserPackage[]>({
+  const { data = [], isPending, isError, refetch } = useQuery<UserPackage[]>({
     initialData,
     queryKey: ["packages"],
     queryFn: async () => {
       const res = await get("/packages");
       return res.data.data ?? res.data ?? [];
     },
-    refetchOnMount: "always",
-    staleTime: 0,
+    staleTime: 60_000,
   });
 
   return (
@@ -45,8 +44,9 @@ export function InventoryPage({
         </div>
       </div>
 
+      {isError && <div role="alert" className="mb-4">{t("common.networkError")} <Button onClick={() => refetch()}>{t("Try again")}</Button></div>}
       <div className="mb-12">
-        {data.length > 0 ? (
+        {isPending ? <div className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-busy="true">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />)}</div> : data.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {data.map((pack, index) => (
               <PackageCard key={pack.id + index} pack={pack} />

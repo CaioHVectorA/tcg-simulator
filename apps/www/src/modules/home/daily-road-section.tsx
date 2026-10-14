@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useApi } from "@/hooks/use-api";
@@ -55,6 +56,7 @@ function formatCountdown(ms: number, readyText: string) {
 }
 
 export function DailyRoadSection() {
+  const ui = useUiText();
   const { t } = useTranslation();
   const { get, post } = useApi();
   const { toast } = useToast();
@@ -196,8 +198,8 @@ export function DailyRoadSection() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 bg-secondary/50 p-3.5 sm:p-4 rounded-2xl border border-border">
           <div className="flex items-center gap-3">
             <div className={`size-12 rounded-xl flex items-center justify-center shrink-0 border ${
-              isReady 
-                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30" 
+              isReady
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30"
                 : "bg-muted text-muted-foreground border-border"
             }`}>
               <Gift className={`size-6 ${isReady ? "animate-bounce" : ""}`} />
@@ -210,8 +212,7 @@ export function DailyRoadSection() {
                 <Coins className="size-4 text-amber-500 fill-amber-500/20" />
                 <span>+{balanceTranslate(todayReward?.coins || 1000)}</span>
                 {todayReward?.packName && (
-                  <span className="text-xs text-primary font-bold ml-1">
-                    + 1x {todayReward.packName}
+                  <span className="text-xs text-primary font-bold ml-1"> <LocalizedText text={"+ 1x"} /> {ui(todayReward.packName)}
                   </span>
                 )}
               </div>
@@ -262,7 +263,7 @@ export function DailyRoadSection() {
             size="icon"
             onClick={() => scrollRoad("left")}
             className="size-8 rounded-lg border-border"
-            title="Scroll left"
+            title={ui("Scroll left")}
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -271,7 +272,7 @@ export function DailyRoadSection() {
             size="icon"
             onClick={() => scrollRoad("right")}
             className="size-8 rounded-lg border-border"
-            title="Scroll right"
+            title={ui("Scroll right")}
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -349,12 +350,11 @@ export function DailyRoadSection() {
               {/* Nome do Booster ou Título */}
               <div className="pt-2 border-t border-border/60 text-center">
                 {reward.packName ? (
-                  <span className="text-[10px] font-bold text-primary truncate block" title={reward.packName}>
-                    🎁 1x {reward.packName}
+                  <span className="text-[10px] font-bold text-primary truncate block" title={ui(reward.packName)}> <LocalizedText text={"🎁 1x"} /> {ui(reward.packName)}
                   </span>
                 ) : (
                   <span className="text-[10px] text-muted-foreground truncate block font-sans">
-                    {reward.title}
+                    {ui(reward.title)}
                   </span>
                 )}
               </div>

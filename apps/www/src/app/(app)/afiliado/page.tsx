@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import { Avatar } from "@/components/avatar"
 import { LoadingRing } from "@/components/loading-spinner"
@@ -24,6 +25,7 @@ type Referral = {
 }
 
 function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
+  const ui = useUiText();
     const { post } = useApi()
     const qClient = useQueryClient()
     const { mutate } = useMutation({
@@ -42,15 +44,9 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 snap-start">
                     <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nome
-                        </th>
-                        <th scope="col" className="px-6 max-md:hidden py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Pontos de Raridade
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
-                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> <LocalizedText text={"Nome"} /> </th>
+                        <th scope="col" className="px-6 max-md:hidden py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> <LocalizedText text={"Pontos de Raridade"} /> </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> <LocalizedText text={"Ações"} /> </th>
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 h-40">
@@ -64,11 +60,11 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
                                 <div className="text-lg font-syne font-medium text-gray-900">{referral.username}</div>
                             </td>
                             <td className="px-6 py-4 max-md:hidden whitespace-nowrap">
-                                <div className="text-sm text-gray-500 font-syne">{referral.referredRarity} Pontos</div>
+                                <div className="text-sm text-gray-500 font-syne">{referral.referredRarity} <LocalizedText text={"Pontos"} /></div>
                             </td>
                             <td className="px-6 whitespace-nowrap">
-                                <Button onClick={() => mutate(referral.id)} disabled={referral.redeemed} className="rounded-full font-syne text-sm" size={'sm'}>
-                                    {referral.redeemed ? 'Resgatado' : 'Resgatar'}
+                                <Button onClick={() => mutate(referral.id)} disabled={referral.redeemed} className="rounded-full font-syne text-sm" size={"sm"}>
+                                    {referral.redeemed ? ui('Resgatado') : ui('Resgatar')}
                                 </Button>
                             </td>
                         </tr>
@@ -79,6 +75,7 @@ function TableReferral({ referrals }: { referrals: Referral['referrals'] }) {
     )
 }
 export default function Affiliate() {
+  const ui = useUiText();
     const { get, post } = useApi()
     const qClient = useQueryClient()
     const { data, isLoading } = useQuery<Referral>({
@@ -109,22 +106,20 @@ export default function Affiliate() {
             <div className="">
                 {!data ? (
                     <div className=" mt-6 flex flex-col items-center">
-                        <h2 className=" font-syne text-4xl text-right">
-                            Convide seus amigos, ganhe moedas!
-                        </h2>
-                        <h3 className=" font-syne text-3xl text-center">Comece agora!</h3>
-                        <p className="font-syne text-xl text-center mt-2">Está gostando da experiência? Por que não chama seus amigos para colecionar cartas com você?</p>
-                        <Button onClick={() => mutate()} className=" mt-12 rounded-full font-syne text-xl" size={'lg'}>Criar link de afiliado</Button>
+                        <h2 className=" font-syne text-4xl text-right"> <LocalizedText text={"Convide seus amigos, ganhe moedas!"} /> </h2>
+                        <h3 className=" font-syne text-3xl text-center"><LocalizedText text={"Comece agora!"} /></h3>
+                        <p className="font-syne text-xl text-center mt-2"><LocalizedText text={"Está gostando da experiência? Por que não chama seus amigos para colecionar cartas com você?"} /></p>
+                        <Button onClick={() => mutate()} className=" mt-12 rounded-full font-syne text-xl" size={"lg"}><LocalizedText text={"Criar link de afiliado"} /></Button>
                     </div>
                 ) : (
                     <div>
-                        <h3 className=" font-syne mt-8 text-3xl text-center">Seu link de afiliado</h3>
-                        <p className=" font-syne text-xl text-center mt-2">Compartilhe este link com seus amigos e comece a ganhar moedas!</p>
+                        <h3 className=" font-syne mt-8 text-3xl text-center"><LocalizedText text={"Seu link de afiliado"} /></h3>
+                        <p className=" font-syne text-xl text-center mt-2"><LocalizedText text={"Compartilhe este link com seus amigos e comece a ganhar moedas!"} /></p>
                         <div className=" mt-12 flex">
                             <input type="text" disabled value={`${window.location.origin}/entrar?referrer=${data.hash}`} className=" w-full text-black/50 p-2 border rounded-l-full" />
-                            <Button onClick={handleCopy} className="rounded-r-full font-syne text-xl" size={'lg'}>Copiar</Button>
+                            <Button onClick={handleCopy} className="rounded-r-full font-syne text-xl" size={"lg"}><LocalizedText text={"Copiar"} /></Button>
                         </div>
-                        <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-64 mx-auto mt-4 object-cover" />
+                        <img src="/afiliate.png" alt={ui("Dois amigos apertando suas mãos")} className="w-64 mx-auto mt-4 object-cover" />
                     </div>
                 )}
             </div>
@@ -136,16 +131,16 @@ export default function Affiliate() {
             ) : (
                 <>
                     {!data ? (
-                        <img src="/afiliate.png" alt="Dois amigos apertando suas mãos" className="w-full mx-auto mt-4 object-cover" />
+                        <img src="/afiliate.png" alt={ui("Dois amigos apertando suas mãos")} className="w-full mx-auto mt-4 object-cover" />
                     ) : (
                         <div>
-                            <h3 className=" font-syne mt-8 text-3xl text-center">Seus convidados</h3>
+                            <h3 className=" font-syne mt-8 text-3xl text-center"><LocalizedText text={"Seus convidados"} /></h3>
                             {data.referrals.length === 0 ? (
                                 <Card className=" mt-4">
                                     <CardHeader>
-                                        <CardTitle className=" text-xl font-syne">Você ainda não convidou ninguém</CardTitle>
+                                        <CardTitle className=" text-xl font-syne"><LocalizedText text={"Você ainda não convidou ninguém"} /></CardTitle>
                                     </CardHeader>
-                                    <CardDescription className=" text-center font-syne mb-8">Compartilhe seu link de afiliado e comece a ganhar moedas convidando seus amigos!</CardDescription>
+                                    <CardDescription className=" text-center font-syne mb-8"><LocalizedText text={"Compartilhe seu link de afiliado e comece a ganhar moedas convidando seus amigos!"} /></CardDescription>
                                 </Card>
                             ) : (
                                 <TableReferral referrals={data.referrals} />

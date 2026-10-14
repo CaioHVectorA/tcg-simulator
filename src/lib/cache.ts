@@ -10,7 +10,8 @@ interface CacheEntry<T> {
 }
 
 class InMemoryCache {
-  private store = new Map<string, CacheEntry<any>>();
+  private store = new Map<string, CacheEntry<unknown>>();
+  private pending = new Map<string, Promise<unknown>>();
 
   get<T>(key: string): T | null {
     const entry = this.store.get(key);
@@ -31,10 +32,12 @@ class InMemoryCache {
 
   delete(key: string): void {
     this.store.delete(key);
+    this.pending.delete(key);
   }
 
   clear(): void {
     this.store.clear();
+    this.pending.clear();
   }
 
   async getOrSet<T>(key: string, fetcher: () => Promise<T>, ttlMs: number): Promise<T> {
@@ -42,9 +45,15 @@ class InMemoryCache {
     if (cached !== null) {
       return cached;
     }
-    const freshData = await fetcher();
-    this.set(key, freshData, ttlMs);
-    return freshData;
+    const existing = this.pending.get(key);
+    if (existing) return existing as Promise<T>;
+    const task = Promise.resolve().then(fetcher).then((data) => {
+      if (this.pending.get(key) === task) this.set(key, data, ttlMs);
+      return data;
+    });
+    this.pending.set(key, task);
+    try { return await task; }
+    finally { if (this.pending.get(key) === task) this.pending.delete(key); }
   }
 }
 

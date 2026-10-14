@@ -1,4 +1,5 @@
 "use client"
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -27,12 +28,13 @@ function calcPercentage(original: number, sale: number) {
 }
 
 export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional, isPurchased?: boolean }) {
+  const ui = useUiText();
     const { addItem, kart, removeItem } = useKart()
     const isInKart = kart.some(item => (item.id === card.id && item.type === 'card'))
     const discountPercent = calcPercentage(card.original_price, card.price)
 
     return (
-        <motion.li 
+        <motion.li
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={isPurchased ? {} : { y: -3 }}
@@ -44,17 +46,17 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                     <div className="size-7 sm:size-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mb-1">
                         <Lock className="size-3.5 sm:size-4" />
                     </div>
-                    <h3 className="text-foreground font-bold text-xs sm:text-sm">Adquirido</h3>
+                    <h3 className="text-foreground font-bold text-xs sm:text-sm"><LocalizedText text={"Adquirido"} /></h3>
                 </div>
             )}
 
             <Card className="overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 rounded-xl flex flex-col justify-between h-full">
                 <div>
                     <div className="relative aspect-[1/1.35] overflow-hidden bg-secondary/50">
-                        <TcgCardImage 
-                            src={card.card.image_url} 
-                            alt={card.card.name} 
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                        <TcgCardImage
+                            src={card.card.image_url}
+                            alt={ui(card.card.name)}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
 
                         {/* Discount Badge */}
@@ -67,7 +69,7 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
 
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1.5 sm:p-2 text-white">
                             <p className="font-semibold text-[11px] sm:text-xs tracking-wide line-clamp-1">
-                                {card.card.name}
+                                {ui(card.card.name)}
                             </p>
                         </div>
                     </div>
@@ -88,8 +90,8 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                 </div>
 
                 <CardFooter className="p-2 sm:p-3 pt-0">
-                    <Button 
-                        disabled={isPurchased} 
+                    <Button
+                        disabled={isPurchased}
                         variant={isInKart ? "secondary" : "default"}
                         size="sm"
                         onClick={() => {
@@ -105,7 +107,7 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                                     quantity: 1
                                 })
                             }
-                        }} 
+                        }}
                         className="w-full font-bold text-[11px] sm:text-xs h-8 sm:h-9 px-2 gap-1"
                     >
                         {isPurchased ? (
@@ -113,12 +115,12 @@ export function FlashSaleCard({ card, isPurchased = false }: { card: Promotional
                         ) : isInKart ? (
                             <>
                                 <Check className="size-3 sm:size-3.5 shrink-0" />
-                                <span className="truncate">No Carrinho</span>
+                                <span className="truncate"><LocalizedText text={"No Carrinho"} /></span>
                             </>
                         ) : (
                             <>
                                 <ShoppingCart className="size-3 sm:size-3.5 shrink-0" />
-                                <span>Adicionar</span>
+                                <span><LocalizedText text={"Adicionar"} /></span>
                             </>
                         )}
                     </Button>

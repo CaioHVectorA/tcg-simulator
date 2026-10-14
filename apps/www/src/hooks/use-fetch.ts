@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { useApi } from "./use-api";
 
 export const useFetch = (url: string) => {
-  // const {  } = useApi
-  const { get, data, loading, setData } = useApi();
+  const { get, data, loading, error, setData } = useApi();
   useEffect(() => {
-    get(url);
-  }, [url]);
-  return { data, loading, setData };
+    // useApi owns error state; cleanup cancellation must also be consumed.
+    void get(url).catch(() => {});
+  }, [url, get]);
+  return { data, loading, error, setData };
 };

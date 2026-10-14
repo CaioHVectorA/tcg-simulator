@@ -1,0 +1,48 @@
+name: Validate
+on:
+  pull_request:
+  push:
+    branches: [agents, main]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tcg_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tcg_test
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/tcg_test
+      TCG_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tcg_test
+      SECRET_JWT: ci-only-jwt-secret-with-at-least-32-characters
+      NEXTAUTH_SECRET: ci-only-nextauth-secret-with-at-least-32-characters
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8089
+      API_URL: http://127.0.0.1:8089
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3009
+      NEXTAUTH_URL: http://127.0.0.1:3009
+      DISABLE_BACKGROUND_JOBS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile
+      - run: bun x prisma generate
+      - run: bun x prisma migrate deploy
+      - run: bun test
+      - run: bun run typecheck
+      - run: bun run build
+      - run: docker build -t simtcg:ci .
+      - run: cd apps/www && bun run build
+      - run: bun x playwright install --with-deps chromium
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-evidence
+          path: test-results/

@@ -13,4 +13,5 @@ const b = await Bun.build({
 if (!b.success) {
   console.log(b.logs.join("\n"));
   console.log("Build failed");
+  process.exit(1);
 }

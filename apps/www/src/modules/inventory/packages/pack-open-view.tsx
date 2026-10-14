@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,7 @@ const RARITY_COLORS: Record<number, { glow: string; text: string; label: string;
 };
 
 function PokemonCardBack() {
+  const ui = useUiText();
   return (
     <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 p-2.5 shadow-2xl border-4 border-amber-600/70 flex items-center justify-center relative overflow-hidden select-none">
       <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent pointer-events-none" />
@@ -34,15 +36,14 @@ function PokemonCardBack() {
             <div className="w-3.5 h-3.5 rounded-full bg-slate-200 border border-slate-400 animate-pulse" />
           </div>
         </div>
-        <span className="font-syne font-extrabold text-[11px] tracking-widest text-amber-400/80 uppercase mt-4">
-          POKÉMON TCG
-        </span>
+        <span className="font-syne font-extrabold text-[11px] tracking-widest text-amber-400/80 uppercase mt-4"> <LocalizedText text={"POKÉMON TCG"} /> </span>
       </div>
     </div>
   );
 }
 
 export function PackOpenView({ cards }: PackOpenViewProps) {
+  const ui = useUiText();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -119,14 +120,12 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
       <div className="flex items-center justify-between z-10">
         <Button variant="ghost" asChild className="text-slate-400 hover:text-white">
           <Link href="/inventario">
-            <ArrowLeft className="size-4 mr-2" /> Voltar ao Inventário
-          </Link>
+            <ArrowLeft className="size-4 mr-2" /> <LocalizedText text={"Voltar ao Inventário"} /> </Link>
         </Button>
 
         {!isCompleted && (
           <div className="flex items-center gap-3">
-            <span className="text-xs sm:text-sm font-semibold text-slate-300 font-mono">
-              Carta {currentIndex + 1} de {cards.length}
+            <span className="text-xs sm:text-sm font-semibold text-slate-300 font-mono"> <LocalizedText text={"Carta"} /> {currentIndex + 1} <LocalizedText text={"de"} /> {cards.length}
             </span>
             <div className="flex gap-1">
               {cards.map((_, idx) => (
@@ -181,9 +180,7 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                 >
                   <PokemonCardBack />
                   <div className="absolute inset-0 bg-white/5 hover:bg-white/10 transition-colors flex items-end justify-center pb-6">
-                    <span className="bg-slate-900/90 border border-amber-400/50 text-amber-300 font-bold text-xs px-3 py-1 rounded-full shadow-lg animate-bounce">
-                      👆 Clique para Revelar
-                    </span>
+                    <span className="bg-slate-900/90 border border-amber-400/50 text-amber-300 font-bold text-xs px-3 py-1 rounded-full shadow-lg animate-bounce"> <LocalizedText text={"👆 Clique para Revelar"} /> </span>
                   </div>
                 </div>
 
@@ -205,7 +202,7 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                 >
                   <TcgCardImage
                     src={currentCard.image_url}
-                    alt={currentCard.name}
+                    alt={ui(currentCard.name)}
                     className="w-full h-full object-cover rounded-2xl"
                   />
 
@@ -231,11 +228,11 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                   className="flex flex-col items-center gap-2"
                 >
                   <Badge variant="outline" className={`${rarityConfig.badge} font-mono text-xs px-3 py-0.5 rounded-full`}>
-                    {rarityConfig.label}
+                    {ui(rarityConfig.label)}
                   </Badge>
 
                   <h3 className="text-2xl sm:text-3xl font-black text-white">
-                    {currentCard.name}
+                    {ui(currentCard.name)}
                   </h3>
 
                   <Button
@@ -244,13 +241,10 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                     onClick={() => setInspectCard(currentCard)}
                     className="text-xs text-amber-300 hover:text-amber-200 hover:bg-white/10"
                   >
-                    <Eye className="size-3.5 mr-1" /> Inspecionar 3D com Foil
-                  </Button>
+                    <Eye className="size-3.5 mr-1" /> <LocalizedText text={"Inspecionar 3D com Foil"} /> </Button>
                 </motion.div>
               ) : (
-                <p className="text-sm text-slate-400 font-mono animate-pulse">
-                  Clique na carta para revelar...
-                </p>
+                <p className="text-sm text-slate-400 font-mono animate-pulse"> <LocalizedText text={"Clique na carta para revelar..."} /> </p>
               )}
             </div>
           </motion.div>
@@ -265,35 +259,28 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
               <div className="inline-flex items-center justify-center p-3 bg-amber-500/20 text-amber-400 rounded-full mb-3 border border-amber-500/30">
                 <Trophy className="size-8" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-black text-white">
-                Todas as Cartas Reveladas! 🎉
-              </h2>
+              <h2 className="text-3xl sm:text-4xl font-black text-white"> <LocalizedText text={"Todas as Cartas Reveladas! 🎉"} /> </h2>
               <p className="text-sm text-slate-400 mt-1">
-                {cards.length} cartas foram salvas diretamente na sua coleção.
-              </p>
+                {cards.length} <LocalizedText text={"cartas foram salvas diretamente na sua coleção."} /> </p>
             </div>
 
             {/* Badges de Destaque */}
             <div className="flex flex-wrap items-center justify-center gap-3">
               {legendariesCount > 0 && (
                 <Badge variant="outline" className="border-rose-500/40 bg-rose-500/10 text-rose-300 font-mono px-3 py-1">
-                  👑 {legendariesCount} Lendárias
-                </Badge>
+                  👑 {legendariesCount} <LocalizedText text={"Lendárias"} /> </Badge>
               )}
               {mythicsCount > 0 && (
                 <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono px-3 py-1">
-                  ✨ {mythicsCount} Místicas
-                </Badge>
+                  ✨ {mythicsCount} <LocalizedText text={"Místicas"} /> </Badge>
               )}
               {epicsCount > 0 && (
                 <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 font-mono px-3 py-1">
-                  💎 {epicsCount} Épicas
-                </Badge>
+                  💎 {epicsCount} <LocalizedText text={"Épicas"} /> </Badge>
               )}
               {raresCount > 0 && (
                 <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-300 font-mono px-3 py-1">
-                  ⭐ {raresCount} Raras
-                </Badge>
+                  ⭐ {raresCount} <LocalizedText text={"Raras"} /> </Badge>
               )}
             </div>
 
@@ -307,13 +294,13 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
                 >
                   <TcgCardImage
                     src={card.image_url}
-                    alt={card.name}
+                    alt={ui(card.name)}
                     className="w-full h-full object-cover rounded-xl"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
-                    <span className="text-xs font-bold text-white truncate">{card.name}</span>
+                    <span className="text-xs font-bold text-white truncate">{ui(card.name)}</span>
                     <span className="text-[10px] text-amber-300 font-mono">
-                      {RARITY_COLORS[card.rarity || 1]?.label}
+                      {ui(RARITY_COLORS[card.rarity || 1]?.label)}
                     </span>
                   </div>
                 </div>
@@ -331,27 +318,23 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
               variant="ghost"
               onClick={handleRevealAll}
               className="text-xs text-slate-400 hover:text-white"
-            >
-              Revelar Todas
-            </Button>
+            > <LocalizedText text={"Revelar Todas"} /> </Button>
 
             <div className="flex items-center gap-3">
               {!isFlipped ? (
                 <Button
                   onClick={handleFlip}
                   className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6"
-                >
-                  Virar Carta
-                </Button>
+                > <LocalizedText text={"Virar Carta"} /> </Button>
               ) : (
                 <Button
                   onClick={handleNext}
                   className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-6"
                 >
                   {currentIndex < cards.length - 1 ? (
-                    <>Próxima Carta <ArrowRight className="size-4 ml-1.5" /></>
+                    <><LocalizedText text={"Próxima Carta"} /> <ArrowRight className="size-4 ml-1.5" /></>
                   ) : (
-                    <>Ver Resumo <CheckCircle2 className="size-4 ml-1.5" /></>
+                    <><LocalizedText text={"Ver Resumo"} /> <CheckCircle2 className="size-4 ml-1.5" /></>
                   )}
                 </Button>
               )}
@@ -360,10 +343,10 @@ export function PackOpenView({ cards }: PackOpenViewProps) {
         ) : (
           <div className="w-full flex items-center justify-between">
             <Button variant="outline" asChild className="border-slate-700 text-slate-300">
-              <Link href="/inventario">Voltar ao Inventário</Link>
+              <Link href="/inventario"><LocalizedText text={"Voltar ao Inventário"} /></Link>
             </Button>
             <Button asChild className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold">
-              <Link href="/colecao">Ver na Coleção</Link>
+              <Link href="/colecao"><LocalizedText text={"Ver na Coleção"} /></Link>
             </Button>
           </div>
         )}

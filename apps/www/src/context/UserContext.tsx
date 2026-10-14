@@ -3,6 +3,7 @@ import { LoadingRing } from "@/components/loading-spinner";
 // context/UserContext.tsx
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
+import { getCookie } from "@/lib/cookies";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
@@ -10,7 +11,6 @@ type User = {
     username: string;
     email: string;
     id: string,
-    password: string,
     createdAt: string,
     updatedAt: string,
     money: number,
@@ -36,7 +36,8 @@ export function getCachedUser(): Partial<User> | null {
 export function setCachedUser(user: Partial<User>) {
     if (typeof window === "undefined") return;
     try {
-        const prev = getCachedUser() || {};
+        const cached = getCachedUser();
+        const prev = cached && (!user.id || user.id === cached.id) ? cached : {};
         const toCache = {
             ...prev,
             id: user.id ?? prev.id,
@@ -59,7 +60,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const { push } = useRouter()
 
     // Use cached user data for instant render (prevents NaN/wrong avatar on F5)
-    const cachedUser = getCachedUser();
+    const [cachedUser, setCachedDisplay] = useState<Partial<User> | null>(null);
+    useEffect(() => { if (getCookie("token")) setCachedDisplay(getCachedUser()); }, []);
 
     const { isLoading, data: user } = useQuery({
         queryKey: ['user'],
@@ -68,6 +70,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 const response = await get("/user/me")
                 if (response.status === 401) {
                     push('/entrar')
+                    localStorage.removeItem(USER_CACHE_KEY);
                     return null
                 }
                 const userData = response.data?.data ?? response.data;

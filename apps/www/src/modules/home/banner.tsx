@@ -1,3 +1,4 @@
+import { LocalizedText } from "@/i18n/localized-text";
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
@@ -32,8 +33,7 @@ export function Banner({
                                         <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
                                         <p>{item.description}</p>
                                         {item.anchor && <Button size={'lg'} className=' my-2 font-syne' asChild>
-                                            <Link href={item.anchor}>Acesse agora!
-                                                <ExternalLink />
+                                            <Link href={item.anchor}><LocalizedText text={"Acesse agora!"} /> <ExternalLink />
                                             </Link>
 
                                         </Button>}
@@ -48,8 +48,8 @@ export function Banner({
                                 <CardContent className="flex aspect-video items-center justify-center p-6">
                                     <div className="text-center min-h-full w-full">
                                         <img src="https://via.placeholder.com/400x200" alt="Placeholder" className="w-8/12 mx-auto aspect-video object-cover mb-4 rounded-md" />
-                                        <h3 className="text-xl font-semibold mb-2">Banner</h3>
-                                        <p>Descrição do banner</p>
+                                        <h3 className="text-xl font-semibold mb-2"><LocalizedText text={"Banner"} /></h3>
+                                        <p><LocalizedText text={"Descrição do banner"} /></p>
                                     </div>
                                 </CardContent>
                             </Card>
