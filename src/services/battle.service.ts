@@ -321,7 +321,7 @@ export class BattleService {
       });
     })();
 
-    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp * 10 });
 
     return { simulation, toastMessage };
     });
@@ -419,7 +419,7 @@ export class BattleService {
       });
     })();
 
-    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp });
+    const toastMessage = translate("battle.reward", locale, { coins: simulation.rewardCoins, xp: simulation.rewardXp * 10 });
 
     return { simulation, toastMessage };
     });
