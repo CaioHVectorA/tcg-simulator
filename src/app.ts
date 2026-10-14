@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import { DomainError } from "./lib/domain-error";
 import { rateLimit } from "./lib/rate-limit";
 import { getLocaleFromHeaders, localizeResponse } from "./i18n";
@@ -42,7 +43,7 @@ export const app = new Elysia({
   //@ts-ignore
   serve: { idleTimeout: 30 },
 })
-  .use(staticPlugin())
+  .use(existsSync("public") && readdirSync("public").length > 0 ? staticPlugin() : new Elysia())
   .use(helmet())
   .use(jwt)
   .use(

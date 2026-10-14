@@ -24,10 +24,11 @@ for (const locale of locales) {
     await expect(page).toHaveURL(/\/home/);
     await page.goto('/inventario');
     await expect(page.locator('body')).not.toContainText('inventory.');
-    const responsePromise=page.waitForResponse(r=>r.url().endsWith('/packages')&&r.request().method()==='GET');
+    await expect(page.getByRole('button', {name:translateText('inventory.openOne',locale.code as Locale),exact:true})).toBeVisible();
+    const inventoryPromise=page.waitForResponse(r=>r.url().endsWith('/packages')&&r.request().method()==='GET').then(response=>response.json());
     // Reload reads inventory; navigation itself must never consume a pack.
     await page.reload();
-    const inventory=await (await responsePromise).json();
+    const inventory=await inventoryPromise;
     const pack=inventory.data[0]; expect(pack.quantity).toBe(5);
     await page.getByRole('button', {name:translateText('inventory.openOne',locale.code as Locale),exact:true}).click();
     const dialog=page.getByRole('dialog');
