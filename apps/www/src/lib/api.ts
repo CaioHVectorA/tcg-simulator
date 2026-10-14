@@ -1,8 +1,7 @@
 import axios, { AxiosError } from "axios";
 
-const configuredURL = process.env.NEXT_PUBLIC_API_URL;
-if (process.env.NODE_ENV === "production" && !configuredURL) throw new Error("NEXT_PUBLIC_API_URL is required in production");
-const baseURL = configuredURL || "http://localhost:8080";
+import { resolveApiEndpoint } from "./api-endpoint";
+const baseURL = resolveApiEndpoint(process.env.NEXT_PUBLIC_API_URL);
 export const API_URL = baseURL;
 export const WS_URL = baseURL.replace(/^http/, "ws");
 

@@ -1,10 +1,11 @@
 "use server";
+import { resolveApiEndpoint } from "@/lib/api-endpoint";
 import { Resend } from "resend";
 import { cookies } from "next/headers";
 export async function reportError(formData: FormData) {
   const description = formData.get("description");
   const token = (await cookies()).get("token")?.value;
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+  const apiUrl = resolveApiEndpoint(process.env.API_URL || process.env.NEXT_PUBLIC_API_URL);
   if (!token || !apiUrl || typeof description !== "string" || description.trim().length < 10 || description.length > 2000 || !process.env.RESEND_KEY || !process.env.REPORT_FROM || !process.env.REPORT_TO) return { success: false };
   try {
     const session = await fetch(`${apiUrl}/user/me`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(5000) });

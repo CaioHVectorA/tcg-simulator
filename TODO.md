@@ -59,3 +59,9 @@ Atualizado em 14/10/2026. `[x]` indica implementação com a evidência especifi
 ## Evidência de publicação
 
 Em 14/10, banco real foi preparado com backup/restauração da aplicação em cópia PostgreSQL 17, patch transacional e baseline conferido. Fly está ativo em uma máquina, com readiness 200 e CORS confirmado. Smoke real de entrada/primeira abertura/replay passou e sua conta temporária foi removida. Monitor externo, domínio personalizado, Resend/OAuth real e demais fluxos de produção continuam pendentes conforme os itens acima.
+
+## Correção de login publicado
+
+- [x] Investigar o endereço real informado pelo proprietário: `tcg-alpha.vercel.app`; liberar essa origem no Fly.
+- [x] Cobrir a regressão de produção apontando a API para localhost; compartilhar resolução entre convidado/cliente e troca Google no servidor.
+- [ ] Confirmar a correção no navegador da web publicada após deploy e validar Google com uma identidade real. Os testes locais/da API anteriores não comprovavam a configuração do frontend hospedado.
