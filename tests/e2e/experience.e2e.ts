@@ -117,3 +117,15 @@ test('authenticated mobile navigation, focus and rejected purchase feedback', as
   await page.setViewportSize({width:1280,height:900});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('guest login shows a connection error for an HTML response', async ({page,context}) => {
+  await context.addCookies([{name:'tcg_locale',value:'en',url:'http://127.0.0.1:3009'}]);
+  await page.route('**/auth/guest',route=>route.fulfill({status:404,contentType:'text/html',body:'<!doctype html><html><body>Not found</body></html>'}));
+  await page.goto('/entrar');
+  await page.getByRole('tab').last().click();
+  await page.locator('input').first().fill('HTML_response_test');
+  await page.getByRole('button',{name:'Play now',exact:true}).click();
+  await expect(page.locator('body')).toContainText(translateText('Não foi possível conectar ao servidor.','en'));
+  await expect(page).toHaveURL(/\/entrar/);
+  await expect(page.getByRole('button',{name:'Play now',exact:true})).toBeEnabled();
+});
