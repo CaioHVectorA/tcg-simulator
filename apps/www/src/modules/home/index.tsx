@@ -27,6 +27,7 @@ import { getCookie } from '@/lib/cookies'
 import { motion } from 'framer-motion'
 import { soundFx } from '@/lib/sound-fx'
 import { useTranslation } from '@/i18n/LanguageContext'
+import { StarterOnboarding } from './starter-onboarding'
 
 type HomeData = {
   banners: {
@@ -76,6 +77,8 @@ export function HomePage() {
     <div className="container mx-auto px-4 py-6 sm:py-8 space-y-8 max-w-6xl font-sans">
       {/* Header do Usuário */}
       <HeaderHome />
+
+      <StarterOnboarding />
 
       {/* Estrada de Ganho Diário Ampliada (Daily Road) */}
       <DailyRoadSection />
