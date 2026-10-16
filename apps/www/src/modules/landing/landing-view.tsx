@@ -1,13 +1,14 @@
 "use client";
 import { LocalizedText, useUiText } from "@/i18n/localized-text";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BoosterPackArt } from "@/components/booster-pack-art";
 import { soundFx } from "@/lib/sound-fx";
+import { resolveApiEndpoint } from "@/lib/api-endpoint";
 import {
   Sparkles,
   ArrowRight,
@@ -96,6 +97,8 @@ const SHOWCASE_CARDS = [
 ];
 
 export function LandingView({ isLoggedIn }: LandingViewProps) {
+  const [proof, setProof] = useState<{ cards: number; trainers: number; trades: number } | null>(null);
+  useEffect(() => { fetch(`${resolveApiEndpoint(undefined, true)}/public/proof`).then(r => r.json()).then(r => setProof(r?.data?.data ?? r?.data ?? null)).catch(() => undefined); }, []);
   const ui = useUiText();
   const [activePack, setActivePack] = useState("Pacote lendário");
 
@@ -286,6 +289,14 @@ export function LandingView({ isLoggedIn }: LandingViewProps) {
               </div>
             </div>
           </motion.div>
+        </section>
+
+        <section className="container mx-auto px-4 pb-4">
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card/50 p-4 text-center sm:grid-cols-3">
+            <div><strong className="block font-syne text-2xl text-amber-500">{proof ? proof.cards.toLocaleString('pt-BR') : '—'}</strong><span className="text-xs text-muted-foreground">cartas no catálogo</span></div>
+            <div><strong className="block font-syne text-2xl text-purple-500">{proof ? proof.trainers.toLocaleString('pt-BR') : '—'}</strong><span className="text-xs text-muted-foreground">treinadores registrados</span></div>
+            <div><strong className="block font-syne text-2xl text-emerald-500">{proof ? proof.trades.toLocaleString('pt-BR') : '—'}</strong><span className="text-xs text-muted-foreground">trocas públicas abertas</span></div>
+          </div>
         </section>
 
         {/* RECURSOS & FUNCIONALIDADES MODERNAS */}

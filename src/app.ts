@@ -34,6 +34,7 @@ import { notificationController } from "./controller/notification.controller";
 import { albumController } from "./controller/album.controller";
 import { battleController } from "./controller/battle.controller";
 import { onboardingController } from "./controller/onboarding.controller";
+import { publicProofController } from "./controller/public-proof.controller";
 import { wsManager } from "./lib/ws-manager";
 import { jwt } from "./middlewares/jwt/jwt";
 import { warmupCardsCache } from "./lib/open-package";
@@ -152,6 +153,7 @@ export const app = new Elysia({
   .use(bannerController)
   .use(homeController)
   .use(onboardingController)
+  .use(publicProofController)
   .use(rankingController)
   .use(storeController)
   .use(referralController)
