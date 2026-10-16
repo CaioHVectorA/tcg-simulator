@@ -23,9 +23,10 @@ export const onboardingController = new Elysia({}).group("/onboarding", (app) =>
     .post("/starter", async ({ user, body, set }) => {
       const owned = await prisma.cards_user.count({ where: { userId: user.id } });
       if (owned > 0) return sucessResponse({ completed: true }, "Sua jornada já começou.");
-      const card = await prisma.card.findFirst({ where: { id: body.cardId, rarity: 4 }, select: { id: true } });
-      if (!card) { set.status = 400; return errorResponse("Escolha um inicial válido.", "Escolha um inicial válido."); }
-      await prisma.cards_user.create({ data: { userId: user.id, cardId: card.id } });
-      return sucessResponse({ completed: true, cardId: card.id }, "Seu inicial entrou na coleção!");
-    }, { body: t.Object({ cardId: t.Integer({ minimum: 1 }) }) })
+      const ids = [...new Set(body.cardIds)];
+      const cards = await prisma.card.findMany({ where: { id: { in: ids }, rarity: 4 }, select: { id: true, type: true } });
+      if (ids.length !== 3 || cards.length !== 3 || new Set(cards.map(card => card.type)).size !== 3) { set.status = 400; return errorResponse("Escolha três iniciais de tipos diferentes.", "Escolha três iniciais de tipos diferentes."); }
+      await prisma.cards_user.createMany({ data: cards.map(card => ({ userId: user.id, cardId: card.id })) });
+      return sucessResponse({ completed: true, cardIds: cards.map(card => card.id) }, "Seu trio inicial entrou na coleção!");
+    }, { body: t.Object({ cardIds: t.Array(t.Integer({ minimum: 1 }), { minItems: 3, maxItems: 3 }) }) })
 );

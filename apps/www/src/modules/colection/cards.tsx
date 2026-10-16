@@ -304,7 +304,7 @@ export function Cards({
           <button
             type="button"
             onClick={() => handleViewChange("albums")}
-            className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-300 group ${
+            className={`hidden sm:block relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-300 group ${
               currentView === "albums"
                 ? "bg-gradient-to-br from-card via-card to-amber-500/10 border-amber-500 shadow-xl shadow-amber-500/10 ring-2 ring-amber-500/40"
                 : "bg-card/50 hover:bg-card border-border hover:border-border/80 opacity-75 hover:opacity-100"

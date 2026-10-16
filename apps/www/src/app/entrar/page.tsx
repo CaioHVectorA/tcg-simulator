@@ -92,12 +92,14 @@ const LoginForm = ({ onSubmit, loading }: {
 const CheckAuth = ({ referrer }: { referrer: string | null }) => {
   const ui = useUiText();
     const { status, data } = useSession();
+    const [exchangeLoading, setExchangeLoading] = useState(false);
     const alreadyToast = React.useRef(false);
     const { push } = useRouter()
     const { toast } = useToast();
 
     useEffect(() => {
         if (status === "authenticated" && !alreadyToast.current) {
+            setExchangeLoading(true);
             toast({
                 title: "Conectando conta Google...",
                 description: "Preparando seus dados de treinador",
@@ -113,6 +115,7 @@ const CheckAuth = ({ referrer }: { referrer: string | null }) => {
                     setCookie('token', token, 7);
                     push('/home');
                 } else {
+                    setExchangeLoading(false);
                     toast({
                         title: "Erro ao conectar conta Google",
                         description: ui(response.data.toast || response.data.error || "Tente novamente mais tarde"),
@@ -121,13 +124,15 @@ const CheckAuth = ({ referrer }: { referrer: string | null }) => {
                 }
             }
             loginGoogle().catch(() => {
+                setExchangeLoading(false);
                 alreadyToast.current = false;
                 toast({ title: "Erro ao conectar conta Google", variant: "destructive" });
             })
         }
     }, [status]);
 
-    return null;
+    if (!exchangeLoading) return null;
+    return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 px-6 backdrop-blur-md"><div className="rounded-2xl border border-border bg-card px-6 py-5 text-center shadow-2xl"><LoaderSimple /><p className="mt-3 font-syne text-sm font-bold">{ui("Conectando sua conta Google...")}</p><p className="mt-1 text-xs text-muted-foreground">{ui("Estamos preparando sua coleção")}</p></div></div>;
 }
 
 const RegisterForm = ({ onSubmit, referrer, loading }: {
